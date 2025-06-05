@@ -7,6 +7,7 @@ import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import DrawerAppBar from './components/AppBar';
 import CollapsibleTable from './components/CollapsableTable';
+import CircularLoading from './components/Loading';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 const darkTheme = createTheme({
@@ -155,6 +156,7 @@ async function fetchData() {
 
 export default function App() {
   const [futuresData, setFuturesData] = React.useState([])
+  const [filteredData, setFilteredData] = React.useState([])
   const [exchanges, setExchanges] = React.useState([])
   const [lastUpdated, setLastUpdated] = React.useState([])
 
@@ -163,9 +165,9 @@ export default function App() {
       const dataArr = await fetchData();
       setExchanges(dataArr[0]);
       setFuturesData(dataArr[1]);
+      setFilteredData(dataArr[1])
       setLastUpdated(dataArr[2]);
     };
-
     loadData();
   }, []);
   
@@ -174,14 +176,16 @@ export default function App() {
       {futuresData.length > 0 && exchanges.length > 0 ? (
         <ThemeProvider theme={darkTheme}>
           <div className="app-js-container">
-            <DrawerAppBar reportDate={lastUpdated}/>
+            <DrawerAppBar futuresData={futuresData} setFilteredData={setFilteredData} reportDate={lastUpdated}/>
             <div style={{ paddingTop: '90px', width: "100%" }}>
-              <CollapsibleTable futuresData={futuresData} exchanges={exchanges} />
+              <CollapsibleTable futuresData={filteredData} exchanges={exchanges} />
             </div>
           </div>
         </ThemeProvider>
       ) : (
-        <div></div>
+        <div style={{display: "flex", alignContent: "center", justifyContent: "center", height: "100vh"}}>
+          <CircularLoading />
+        </div>
       )}
     </>   
   );

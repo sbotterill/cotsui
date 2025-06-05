@@ -13,6 +13,15 @@ export default function DrawerAppBar(props) {
     day: 'numeric'
   });
 
+  const handleFuturesFilter = (event) => {
+    const filtered = props.futuresData.filter(row =>
+      row.commodity
+        .toLowerCase()
+        .includes(event.target.value.trim().toLowerCase())
+    );
+
+    props.setFilteredData(filtered)
+  }
 
   return (
     <AppBar sx={{background: 'background.paper', borderBottom: '1px solid #444'}} elevation={1} component="div">
@@ -24,7 +33,7 @@ export default function DrawerAppBar(props) {
         >
           COTS UI
         </Typography>
-        <TextField sx={{width: "250px", marginRight: "15px"}} size='small' id="outlined-basic" label="Search" variant="outlined" InputLabelProps={{ style: { color: 'inherit' } }} InputProps={{ style: { color: 'inherit' } }} />
+        <TextField onChange={handleFuturesFilter} sx={{width: "250px", marginRight: "15px"}} size='small' id="outlined-basic" label="Search" variant="outlined" InputLabelProps={{ style: { color: 'inherit' } }} InputProps={{ style: { color: 'inherit' } }} />
         <div style={{fontStyle: "italic", fontSize: "12px", color: "#0000052"}}>{`Last Updated: ${readable}`}</div>
       </Toolbar>
     </AppBar>
