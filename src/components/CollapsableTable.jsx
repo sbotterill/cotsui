@@ -68,7 +68,13 @@ function Row(props) {
         <TableCell style={{ padding: 0 }} colSpan={22}>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <Box sx={{ margin: "0", overflowX: 'auto' }}>
-              <Table size="small" aria-label="details">
+              <Table sx={{
+                    borderCollapse: 'separate',
+                    borderSpacing: 0,
+                  }}
+                  size="small" 
+                  aria-label="details"
+                >
                 <TableHead>
                   <TableRow sx={{ backgroundColor: (theme) => theme.palette.grey[900] }}>
                     <TableCell rowSpan={2}>Commodity</TableCell>
@@ -101,9 +107,33 @@ function Row(props) {
                 <TableBody>
                   {filteredData.map((dataRow) => (
                     <TableRow key={dataRow.commodity} sx={{
-                      '&:nth-of-type(odd)': (theme) => ({
+                      '& td': {
+                        borderTop: '1px solid transparent',
+                        borderBottom: '1px solid transparent',
+                        borderRight: '1px solid transparent',
+                      },
+                      '& td:first-of-type': {
+                        borderLeft: '4px solid transparent',
+                      },
+                      '&:nth-of-type(odd) td': (theme) => ({
                         backgroundColor: theme.palette.mode === 'dark' ? '#2a2a2a' : '#f5f5f5',
-                      })
+                      }),
+                      '&:nth-of-type(even) td': (theme) => ({
+                        backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#ffffff',
+                      }),
+                      '&:hover td': (theme) => ({
+                        backgroundColor: theme.palette.mode === 'dark' ? '#3c3c3c' : '#e0e0e0',
+                        borderTop: '1px solid #ffff99',
+                        borderBottom: '1px solid #ffff99',
+                        borderRight: '1px solid #ffff99',
+                        cursor: "default"
+                      }),
+                      '&:hover td:first-of-type': {
+                        borderLeft: '4px solid #ffff99',
+                      },
+                      '&:hover td:last-of-type': {
+                        borderRight: '4px solid #ffff99',
+                      },
                     }}>
                       <TableCell>{dataRow.commodity}</TableCell>
 
