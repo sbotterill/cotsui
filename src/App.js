@@ -7,8 +7,8 @@ import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import DrawerAppBar from './components/AppBar';
 import CollapsibleTable from './components/CollapsableTable';
-import CircularLoading from './components/Loading';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import SigninPage from './components/SigninPage';
 
 const darkTheme = createTheme({
   palette: {
@@ -159,6 +159,7 @@ export default function App() {
   const [filteredData, setFilteredData] = React.useState([])
   const [exchanges, setExchanges] = React.useState([])
   const [lastUpdated, setLastUpdated] = React.useState([])
+  const [authorized, setAuthorization] = React.useState(false)
 
   React.useEffect(() => {
     const loadData = async () => {
@@ -173,7 +174,7 @@ export default function App() {
   
   return (
     <>
-      {futuresData.length > 0 && exchanges.length > 0 ? (
+      {authorized && futuresData.length > 0 && exchanges.length > 0 ? (
         <ThemeProvider theme={darkTheme}>
           <div className="app-js-container">
             <DrawerAppBar futuresData={futuresData} setFilteredData={setFilteredData} reportDate={lastUpdated}/>
@@ -183,9 +184,7 @@ export default function App() {
           </div>
         </ThemeProvider>
       ) : (
-        <div style={{display: "flex", alignContent: "center", justifyContent: "center", height: "100vh"}}>
-          <CircularLoading />
-        </div>
+        <SigninPage setAuthorization={setAuthorization}/>
       )}
     </>   
   );
