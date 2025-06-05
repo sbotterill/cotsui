@@ -7,6 +7,7 @@ import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import DrawerAppBar from './components/AppBar';
 import CollapsibleTable from './components/CollapsableTable';
+import CircularLoading from './components/Loading';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 const darkTheme = createTheme({
@@ -181,7 +182,9 @@ export default function App() {
           </div>
         </ThemeProvider>
       ) : (
-        <div></div>
+        <div style={{display: "flex", alignContent: "center", justifyContent: "center", height: "100vh"}}>
+          <CircularLoading />
+        </div>
       )}
     </>   
   );
