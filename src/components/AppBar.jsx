@@ -14,7 +14,13 @@ export default function DrawerAppBar(props) {
   });
 
   const handleFuturesFilter = (event) => {
-    
+    const filtered = props.futuresData.filter(row =>
+      row.commodity
+        .toLowerCase()
+        .includes(event.target.value.trim().toLowerCase())
+    );
+
+    props.setFilteredData(filtered)
   }
 
   return (

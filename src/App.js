@@ -168,7 +168,6 @@ export default function App() {
       setFilteredData(dataArr[1])
       setLastUpdated(dataArr[2]);
     };
-
     loadData();
   }, []);
   
