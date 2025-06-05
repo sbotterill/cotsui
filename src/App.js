@@ -156,6 +156,7 @@ async function fetchData() {
 
 export default function App() {
   const [futuresData, setFuturesData] = React.useState([])
+  const [filteredData, setFilteredData] = React.useState([])
   const [exchanges, setExchanges] = React.useState([])
   const [lastUpdated, setLastUpdated] = React.useState([])
 
@@ -164,6 +165,7 @@ export default function App() {
       const dataArr = await fetchData();
       setExchanges(dataArr[0]);
       setFuturesData(dataArr[1]);
+      setFilteredData(dataArr[1])
       setLastUpdated(dataArr[2]);
     };
 
@@ -175,9 +177,9 @@ export default function App() {
       {futuresData.length > 0 && exchanges.length > 0 ? (
         <ThemeProvider theme={darkTheme}>
           <div className="app-js-container">
-            <DrawerAppBar reportDate={lastUpdated}/>
+            <DrawerAppBar futuresData={futuresData} setFilteredData={setFilteredData} reportDate={lastUpdated}/>
             <div style={{ paddingTop: '90px', width: "100%" }}>
-              <CollapsibleTable futuresData={futuresData} exchanges={exchanges} />
+              <CollapsibleTable futuresData={filteredData} exchanges={exchanges} />
             </div>
           </div>
         </ThemeProvider>
