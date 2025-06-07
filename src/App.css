@@ -7,3 +7,15 @@ html {
   flex-direction: column;
   align-items: center;
 }
+
+#filter-menu ul {
+  display: flex;
+  flex-direction: column;
+}
+
+.appbar-context-menu{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}

@@ -1,4 +1,6 @@
+// src/components/CollapsableTable.jsx
 import * as React from 'react';
+import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Collapse from '@mui/material/Collapse';
 import IconButton from '@mui/material/IconButton';
@@ -11,6 +13,7 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import FavoriteButton from './FavoriteButton';
 
 function formatPercentage(value) {
   return value != null
@@ -19,17 +22,16 @@ function formatPercentage(value) {
 }
 
 function getPercentageColor(value) {
-  const percent = Number(value);
-  if (isNaN(percent)) return 'inherit';
-
-  if (percent < 0.5) {
-    const ratio = percent / 0.5;
+  const pct = Number(value);
+  if (isNaN(pct)) return 'inherit';
+  if (pct < 0.5) {
+    const ratio = pct / 0.5;
     const r = Math.round(128 + (170 - 128) * ratio);
     const g = Math.round(0 + (85 - 0) * ratio);
     const b = Math.round(128 + (255 - 128) * ratio);
     return `rgb(${r}, ${g}, ${b})`;
   } else {
-    const ratio = (percent - 0.5) / 0.5;
+    const ratio = (pct - 0.5) / 0.5;
     const r = Math.round(170 + (0 - 170) * ratio);
     const g = Math.round(85 + (128 - 85) * ratio);
     const b = Math.round(255 + (255 - 255) * ratio);
@@ -37,311 +39,160 @@ function getPercentageColor(value) {
   }
 }
 
-function Row(props) {
+// Inlined “Row” from before:
+function Row({ name, data, favorites, onToggleFavorite }) {
   const [open, setOpen] = React.useState(false);
-  const formatter = new Intl.NumberFormat('en-US');
-
-  const filteredData = props.data.filter((dataRow) =>
-    props.name.includes(dataRow.market_code.trim())
-  );
-
-  if (filteredData.length === 0) return null;
+  const theme = useTheme();
+  const fmt = new Intl.NumberFormat('en-US');
+  const rows = data.filter(d => name.includes(d.market_code.trim()));
+  if (!rows.length) return null;
 
   return (
     <React.Fragment>
       <TableRow
-        onClick={() => setOpen(!open)}
+        onClick={() => setOpen(o => !o)}
         sx={{
           cursor: 'pointer',
-          '&:nth-of-type(odd)': (theme) => ({
-            backgroundColor:
-              theme.palette.mode === 'dark' ? '#1e1e1e' : '#f9f9f9',
-          }),
+          '&:nth-of-type(odd)': {
+            backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#f9f9f9',
+          },
         }}
       >
-        <TableCell sx={{ width: '50px', borderBottom: 'none' }}>
+        <TableCell sx={{ width: 50, borderBottom: 'none' }}>
           <IconButton
-            aria-label="expand row"
             size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpen(!open);
-            }}
+            onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
           >
             {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
           </IconButton>
         </TableCell>
         <TableCell sx={{ fontWeight: 'bold', borderBottom: 'none' }} colSpan={21}>
-          {props.name}
+          {name}
         </TableCell>
       </TableRow>
 
       <TableRow>
-        <TableCell style={{ padding: 0 }} colSpan={22}>
+        <TableCell colSpan={22} sx={{ p: 0 }}>
           <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ margin: 0, overflowX: 'auto' }}>
-              <Table
-                sx={{
-                  borderCollapse: 'separate',
-                  borderSpacing: 0,
-                }}
-                size="small"
-                aria-label="details"
-              >
+            <Box sx={{ overflowX: 'auto' }}>
+              <Table size="small" aria-label="details" sx={{ borderCollapse: 'separate', borderSpacing: 0 }}>
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: (theme) => theme.palette.grey[900] }}>
-                    <TableCell rowSpan={2}>Commodity</TableCell>
-                    <TableCell colSpan={6} align="center">
-                      Commercial
-                    </TableCell>
-                    <TableCell colSpan={6} align="center">
-                      Non-commercial
-                    </TableCell>
-                    <TableCell colSpan={6} align="center">
-                      Non-reportable
-                    </TableCell>
+                  <TableRow sx={{ backgroundColor: theme.palette.grey[900] }}>
+                    <TableCell rowSpan={2} sx={{ color: '#fff' }}>Commodity</TableCell>
+                    <TableCell colSpan={6} align="center" sx={{ color: '#fff' }}>Commercial</TableCell>
+                    <TableCell colSpan={6} align="center" sx={{ color: '#fff' }}>Non-commercial</TableCell>
+                    <TableCell colSpan={6} align="center" sx={{ color: '#fff' }}>Non-reportable</TableCell>
                   </TableRow>
-                  <TableRow>
-                    {['Long', 'Change', 'Short', 'Change', 'Total', '% Long'].map(
-                      (label, idx) => (
-                        <TableCell
-                          key={`commercial-${label}-${idx}`}
-                          sx={
-                            idx === 5
-                              ? { borderRight: (theme) => `2px solid ${theme.palette.divider}` }
-                              : {}
-                          }
-                        >
-                          {label}
-                        </TableCell>
-                      )
-                    )}
-                    {['Long', 'Change', 'Short', 'Change', 'Total', '% Long'].map(
-                      (label, idx) => (
-                        <TableCell
-                          key={`non-commercial-${label}-${idx}`}
-                          sx={
-                            idx === 5
-                              ? { borderRight: (theme) => `2px solid ${theme.palette.divider}` }
-                              : {}
-                          }
-                        >
-                          {label}
-                        </TableCell>
-                      )
-                    )}
-                    {['Long', 'Change', 'Short', 'Change', 'Total', '% Long'].map(
-                      (label, idx) => (
-                        <TableCell key={`non-reportable-${label}-${idx}`}>
-                          {label}
-                        </TableCell>
-                      )
-                    )}
+                  <TableRow sx={{ backgroundColor: theme.palette.grey[900] }}>
+                    {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
+                      <TableCell
+                        key={`h1-${i}`}
+                        sx={{
+                          color: '#fff',
+                          ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {})
+                        }}
+                      >
+                        {lbl}
+                      </TableCell>
+                    ))}
+                    {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
+                      <TableCell
+                        key={`h2-${i}`}
+                        sx={{
+                          color: '#fff',
+                          ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {})
+                        }}
+                      >
+                        {lbl}
+                      </TableCell>
+                    ))}
+                    {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
+                      <TableCell key={`h3-${i}`} sx={{ color: '#fff' }}>{lbl}</TableCell>
+                    ))}
                   </TableRow>
                 </TableHead>
-
                 <TableBody>
-                  {filteredData.map((dataRow) => (
+                  {rows.map(r => (
                     <TableRow
-                      key={dataRow.commodity}
+                      key={r.commodity}
                       sx={{
-                        '& td': {
-                          borderTop: '1px solid transparent',
-                          borderBottom: '1px solid transparent',
-                          borderRight: '1px solid transparent',
+                        '& td': { border: 'none' },
+                        '&:nth-of-type(odd) td': {
+                          backgroundColor: theme.palette.mode === 'dark' ? '#2a2a2a' : '#f5f5f5',
                         },
-                        '& td:first-of-type': {
-                          borderLeft: '4px solid transparent',
+                        '&:nth-of-type(even) td': {
+                          backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#ffffff',
                         },
-                        '&:nth-of-type(odd) td': (theme) => ({
-                          backgroundColor:
-                            theme.palette.mode === 'dark' ? '#2a2a2a' : '#f5f5f5',
-                        }),
-                        '&:nth-of-type(even) td': (theme) => ({
-                          backgroundColor:
-                            theme.palette.mode === 'dark' ? '#1e1e1e' : '#ffffff',
-                        }),
-                        '&:hover td': (theme) => ({
-                          backgroundColor:
-                            theme.palette.mode === 'dark' ? '#3c3c3c' : '#e0e0e0',
+                        '&:hover td': {
+                          backgroundColor: theme.palette.mode === 'dark' ? '#3c3c3c' : '#e0e0e0',
                           borderTop: '1px solid #ffff99',
                           borderBottom: '1px solid #ffff99',
                           borderRight: '1px solid #ffff99',
                           cursor: 'default',
-                        }),
-                        '&:hover td:first-of-type': {
-                          borderLeft: '4px solid #ffff99',
                         },
-                        '&:hover td:last-of-type': {
-                          borderRight: '4px solid #ffff99',
-                        },
+                        '&:hover td:first-of-type': { borderLeft: '4px solid #ffff99' },
+                        '&:hover td:last-of-type':  { borderRight:'4px solid #ffff99' },
                       }}
                     >
-                      <TableCell>{dataRow.commodity}</TableCell>
-
+                      <TableCell>
+                        <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                          {r.commodity}
+                          <FavoriteButton
+                            initial={favorites.includes(r.commodity)}
+                            onToggle={() => onToggleFavorite(r.commodity)}
+                          />
+                        </Box>
+                      </TableCell>
                       {/* Commercial */}
-                      <TableCell align="right">
-                        {dataRow.commerical_long != null
-                          ? formatter.format(dataRow.commerical_long)
-                          : '-'}
+                      <TableCell align="right">{fmt.format(r.commerical_long)}</TableCell>
+                      <TableCell align="right" sx={{ color: r.commerical_long_change < 0 ? 'red' : 'green' }}>
+                        {fmt.format(r.commerical_long_change)}
                       </TableCell>
+                      <TableCell align="right">{fmt.format(r.commerical_short)}</TableCell>
+                      <TableCell align="right" sx={{ color: r.commerical_short_change < 0 ? 'red' : 'green' }}>
+                        {fmt.format(r.commerical_short_change)}
+                      </TableCell>
+                      <TableCell align="right">{fmt.format(r.commerical_total)}</TableCell>
                       <TableCell
                         align="right"
                         sx={{
-                          color:
-                            dataRow.commerical_long_change < 0 ? 'red' : 'green',
+                          color: getPercentageColor(r.commerical_percentage_long),
+                          borderRight: `2px solid ${theme.palette.divider}`,
                         }}
                       >
-                        {dataRow.commerical_long_change != null
-                          ? formatter.format(dataRow.commerical_long_change)
-                          : '-'}
+                        {formatPercentage(r.commerical_percentage_long)}
                       </TableCell>
-                      <TableCell align="right">
-                        {dataRow.commerical_short != null
-                          ? formatter.format(dataRow.commerical_short)
-                          : '-'}
-                      </TableCell>
-                      <TableCell
-                        align="right"
-                        sx={{
-                          color:
-                            dataRow.commerical_short_change < 0 ? 'red' : 'green',
-                        }}
-                      >
-                        {dataRow.commerical_short_change != null
-                          ? formatter.format(dataRow.commerical_short_change)
-                          : '-'}
-                      </TableCell>
-                      <TableCell align="right">
-                        {dataRow.commerical_total != null
-                          ? formatter.format(dataRow.commerical_total)
-                          : '-'}
-                      </TableCell>
-                      <TableCell
-                        align="right"
-                        sx={{
-                          color: getPercentageColor(
-                            dataRow.commerical_percentage_long
-                          ),
-                          borderRight: (theme) =>
-                            `2px solid ${theme.palette.divider}`,
-                        }}
-                      >
-                        {formatPercentage(dataRow.commerical_percentage_long)}
-                      </TableCell>
-
                       {/* Non-commercial */}
-                      <TableCell align="right">
-                        {dataRow.non_commercial_long != null
-                          ? formatter.format(dataRow.non_commercial_long)
-                          : '-'}
+                      <TableCell align="right">{fmt.format(r.non_commercial_long)}</TableCell>
+                      <TableCell align="right" sx={{ color: r.non_commercial_long_change < 0 ? 'red' : 'green' }}>
+                        {fmt.format(r.non_commercial_long_change)}
                       </TableCell>
+                      <TableCell align="right">{fmt.format(r.non_commercial_short)}</TableCell>
+                      <TableCell align="right" sx={{ color: r.non_commercial_short_change < 0 ? 'red' : 'green' }}>
+                        {fmt.format(r.non_commercial_short_change)}
+                      </TableCell>
+                      <TableCell align="right">{fmt.format(r.non_commercial_total)}</TableCell>
                       <TableCell
                         align="right"
                         sx={{
-                          color:
-                            dataRow.non_commercial_long_change < 0
-                              ? 'red'
-                              : 'green',
+                          color: getPercentageColor(r.non_commercial_percentage_long),
+                          borderRight: `2px solid ${theme.palette.divider}`,
                         }}
                       >
-                        {dataRow.non_commercial_long_change != null
-                          ? formatter.format(dataRow.non_commercial_long_change)
-                          : '-'}
+                        {formatPercentage(r.non_commercial_percentage_long)}
                       </TableCell>
-                      <TableCell align="right">
-                        {dataRow.non_commercial_short != null
-                          ? formatter.format(dataRow.non_commercial_short)
-                          : '-'}
-                      </TableCell>
-                      <TableCell
-                        align="right"
-                        sx={{
-                          color:
-                            dataRow.non_commercial_short_change < 0
-                              ? 'red'
-                              : 'green',
-                        }}
-                      >
-                        {dataRow.non_commercial_short_change != null
-                          ? formatter.format(dataRow.non_commercial_short_change)
-                          : '-'}
-                      </TableCell>
-                      <TableCell align="right">
-                        {dataRow.non_commercial_total != null
-                          ? formatter.format(dataRow.non_commercial_total)
-                          : '-'}
-                      </TableCell>
-                      <TableCell
-                        align="right"
-                        sx={{
-                          color: getPercentageColor(
-                            dataRow.non_commercial_percentage_long
-                          ),
-                          borderRight: (theme) =>
-                            `2px solid ${theme.palette.divider}`,
-                        }}
-                      >
-                        {formatPercentage(dataRow.non_commercial_percentage_long)}
-                      </TableCell>
-
                       {/* Non-reportable */}
-                      <TableCell align="right">
-                        {dataRow.non_reportable_long != null
-                          ? formatter.format(dataRow.non_reportable_long)
-                          : '-'}
+                      <TableCell align="right">{fmt.format(r.non_reportable_long)}</TableCell>
+                      <TableCell align="right" sx={{ color: r.non_reportable_long_change < 0 ? 'red' : 'green' }}>
+                        {fmt.format(r.non_reportable_long_change)}
                       </TableCell>
-                      <TableCell
-                        align="right"
-                        sx={{
-                          color:
-                            dataRow.non_reportable_long_change < 0
-                              ? 'red'
-                              : 'green',
-                        }}
-                      >
-                        {dataRow.non_reportable_long_change != null
-                          ? formatter.format(
-                              dataRow.non_reportable_long_change
-                            )
-                          : '-'}
+                      <TableCell align="right">{fmt.format(r.non_reportable_short)}</TableCell>
+                      <TableCell align="right" sx={{ color: r.non_reportable_short_change < 0 ? 'red' : 'green' }}>
+                        {fmt.format(r.non_reportable_short_change)}
                       </TableCell>
-                      <TableCell align="right">
-                        {dataRow.non_reportable_short != null
-                          ? formatter.format(dataRow.non_reportable_short)
-                          : '-'}
-                      </TableCell>
-                      <TableCell
-                        align="right"
-                        sx={{
-                          color:
-                            dataRow.non_reportable_short_change < 0
-                              ? 'red'
-                              : 'green',
-                        }}
-                      >
-                        {dataRow.non_reportable_short_change != null
-                          ? formatter.format(
-                              dataRow.non_reportable_short_change
-                            )
-                          : '-'}
-                      </TableCell>
-                      <TableCell align="right">
-                        {dataRow.non_reportable_total != null
-                          ? formatter.format(dataRow.non_reportable_total)
-                          : '-'}
-                      </TableCell>
-                      <TableCell
-                        align="right"
-                        sx={{
-                          color: getPercentageColor(
-                            dataRow.non_reportable_percentage_long
-                          ),
-                        }}
-                      >
-                        {formatPercentage(
-                          dataRow.non_reportable_percentage_long
-                        )}
+                      <TableCell align="right">{fmt.format(r.non_reportable_total)}</TableCell>
+                      <TableCell align="right" sx={{ color: getPercentageColor(r.non_reportable_percentage_long) }}>
+                        {formatPercentage(r.non_reportable_percentage_long)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -355,32 +206,223 @@ function Row(props) {
   );
 }
 
-export default function CollapsibleTable(props) {
+export default function CollapsableTable({
+  futuresData,
+  exchanges,
+  favorites,
+  onToggleFavorite,
+}) {
+  const theme = useTheme();
+  const favoriteRows = futuresData.filter(r => favorites.includes(r.commodity));
+  const fmt = new Intl.NumberFormat('en-US');
+
   return (
     <TableContainer
-      sx={{
-        width: '100%',
-        border: 'none',
-        boxShadow: 'none',
-        backgroundColor: (theme) => theme.palette.background.paper,
-      }}
       component={Paper}
       elevation={0}
+      sx={{
+        backgroundColor: theme.palette.background.paper,
+        boxShadow: 'none',
+      }}
     >
       <Table
-        sx={{
-          borderCollapse: 'separate',
-          borderSpacing: 0,
-        }}
+        size="medium"
         aria-label="collapsible table"
+        sx={{ borderCollapse: 'separate', borderSpacing: 0 }}
       >
         <TableBody>
-          {props.exchanges.map((row) => (
-            <Row key={row} name={row} data={props.futuresData} />
+          {favoriteRows.length > 0 && (
+            // — indent under the collapse‐icon column —
+            <TableRow>
+              <TableCell sx={{ width: 50, border: 'none', p: 0 }} />
+              <TableCell colSpan={21} sx={{ p: 0 }}>
+                <Box sx={{ overflowX: 'auto' }}>
+                  <Table
+                    size="small"
+                    aria-label="My Favorites"
+                    sx={{ borderCollapse: 'separate', borderSpacing: 0 }}
+                  >
+                    <TableHead>
+                      <TableRow sx={{ backgroundColor: theme.palette.grey[900] }}>
+                        <TableCell rowSpan={2} sx={{ color: '#fff' }}>Commodity</TableCell>
+                        <TableCell colSpan={6} align="center" sx={{ color: '#fff' }}>
+                          Commercial
+                        </TableCell>
+                        <TableCell colSpan={6} align="center" sx={{ color: '#fff' }}>
+                          Non-commercial
+                        </TableCell>
+                        <TableCell colSpan={6} align="center" sx={{ color: '#fff' }}>
+                          Non-reportable
+                        </TableCell>
+                      </TableRow>
+                      <TableRow sx={{ backgroundColor: theme.palette.grey[900] }}>
+                        {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
+                          <TableCell
+                            key={`f-h1-${i}`}
+                            sx={{
+                              color: '#fff',
+                              ...(i === 5
+                                ? { borderRight: `2px solid ${theme.palette.divider}` }
+                                : {}),
+                            }}
+                          >
+                            {lbl}
+                          </TableCell>
+                        ))}
+                        {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
+                          <TableCell
+                            key={`f-h2-${i}`}
+                            sx={{
+                              color: '#fff',
+                              ...(i === 5
+                                ? { borderRight: `2px solid ${theme.palette.divider}` }
+                                : {}),
+                            }}
+                          >
+                            {lbl}
+                          </TableCell>
+                        ))}
+                        {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
+                          <TableCell key={`f-h3-${i}`} sx={{ color: '#fff' }}>
+                            {lbl}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {favoriteRows.map(r => (
+                        <TableRow
+                          key={r.commodity}
+                          sx={{
+                            '&:nth-of-type(odd) td': {
+                              backgroundColor:
+                                theme.palette.mode === 'dark' ? '#2a2a2a' : '#f5f5f5',
+                            },
+                            '&:nth-of-type(even) td': {
+                              backgroundColor:
+                                theme.palette.mode === 'dark' ? '#1e1e1e' : '#ffffff',
+                            },
+                            '&:hover td': {
+                              backgroundColor:
+                                theme.palette.mode === 'dark' ? '#3c3c3c' : '#e0e0e0',
+                              borderTop: '1px solid #ffff99',
+                              borderBottom: '1px solid #ffff99',
+                              borderRight: '1px solid #ffff99',
+                              cursor: 'default',
+                            },
+                            '&:hover td:first-of-type': {
+                              borderLeft: '4px solid #ffff99',
+                            },
+                            '&:hover td:last-of-type': {
+                              borderRight: '4px solid #ffff99',
+                            },
+                          }}
+                        >
+                          <TableCell>
+                            <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                              {r.commodity}
+                              <FavoriteButton
+                                initial
+                                onToggle={() => onToggleFavorite(r.commodity)}
+                              />
+                            </Box>
+                          </TableCell>
+
+                          {/* Commercial */}
+                          <TableCell align="right">{fmt.format(r.commerical_long)}</TableCell>
+                          <TableCell
+                            align="right"
+                            sx={{ color: r.commerical_long_change < 0 ? 'red' : 'green' }}
+                          >
+                            {fmt.format(r.commerical_long_change)}
+                          </TableCell>
+                          <TableCell align="right">{fmt.format(r.commerical_short)}</TableCell>
+                          <TableCell
+                            align="right"
+                            sx={{ color: r.commerical_short_change < 0 ? 'red' : 'green' }}
+                          >
+                            {fmt.format(r.commerical_short_change)}
+                          </TableCell>
+                          <TableCell align="right">{fmt.format(r.commerical_total)}</TableCell>
+                          <TableCell
+                            align="right"
+                            sx={{
+                              color: getPercentageColor(r.commerical_percentage_long),
+                              borderRight: `2px solid ${theme.palette.divider}`,
+                            }}
+                          >
+                            {formatPercentage(r.commerical_percentage_long)}
+                          </TableCell>
+
+                          {/* Non-commercial */}
+                          <TableCell align="right">{fmt.format(r.non_commercial_long)}</TableCell>
+                          <TableCell
+                            align="right"
+                            sx={{ color: r.non_commercial_long_change < 0 ? 'red' : 'green' }}
+                          >
+                            {fmt.format(r.non_commercial_long_change)}
+                          </TableCell>
+                          <TableCell align="right">{fmt.format(r.non_commercial_short)}</TableCell>
+                          <TableCell
+                            align="right"
+                            sx={{ color: r.non_commercial_short_change < 0 ? 'red' : 'green' }}
+                          >
+                            {fmt.format(r.non_commercial_short_change)}
+                          </TableCell>
+                          <TableCell align="right">{fmt.format(r.non_commercial_total)}</TableCell>
+                          <TableCell
+                            align="right"
+                            sx={{
+                              color: getPercentageColor(r.non_commercial_percentage_long),
+                              borderRight: `2px solid ${theme.palette.divider}`,
+                            }}
+                          >
+                            {formatPercentage(r.non_commercial_percentage_long)}
+                          </TableCell>
+
+                          {/* Non-reportable */}
+                          <TableCell align="right">{fmt.format(r.non_reportable_long)}</TableCell>
+                          <TableCell
+                            align="right"
+                            sx={{ color: r.non_reportable_long_change < 0 ? 'red' : 'green' }}
+                          >
+                            {fmt.format(r.non_reportable_long_change)}
+                          </TableCell>
+                          <TableCell align="right">{fmt.format(r.non_reportable_short)}</TableCell>
+                          <TableCell
+                            align="right"
+                            sx={{ color: r.non_reportable_short_change < 0 ? 'red' : 'green' }}
+                          >
+                            {fmt.format(r.non_reportable_short_change)}
+                          </TableCell>
+                          <TableCell align="right">{fmt.format(r.non_reportable_total)}</TableCell>
+                          <TableCell
+                            align="right"
+                            sx={{ color: getPercentageColor(r.non_reportable_percentage_long) }}
+                          >
+                            {formatPercentage(r.non_reportable_percentage_long)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Box>
+              </TableCell>
+            </TableRow>
+          )}
+
+          {/* then your existing per‐exchange groups */}
+          {exchanges.map(e => (
+            <Row
+              key={e}
+              name={e}
+              data={futuresData}
+              favorites={favorites}
+              onToggleFavorite={onToggleFavorite}
+            />
           ))}
         </TableBody>
       </Table>
     </TableContainer>
   );
 }
-
