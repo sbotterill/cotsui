@@ -7,8 +7,8 @@ import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import DrawerAppBar from './components/AppBar';
 import CollapsibleTable from './components/CollapsableTable';
-import SigninPage from './components/SigninPage';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import SlotsSignIn from './components/SigninPage';
 
 // Context to expose toggle function for theme switch
 export const ColorModeContext = createContext({ toggleColorMode: () => {} });
@@ -222,7 +222,7 @@ export default function App() {
           </ThemeProvider>
         </ColorModeContext.Provider>
       ) : (
-        <SigninPage setAuthorization={setAuthorization} />
+        <SlotsSignIn setAuthorization={setAuthorization} />
       )}
     </>
   );
