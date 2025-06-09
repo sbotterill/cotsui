@@ -2,9 +2,10 @@ import * as React from 'react';
 import {AppBar, TextField, Toolbar, Typography} from '@mui/material'
 import BasicMenu from './ContextMenu';
 import ThemeSwitch from './ThemeSwitch';
+import { useTheme } from '@mui/material/styles';
 
 export default function DrawerAppBar(props) {
-
+  const theme = useTheme();
   const rawDate = props.reportDate;
   const date = new Date(rawDate);
 
@@ -26,7 +27,7 @@ export default function DrawerAppBar(props) {
   }
 
   return (
-    <AppBar sx={{background: 'background.paper', borderBottom: '1px solid #444', display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between"}} elevation={1} component="div">
+    <AppBar position='fixed' sx={{backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#fff', borderBottom: '1px solid #444', display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between"}} elevation={1} component="div">
       <Toolbar sx={{display: "flex", flexDirection:"row", alignContent: "center", color: 'text.primary', background: 'background.paper', width: "1000px", padding: "10px 0px"}}>
         <Typography
           variant="h5"

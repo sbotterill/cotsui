@@ -77,18 +77,18 @@ function Row({ name, data, favorites, onToggleFavorite }) {
             <Box sx={{ overflowX: 'auto' }}>
               <Table size="small" aria-label="details" sx={{ borderCollapse: 'separate', borderSpacing: 0 }}>
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: theme.palette.grey[900] }}>
-                    <TableCell rowSpan={2} sx={{ color: '#fff' }}>Commodity</TableCell>
-                    <TableCell colSpan={6} align="center" sx={{ color: '#fff' }}>Commercial</TableCell>
-                    <TableCell colSpan={6} align="center" sx={{ color: '#fff' }}>Non-commercial</TableCell>
-                    <TableCell colSpan={6} align="center" sx={{ color: '#fff' }}>Non-reportable</TableCell>
+                  <TableRow sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#fff',  }}>
+                    <TableCell rowSpan={2} sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>Commodity</TableCell>
+                    <TableCell colSpan={6} align="center" sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>Commercial</TableCell>
+                    <TableCell colSpan={6} align="center" sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>Non-commercial</TableCell>
+                    <TableCell colSpan={6} align="center" sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>Non-reportable</TableCell>
                   </TableRow>
-                  <TableRow sx={{ backgroundColor: theme.palette.grey[900] }}>
+                  <TableRow sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#fff' }}>
                     {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
                       <TableCell
                         key={`h1-${i}`}
                         sx={{
-                          color: '#fff',
+                          color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                           ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {})
                         }}
                       >
@@ -99,7 +99,7 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                       <TableCell
                         key={`h2-${i}`}
                         sx={{
-                          color: '#fff',
+                          color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                           ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {})
                         }}
                       >
@@ -107,7 +107,7 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                       </TableCell>
                     ))}
                     {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
-                      <TableCell key={`h3-${i}`} sx={{ color: '#fff' }}>{lbl}</TableCell>
+                      <TableCell key={`h3-${i}`} sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>{lbl}</TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
@@ -243,7 +243,7 @@ export default function CollapsableTable({
                     sx={{ borderCollapse: 'separate', borderSpacing: 0 }}
                   >
                     <TableHead>
-                      <TableRow sx={{ backgroundColor: theme.palette.grey[900] }}>
+                      <TableRow sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#fff' }}>
                         <TableCell rowSpan={2} sx={{ color: '#fff' }}>Commodity</TableCell>
                         <TableCell colSpan={6} align="center" sx={{ color: '#fff' }}>
                           Commercial
