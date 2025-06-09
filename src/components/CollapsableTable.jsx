@@ -251,10 +251,8 @@ export default function CollapsableTable({
       >
         <TableBody>
           {favoriteRows.length > 0 && (
-            // — indent under the collapse‐icon column —
             <TableRow>
-              <TableCell sx={{ width: 50, border: 'none', p: 0 }} />
-              <TableCell colSpan={21} sx={{ p: 0 }}>
+              <TableCell colSpan={22} sx={{ p: 0 }}>
                 <Box sx={{ overflowX: 'auto' }}>
                   <Table
                     size="small"
@@ -263,26 +261,25 @@ export default function CollapsableTable({
                   >
                     <TableHead>
                       <TableRow sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#fff' }}>
-                        <TableCell rowSpan={2} sx={{ color: '#fff' }}>Commodity</TableCell>
-                        <TableCell colSpan={6} align="center" sx={{ color: '#fff' }}>
+                        <TableCell rowSpan={2} sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000', minWidth: '150px' }}>Commodity</TableCell>
+                        <TableCell colSpan={6} align="center" sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>
                           Commercial
                         </TableCell>
-                        <TableCell colSpan={6} align="center" sx={{ color: '#fff' }}>
+                        <TableCell colSpan={6} align="center" sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>
                           Non-commercial
                         </TableCell>
-                        <TableCell colSpan={6} align="center" sx={{ color: '#fff' }}>
+                        <TableCell colSpan={6} align="center" sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>
                           Non-reportable
                         </TableCell>
                       </TableRow>
-                      <TableRow sx={{ backgroundColor: theme.palette.grey[900] }}>
+                      <TableRow sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#fff' }}>
                         {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
                           <TableCell
                             key={`f-h1-${i}`}
                             sx={{
-                              color: '#fff',
-                              ...(i === 5
-                                ? { borderRight: `2px solid ${theme.palette.divider}` }
-                                : {}),
+                              color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                              minWidth: '100px',
+                              ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {})
                             }}
                           >
                             {lbl}
@@ -292,17 +289,22 @@ export default function CollapsableTable({
                           <TableCell
                             key={`f-h2-${i}`}
                             sx={{
-                              color: '#fff',
-                              ...(i === 5
-                                ? { borderRight: `2px solid ${theme.palette.divider}` }
-                                : {}),
+                              color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                              minWidth: '100px',
+                              ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {})
                             }}
                           >
                             {lbl}
                           </TableCell>
                         ))}
                         {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
-                          <TableCell key={`f-h3-${i}`} sx={{ color: '#fff' }}>
+                          <TableCell 
+                            key={`f-h3-${i}`} 
+                            sx={{ 
+                              color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                              minWidth: '100px'
+                            }}
+                          >
                             {lbl}
                           </TableCell>
                         ))}
@@ -319,16 +321,13 @@ export default function CollapsableTable({
                               position: 'relative'
                             },
                             '&:nth-of-type(odd) td': {
-                              backgroundColor:
-                                theme.palette.mode === 'dark' ? '#2a2a2a' : '#f5f5f5',
+                              backgroundColor: theme.palette.mode === 'dark' ? '#2a2a2a' : '#f5f5f5',
                             },
                             '&:nth-of-type(even) td': {
-                              backgroundColor:
-                                theme.palette.mode === 'dark' ? '#1e1e1e' : '#ffffff',
+                              backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#ffffff',
                             },
                             '&:hover td': {
-                              backgroundColor:
-                                theme.palette.mode === 'dark' ? '#3c3c3c' : '#e0e0e0',
+                              backgroundColor: theme.palette.mode === 'dark' ? '#3c3c3c' : '#e0e0e0',
                               cursor: 'default',
                               boxShadow: `inset 0 0 0 1px ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}`,
                             },
