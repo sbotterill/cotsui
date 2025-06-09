@@ -39,7 +39,7 @@ function getPercentageColor(value) {
   }
 }
 
-// Inlined “Row” from before:
+// Inlined "Row" from before:
 function Row({ name, data, favorites, onToggleFavorite }) {
   const [open, setOpen] = React.useState(false);
   const theme = useTheme();
@@ -55,6 +55,9 @@ function Row({ name, data, favorites, onToggleFavorite }) {
           cursor: 'pointer',
           '&:nth-of-type(odd)': {
             backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#f9f9f9',
+          },
+          '&:hover': {
+            backgroundColor: theme.palette.mode === 'dark' ? '#2a2a2a' : '#f0f0f0',
           },
         }}
       >
@@ -77,8 +80,8 @@ function Row({ name, data, favorites, onToggleFavorite }) {
             <Box sx={{ overflowX: 'auto' }}>
               <Table size="small" aria-label="details" sx={{ borderCollapse: 'separate', borderSpacing: 0 }}>
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#fff',  }}>
-                    <TableCell rowSpan={2} sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>Commodity</TableCell>
+                  <TableRow sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#fff' }}>
+                    <TableCell rowSpan={2} sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000', minWidth: '150px' }}>Commodity</TableCell>
                     <TableCell colSpan={6} align="center" sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>Commercial</TableCell>
                     <TableCell colSpan={6} align="center" sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>Non-commercial</TableCell>
                     <TableCell colSpan={6} align="center" sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>Non-reportable</TableCell>
@@ -89,6 +92,7 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                         key={`h1-${i}`}
                         sx={{
                           color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                          minWidth: '100px',
                           ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {})
                         }}
                       >
@@ -100,6 +104,7 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                         key={`h2-${i}`}
                         sx={{
                           color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                          minWidth: '100px',
                           ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {})
                         }}
                       >
@@ -107,7 +112,15 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                       </TableCell>
                     ))}
                     {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
-                      <TableCell key={`h3-${i}`} sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>{lbl}</TableCell>
+                      <TableCell 
+                        key={`h3-${i}`} 
+                        sx={{ 
+                          color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                          minWidth: '100px'
+                        }}
+                      >
+                        {lbl}
+                      </TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
@@ -116,7 +129,11 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                     <TableRow
                       key={r.commodity}
                       sx={{
-                        '& td': { border: 'none' },
+                        '& td': { 
+                          border: 'none',
+                          transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
+                          position: 'relative'
+                        },
                         '&:nth-of-type(odd) td': {
                           backgroundColor: theme.palette.mode === 'dark' ? '#2a2a2a' : '#f5f5f5',
                         },
@@ -125,13 +142,15 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                         },
                         '&:hover td': {
                           backgroundColor: theme.palette.mode === 'dark' ? '#3c3c3c' : '#e0e0e0',
-                          borderTop: '1px solid #ffff99',
-                          borderBottom: '1px solid #ffff99',
-                          borderRight: '1px solid #ffff99',
                           cursor: 'default',
+                          boxShadow: `inset 0 0 0 1px ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}`,
                         },
-                        '&:hover td:first-of-type': { borderLeft: '4px solid #ffff99' },
-                        '&:hover td:last-of-type':  { borderRight:'4px solid #ffff99' },
+                        '&:hover td:first-of-type': {
+                          boxShadow: `inset 0 0 0 1px ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}, inset 2px 0 0 0 ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}`,
+                        },
+                        '&:hover td:last-of-type': {
+                          boxShadow: `inset 0 0 0 1px ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}, inset -2px 0 0 0 ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}`,
+                        }
                       }}
                     >
                       <TableCell>
@@ -294,6 +313,11 @@ export default function CollapsableTable({
                         <TableRow
                           key={r.commodity}
                           sx={{
+                            '& td': { 
+                              border: 'none',
+                              transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
+                              position: 'relative'
+                            },
                             '&:nth-of-type(odd) td': {
                               backgroundColor:
                                 theme.palette.mode === 'dark' ? '#2a2a2a' : '#f5f5f5',
@@ -305,17 +329,15 @@ export default function CollapsableTable({
                             '&:hover td': {
                               backgroundColor:
                                 theme.palette.mode === 'dark' ? '#3c3c3c' : '#e0e0e0',
-                              borderTop: '1px solid #ffff99',
-                              borderBottom: '1px solid #ffff99',
-                              borderRight: '1px solid #ffff99',
                               cursor: 'default',
+                              boxShadow: `inset 0 0 0 1px ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}`,
                             },
                             '&:hover td:first-of-type': {
-                              borderLeft: '4px solid #ffff99',
+                              boxShadow: `inset 0 0 0 1px ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}, inset 2px 0 0 0 ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}`,
                             },
                             '&:hover td:last-of-type': {
-                              borderRight: '4px solid #ffff99',
-                            },
+                              boxShadow: `inset 0 0 0 1px ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}, inset -2px 0 0 0 ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}`,
+                            }
                           }}
                         >
                           <TableCell>
