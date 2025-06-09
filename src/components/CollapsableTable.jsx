@@ -129,11 +129,11 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                     <TableCell colSpan={6} align="center" sx={{ 
                       color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                       backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                    }}>Commercial</TableCell>
+                    }}>Non-commercial</TableCell>
                     <TableCell colSpan={6} align="center" sx={{ 
                       color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                       backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                    }}>Non-commercial</TableCell>
+                    }}>Commercial</TableCell>
                     <TableCell colSpan={6} align="center" sx={{ 
                       color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                       backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
@@ -224,25 +224,7 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                           />
                         </Box>
                       </TableCell>
-                      {/* Commercial */}
-                      <TableCell align="right">{fmt.format(r.commerical_long)}</TableCell>
-                      <TableCell align="right" sx={{ color: r.commerical_long_change < 0 ? 'red' : 'green' }}>
-                        {fmt.format(r.commerical_long_change)}
-                      </TableCell>
-                      <TableCell align="right">{fmt.format(r.commerical_short)}</TableCell>
-                      <TableCell align="right" sx={{ color: r.commerical_short_change < 0 ? 'red' : 'green' }}>
-                        {fmt.format(r.commerical_short_change)}
-                      </TableCell>
-                      <TableCell align="right">{fmt.format(r.commerical_total)}</TableCell>
-                      <TableCell
-                        align="right"
-                        sx={{
-                          color: getPercentageColor(r.commerical_percentage_long),
-                          borderRight: `2px solid ${theme.palette.divider}`,
-                        }}
-                      >
-                        {formatPercentage(r.commerical_percentage_long)}
-                      </TableCell>
+
                       {/* Non-commercial */}
                       <TableCell align="right">{fmt.format(r.non_commercial_long)}</TableCell>
                       <TableCell align="right" sx={{ color: r.non_commercial_long_change < 0 ? 'red' : 'green' }}>
@@ -262,6 +244,27 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                       >
                         {formatPercentage(r.non_commercial_percentage_long)}
                       </TableCell>
+
+                      {/* Commercial */}
+                      <TableCell align="right">{fmt.format(r.commerical_long)}</TableCell>
+                      <TableCell align="right" sx={{ color: r.commerical_long_change < 0 ? 'red' : 'green' }}>
+                        {fmt.format(r.commerical_long_change)}
+                      </TableCell>
+                      <TableCell align="right">{fmt.format(r.commerical_short)}</TableCell>
+                      <TableCell align="right" sx={{ color: r.commerical_short_change < 0 ? 'red' : 'green' }}>
+                        {fmt.format(r.commerical_short_change)}
+                      </TableCell>
+                      <TableCell align="right">{fmt.format(r.commerical_total)}</TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{
+                          color: getPercentageColor(r.commerical_percentage_long),
+                          borderRight: `2px solid ${theme.palette.divider}`,
+                        }}
+                      >
+                        {formatPercentage(r.commerical_percentage_long)}
+                      </TableCell>
+
                       {/* Non-reportable */}
                       <TableCell align="right">{fmt.format(r.non_reportable_long)}</TableCell>
                       <TableCell align="right" sx={{ color: r.non_reportable_long_change < 0 ? 'red' : 'green' }}>
@@ -392,13 +395,13 @@ export default function CollapsableTable({
                               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
                             }}>
-                              Commercial
+                              Non-commercial
                             </TableCell>
                             <TableCell colSpan={6} align="center" sx={{ 
                               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
                             }}>
-                              Non-commercial
+                              Commercial
                             </TableCell>
                             <TableCell colSpan={6} align="center" sx={{ 
                               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
@@ -493,32 +496,6 @@ export default function CollapsableTable({
                                 </Box>
                               </TableCell>
 
-                              {/* Commercial */}
-                              <TableCell align="right">{fmt.format(r.commerical_long)}</TableCell>
-                              <TableCell
-                                align="right"
-                                sx={{ color: r.commerical_long_change < 0 ? 'red' : 'green' }}
-                              >
-                                {fmt.format(r.commerical_long_change)}
-                              </TableCell>
-                              <TableCell align="right">{fmt.format(r.commerical_short)}</TableCell>
-                              <TableCell
-                                align="right"
-                                sx={{ color: r.commerical_short_change < 0 ? 'red' : 'green' }}
-                              >
-                                {fmt.format(r.commerical_short_change)}
-                              </TableCell>
-                              <TableCell align="right">{fmt.format(r.commerical_total)}</TableCell>
-                              <TableCell
-                                align="right"
-                                sx={{
-                                  color: getPercentageColor(r.commerical_percentage_long),
-                                  borderRight: `2px solid ${theme.palette.divider}`,
-                                }}
-                              >
-                                {formatPercentage(r.commerical_percentage_long)}
-                              </TableCell>
-
                               {/* Non-commercial */}
                               <TableCell align="right">{fmt.format(r.non_commercial_long)}</TableCell>
                               <TableCell
@@ -543,6 +520,32 @@ export default function CollapsableTable({
                                 }}
                               >
                                 {formatPercentage(r.non_commercial_percentage_long)}
+                              </TableCell>
+
+                              {/* Commercial */}
+                              <TableCell align="right">{fmt.format(r.commerical_long)}</TableCell>
+                              <TableCell
+                                align="right"
+                                sx={{ color: r.commerical_long_change < 0 ? 'red' : 'green' }}
+                              >
+                                {fmt.format(r.commerical_long_change)}
+                              </TableCell>
+                              <TableCell align="right">{fmt.format(r.commerical_short)}</TableCell>
+                              <TableCell
+                                align="right"
+                                sx={{ color: r.commerical_short_change < 0 ? 'red' : 'green' }}
+                              >
+                                {fmt.format(r.commerical_short_change)}
+                              </TableCell>
+                              <TableCell align="right">{fmt.format(r.commerical_total)}</TableCell>
+                              <TableCell
+                                align="right"
+                                sx={{
+                                  color: getPercentageColor(r.commerical_percentage_long),
+                                  borderRight: `2px solid ${theme.palette.divider}`,
+                                }}
+                              >
+                                {formatPercentage(r.commerical_percentage_long)}
                               </TableCell>
 
                               {/* Non-reportable */}

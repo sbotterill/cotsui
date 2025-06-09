@@ -14,29 +14,37 @@ import SlotsSignIn from './components/SigninPage';
 export const ColorModeContext = createContext({ toggleColorMode: () => {} });
 
 // Utility functions for report dates
-const getThisWeeksTuesday = () => {
-  const today = new Date();
-  const diffToTuesday = (2 - today.getDay() + 7) % 7;
-  const tuesday = new Date(today);
-  tuesday.setDate(today.getDate() + diffToTuesday);
-  tuesday.setHours(0, 0, 0, 0);
-  return formatLocalIso(tuesday);
-};
+async function getThisWeeksTuesday() {
+  const date = new Date();
+  const day = date.getDay();
+  // Calculate days until next Tuesday (2 is Tuesday)
+  const daysUntilTuesday = (2 - day + 7) % 7;
+  const tuesday = new Date(date);
+  tuesday.setDate(date.getDate() + daysUntilTuesday);
+  return formatDate(tuesday);
+}
 
-const getLastWeeksTuesday = () => {
-  const today = new Date();
-  const daysSinceLastTue = ((today.getDay() - 2 + 7) % 7) + 7;
-  const lastTue = new Date(today);
-  lastTue.setDate(today.getDate() - daysSinceLastTue);
-  lastTue.setHours(0, 0, 0, 0);
-  return formatLocalIso(lastTue);
-};
+async function getLastWeeksTuesday() {
+  const date = new Date();
+  const day = date.getDay();
+  // Calculate days until next Tuesday (2 is Tuesday)
+  const daysUntilTuesday = (2 - day + 7) % 7;
+  const thisWeekTuesday = new Date(date);
+  thisWeekTuesday.setDate(date.getDate() + daysUntilTuesday);
+  // Subtract 7 days to get last week's Tuesday
+  const lastWeekTuesday = new Date(thisWeekTuesday);
+  lastWeekTuesday.setDate(thisWeekTuesday.getDate() - 7);
+  return formatDate(lastWeekTuesday);
+}
 
-const formatLocalIso = date => {
+// Format date for API
+function formatDate(date) {
   const pad = n => n.toString().padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-         `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.000`;
-};
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T00:00:00.000`;
+}
+
+console.log(getThisWeeksTuesday());
+console.log(getLastWeeksTuesday());
 
 // Add this new function to check data availability
 async function checkLatestDataAvailability() {
@@ -86,11 +94,8 @@ async function fetchData() {
         );
 
         if (response.data.length === 0) {
-          isLatestData = false;
-          reportDate = await getLastWeeksTuesday();
-          response = await axios.get(
-            `https://publicreporting.cftc.gov/resource/6dca-aqww.json?cftc_contract_market_code=${element.cftc_contract_market_code}&report_date_as_yyyy_mm_dd=${reportDate}`
-          );
+          console.warn(`No data found for ${element.contract_market_name} on ${reportDate}`);
+          return;
         }
 
         const data = response.data[0];
@@ -175,6 +180,14 @@ async function fetchData() {
 
   } catch (error) {
     console.error("Error fetching data:", error);
+    // Return empty data with error state
+    return [
+      [],
+      [],
+      reportDate,
+      false,
+      lastChecked
+    ];
   }
 }
 
