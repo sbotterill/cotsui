@@ -1,13 +1,16 @@
 import * as React from 'react';
-import {AppBar, TextField, Toolbar, Typography} from '@mui/material'
+import {AppBar, TextField, Toolbar, Typography, IconButton, Tooltip, CircularProgress} from '@mui/material'
 import BasicMenu from './ContextMenu';
 import ThemeSwitch from './ThemeSwitch';
 import { useTheme } from '@mui/material/styles';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import WarningIcon from '@mui/icons-material/Warning';
 
 export default function DrawerAppBar(props) {
   const theme = useTheme();
   const rawDate = props.reportDate;
   const date = new Date(rawDate);
+  const lastChecked = props.lastChecked ? new Date(props.lastChecked) : null;
 
   const readable = date.toLocaleDateString('en-US', {
     weekday: 'long',
@@ -15,6 +18,12 @@ export default function DrawerAppBar(props) {
     month: 'long',
     day: 'numeric'
   });
+
+  const lastCheckedReadable = lastChecked ? lastChecked.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  }) : null;
 
   const handleFuturesFilter = (event) => {
     const filtered = props.futuresData.filter(row =>
@@ -37,7 +46,37 @@ export default function DrawerAppBar(props) {
           COTS UI
         </Typography>
         <TextField onChange={handleFuturesFilter} sx={{width: "250px", marginRight: "15px"}} size='small' id="outlined-basic" label="Search" variant="outlined" InputLabelProps={{ style: { color: 'inherit' } }} InputProps={{ style: { color: 'inherit' } }} />
-        <div style={{fontStyle: "italic", fontSize: "12px", color: "#0000052"}}>{`Last Updated: ${readable}`}</div>
+        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+          {!props.isLatestData && (
+            <Tooltip title="Showing previous week's data">
+              <WarningIcon sx={{ color: theme.palette.warning.main, fontSize: '1.2rem' }} />
+            </Tooltip>
+          )}
+          <div style={{display: 'flex', flexDirection: 'column', fontSize: "12px", color: "#0000052"}}>
+            <div style={{fontStyle: "italic"}}>
+              {`Last Updated: ${readable}`}
+            </div>
+            {lastCheckedReadable && (
+              <div style={{fontSize: "10px", opacity: 0.7}}>
+                {`Last Checked: ${lastCheckedReadable}`}
+              </div>
+            )}
+          </div>
+          <Tooltip title="Refresh data">
+            <IconButton 
+              onClick={props.onRefresh} 
+              disabled={props.isRefreshing}
+              size="small"
+              sx={{ ml: 1 }}
+            >
+              {props.isRefreshing ? (
+                <CircularProgress size={20} />
+              ) : (
+                <RefreshIcon />
+              )}
+            </IconButton>
+          </Tooltip>
+        </div>
       </Toolbar>
       <div className='appbar-context-menu'>
         <BasicMenu commodities={props.exchanges} selected={props.displayExchanges} onFilterChange={props.onExchangeFilterChange}/>

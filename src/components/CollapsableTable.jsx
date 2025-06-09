@@ -77,22 +77,82 @@ function Row({ name, data, favorites, onToggleFavorite }) {
       <TableRow>
         <TableCell colSpan={22} sx={{ p: 0 }}>
           <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ overflowX: 'auto' }}>
-              <Table size="small" aria-label="details" sx={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+            <Box sx={{ 
+              overflowX: 'auto',
+              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+              borderRadius: '4px',
+              boxShadow: theme.palette.mode === 'dark' 
+                ? '0 2px 4px rgba(0,0,0,0.2)' 
+                : '0 2px 4px rgba(0,0,0,0.05)',
+              my: 1,
+              mx: 0.5,
+              maxHeight: '400px',
+              overflowY: 'auto',
+              '&::-webkit-scrollbar': {
+                width: '8px',
+                height: '8px',
+              },
+              '&::-webkit-scrollbar-track': {
+                background: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f1f1f1',
+                borderRadius: '4px',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: theme.palette.mode === 'dark' ? '#444' : '#888',
+                borderRadius: '4px',
+                '&:hover': {
+                  background: theme.palette.mode === 'dark' ? '#555' : '#999',
+                },
+              },
+            }}>
+              <Table size="small" aria-label="details" sx={{ 
+                borderCollapse: 'separate', 
+                borderSpacing: 0,
+                '& thead': {
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 1,
+                }
+              }}>
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#fff' }}>
-                    <TableCell rowSpan={2} sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000', minWidth: '150px' }}>Commodity</TableCell>
-                    <TableCell colSpan={6} align="center" sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>Commercial</TableCell>
-                    <TableCell colSpan={6} align="center" sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>Non-commercial</TableCell>
-                    <TableCell colSpan={6} align="center" sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>Non-reportable</TableCell>
+                  <TableRow sx={{ 
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                    '& th': {
+                      borderBottom: `2px solid ${theme.palette.divider}`,
+                      fontWeight: 'bold'
+                    }
+                  }}>
+                    <TableCell rowSpan={2} sx={{ 
+                      color: theme.palette.mode === 'dark' ? '#fff' : '#000', 
+                      minWidth: '150px',
+                      backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                    }}>Commodity</TableCell>
+                    <TableCell colSpan={6} align="center" sx={{ 
+                      color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                      backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                    }}>Commercial</TableCell>
+                    <TableCell colSpan={6} align="center" sx={{ 
+                      color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                      backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                    }}>Non-commercial</TableCell>
+                    <TableCell colSpan={6} align="center" sx={{ 
+                      color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                      backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                    }}>Non-reportable</TableCell>
                   </TableRow>
-                  <TableRow sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#fff' }}>
+                  <TableRow sx={{ 
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                    '& th': {
+                      borderBottom: `2px solid ${theme.palette.divider}`,
+                      fontWeight: 'bold'
+                    }
+                  }}>
                     {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
                       <TableCell
                         key={`h1-${i}`}
                         sx={{
                           color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                           minWidth: '100px',
+                          backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
                           ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {})
                         }}
                       >
@@ -105,6 +165,7 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                         sx={{
                           color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                           minWidth: '100px',
+                          backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
                           ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {})
                         }}
                       >
@@ -116,7 +177,8 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                         key={`h3-${i}`} 
                         sx={{ 
                           color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                          minWidth: '100px'
+                          minWidth: '100px',
+                          backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
                         }}
                       >
                         {lbl}
@@ -135,7 +197,7 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                           position: 'relative'
                         },
                         '&:nth-of-type(odd) td': {
-                          backgroundColor: theme.palette.mode === 'dark' ? '#2a2a2a' : '#f5f5f5',
+                          backgroundColor: theme.palette.mode === 'dark' ? '#2a2a2a' : '#fafafa',
                         },
                         '&:nth-of-type(even) td': {
                           backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#ffffff',
@@ -281,32 +343,84 @@ export default function CollapsableTable({
               <TableRow>
                 <TableCell colSpan={22} sx={{ p: 0 }}>
                   <Collapse in={open} timeout="auto" unmountOnExit>
-                    <Box sx={{ overflowX: 'auto' }}>
+                    <Box sx={{ 
+                      overflowX: 'auto',
+                      backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                      borderRadius: '4px',
+                      boxShadow: theme.palette.mode === 'dark' 
+                        ? '0 2px 4px rgba(0,0,0,0.2)' 
+                        : '0 2px 4px rgba(0,0,0,0.05)',
+                      my: 1,
+                      mx: 0.5,
+                      maxHeight: '400px',
+                      overflowY: 'auto',
+                      '&::-webkit-scrollbar': {
+                        width: '8px',
+                        height: '8px',
+                      },
+                      '&::-webkit-scrollbar-track': {
+                        background: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f1f1f1',
+                        borderRadius: '4px',
+                      },
+                      '&::-webkit-scrollbar-thumb': {
+                        background: theme.palette.mode === 'dark' ? '#444' : '#888',
+                        borderRadius: '4px',
+                        '&:hover': {
+                          background: theme.palette.mode === 'dark' ? '#555' : '#999',
+                        },
+                      },
+                    }}>
                       <Table
                         size="small"
                         aria-label="My Favorites"
                         sx={{ borderCollapse: 'separate', borderSpacing: 0 }}
                       >
                         <TableHead>
-                          <TableRow sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#fff' }}>
-                            <TableCell rowSpan={2} sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000', minWidth: '150px' }}>Commodity</TableCell>
-                            <TableCell colSpan={6} align="center" sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>
+                          <TableRow sx={{ 
+                            backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                            '& th': {
+                              borderBottom: `2px solid ${theme.palette.divider}`,
+                              fontWeight: 'bold'
+                            }
+                          }}>
+                            <TableCell rowSpan={2} sx={{ 
+                              color: theme.palette.mode === 'dark' ? '#fff' : '#000', 
+                              minWidth: '150px',
+                              backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                            }}>Commodity</TableCell>
+                            <TableCell colSpan={6} align="center" sx={{ 
+                              color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                              backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                            }}>
                               Commercial
                             </TableCell>
-                            <TableCell colSpan={6} align="center" sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>
+                            <TableCell colSpan={6} align="center" sx={{ 
+                              color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                              backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                            }}>
                               Non-commercial
                             </TableCell>
-                            <TableCell colSpan={6} align="center" sx={{ color: theme.palette.mode === 'dark' ? '#fff' : '#000' }}>
+                            <TableCell colSpan={6} align="center" sx={{ 
+                              color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                              backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                            }}>
                               Non-reportable
                             </TableCell>
                           </TableRow>
-                          <TableRow sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#fff' }}>
+                          <TableRow sx={{ 
+                            backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                            '& th': {
+                              borderBottom: `2px solid ${theme.palette.divider}`,
+                              fontWeight: 'bold'
+                            }
+                          }}>
                             {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
                               <TableCell
                                 key={`f-h1-${i}`}
                                 sx={{
                                   color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                                   minWidth: '100px',
+                                  backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
                                   ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {})
                                 }}
                               >
@@ -319,6 +433,7 @@ export default function CollapsableTable({
                                 sx={{
                                   color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                                   minWidth: '100px',
+                                  backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
                                   ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {})
                                 }}
                               >
@@ -330,7 +445,8 @@ export default function CollapsableTable({
                                 key={`f-h3-${i}`} 
                                 sx={{ 
                                   color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                                  minWidth: '100px'
+                                  minWidth: '100px',
+                                  backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
                                 }}
                               >
                                 {lbl}

@@ -38,13 +38,43 @@ const formatLocalIso = date => {
          `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.000`;
 };
 
+// Add this new function to check data availability
+async function checkLatestDataAvailability() {
+  try {
+    const thisWeekTuesday = await getThisWeeksTuesday();
+    const response = await axios.get(
+      `https://publicreporting.cftc.gov/resource/6dca-aqww.json?$limit=1&report_date_as_yyyy_mm_dd=${thisWeekTuesday}`
+    );
+    return {
+      isAvailable: response.data.length > 0,
+      checkedAt: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error("Error checking data availability:", error);
+    return {
+      isAvailable: false,
+      checkedAt: new Date().toISOString()
+    };
+  }
+}
+
 // Fetching and processing CFTC data
 async function fetchData() {
   let fullList = [];
   let exchangesList = [];
   let reportDate = await getThisWeeksTuesday();
+  let isLatestData = true;
+  let lastChecked = null;
 
   try {
+    // First check if this week's data is available
+    const availabilityCheck = await checkLatestDataAvailability();
+    lastChecked = availabilityCheck.checkedAt;
+    if (!availabilityCheck.isAvailable) {
+      isLatestData = false;
+      reportDate = await getLastWeeksTuesday();
+    }
+
     const firstResponse = await axios.get(
       "https://publicreporting.cftc.gov/resource/6dca-aqww.json"
     );
@@ -56,6 +86,7 @@ async function fetchData() {
         );
 
         if (response.data.length === 0) {
+          isLatestData = false;
           reportDate = await getLastWeeksTuesday();
           response = await axios.get(
             `https://publicreporting.cftc.gov/resource/6dca-aqww.json?cftc_contract_market_code=${element.cftc_contract_market_code}&report_date_as_yyyy_mm_dd=${reportDate}`
@@ -137,7 +168,9 @@ async function fetchData() {
     return [
       exchangesList.sort((a, b) => a.localeCompare(b)),
       fullList.sort((a, b) => a.commodity.localeCompare(b.commodity)),
-      reportDate
+      reportDate,
+      isLatestData,
+      lastChecked
     ];
 
   } catch (error) {
@@ -167,6 +200,9 @@ export default function App() {
   const [displayExchanges, setDisplayExchanges] = useState([]);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [authorized, setAuthorization] = useState(false);
+  const [isLatestData, setIsLatestData] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastChecked, setLastChecked] = useState(null);
 
   // Favorites
   const [favorites, setFavorites] = useState([]);
@@ -181,12 +217,14 @@ export default function App() {
   // Load data on mount
   useEffect(() => {
     const loadData = async () => {
-      const [exchs, futs, date] = await fetchData();
+      const [exchs, futs, date, latest, checked] = await fetchData();
       setExchanges(exchs);
       setDisplayExchanges(exchs);
       setFuturesData(futs);
       setFilteredData(futs);
       setLastUpdated(date);
+      setIsLatestData(latest);
+      setLastChecked(checked);
     };
     loadData();
   }, []);
@@ -194,6 +232,20 @@ export default function App() {
   // Exchange filter handler
   const handleExchangeFilterChange = newList => {
     setDisplayExchanges(newList);
+  };
+
+  // Refresh data handler
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    const [exchs, futs, date, latest, checked] = await fetchData();
+    setExchanges(exchs);
+    setDisplayExchanges(exchs);
+    setFuturesData(futs);
+    setFilteredData(futs);
+    setLastUpdated(date);
+    setIsLatestData(latest);
+    setLastChecked(checked);
+    setIsRefreshing(false);
   };
 
   return (
@@ -209,6 +261,10 @@ export default function App() {
                 futuresData={futuresData}
                 setFilteredData={setFilteredData}
                 reportDate={lastUpdated}
+                isLatestData={isLatestData}
+                onRefresh={handleRefresh}
+                isRefreshing={isRefreshing}
+                lastChecked={lastChecked}
               />
               <div style={{ paddingTop: 90, width: '100%' }}>
                 <CollapsibleTable
