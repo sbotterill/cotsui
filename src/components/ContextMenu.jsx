@@ -4,6 +4,7 @@ import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
 import { Checkbox, FormControlLabel } from '@mui/material';
 import CustomSnackbar from './Snackbar';
+import { API_BASE_URL } from '../config';
 
 export default function BasicMenu({
   commodities,    // full list of sections
@@ -42,13 +43,13 @@ export default function BasicMenu({
 
   const handleSavePreferences = async () => {
     try {
-      const response = await fetch('http://localhost:5000/preferences', {
+      const response = await fetch(`${API_BASE_URL}/preferences`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: localStorage.getItem('userEmail'), // Assuming you store the email in localStorage after login
+          email: localStorage.getItem('userEmail'),
           preferences: {
             table_filters: checkedList
           }

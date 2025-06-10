@@ -19,6 +19,7 @@ import { AppProvider } from '@toolpad/core/AppProvider';
 import { SignInPage } from '@toolpad/core/SignInPage';
 import { useTheme } from '@mui/material/styles';
 import { Link as RouterLink } from 'react-router-dom';
+import { API_BASE_URL } from '../config';
 
 const providers = [{ id: 'credentials', name: 'Email and Password' }];
 
@@ -175,7 +176,7 @@ export default function SlotsSignIn(props) {
       }
 
       const response = await fetch(
-        `http://localhost:5000/permissions?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+        `${API_BASE_URL}/permissions?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
       );
 
       if (!response.ok) {
