@@ -11,8 +11,10 @@ import {
   Link,
   Alert,
   IconButton,
+  Box,
 } from '@mui/material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
+import PersonIcon from '@mui/icons-material/Person';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { AppProvider } from '@toolpad/core/AppProvider';
@@ -21,6 +23,54 @@ import { useTheme } from '@mui/material/styles';
 import { Link as RouterLink } from 'react-router-dom';
 
 const providers = [{ id: 'credentials', name: 'Email and Password' }];
+
+function CustomFirstNameField() {
+  return (
+    <TextField
+      id="input-with-icon-textfield"
+      label="First Name"
+      name="firstName"
+      type="text"
+      size="small"
+      required
+      fullWidth
+      slotProps={{
+        input: {
+          startAdornment: (
+            <InputAdornment position="start">
+              <PersonIcon fontSize="inherit" />
+            </InputAdornment>
+          ),
+        },
+      }}
+      variant="outlined"
+    />
+  );
+}
+
+function CustomLastNameField() {
+  return (
+    <TextField
+      id="input-with-icon-textfield"
+      label="Last Name"
+      name="lastName"
+      type="text"
+      size="small"
+      required
+      fullWidth
+      slotProps={{
+        input: {
+          startAdornment: (
+            <InputAdornment position="start">
+              <PersonIcon fontSize="inherit" />
+            </InputAdornment>
+          ),
+        },
+      }}
+      variant="outlined"
+    />
+  );
+}
 
 function CustomEmailField() {
   return (
@@ -100,83 +150,56 @@ function CustomButton() {
       fullWidth
       sx={{ my: 2 }}
     >
-      Log In
+      Sign Up
     </Button>
   );
 }
 
-function SignUpLink() {
+function SignInLink() {
   return (
-    <Link component={RouterLink} to="/signup" variant="body2">
-      Sign up
-    </Link>
-  );
-}
-
-function ForgotPasswordLink() {
-  return (
-    <Link href="/" variant="body2">
-      Forgot password?
+    <Link component={RouterLink} to="/" variant="body2">
+      Already have an account? Sign in
     </Link>
   );
 }
 
 function Title() {
-  return <h2 style={{ marginBottom: 8 }}>Login</h2>;
+  return <h2 style={{ marginBottom: 8 }}>Sign Up</h2>;
 }
 
-function Subtitle() {
-  return (
-    <Alert sx={{ mb: 2, px: 1, py: 0.25, width: '100%' }} severity="warning">
-      We are investigating an ongoing outage.
-    </Alert>
-  );
-}
-
-function RememberMeCheckbox() {
-  const theme = useTheme();
-  return (
-    <FormControlLabel
-      label="Remember me"
-      control={
-        <Checkbox
-          name="remember"
-          value="true"
-          color="primary"
-          sx={{ padding: 0.5, '& .MuiSvgIcon-root': { fontSize: 20 } }}
-        />
-      }
-      slotProps={{
-        typography: {
-          color: 'textSecondary',
-          fontSize: theme.typography.pxToRem(14),
-        },
-      }}
-    />
-  );
-}
-
-export default function SlotsSignIn(props) {
+export default function SignUpPage() {
   const theme = useTheme();
   const [error, setError] = React.useState(null);
   const [isLoading, setIsLoading] = React.useState(false);
 
-  const handleSignIn = async (provider, formData) => {
+  const handleSignUp = async (provider, formData) => {
     try {
       setIsLoading(true);
       setError(null);
       
       const email = formData.get('email');
       const password = formData.get('password');
+      const firstName = formData.get('firstName');
+      const lastName = formData.get('lastName');
 
-      if (!email || !password) {
-        setError('Please enter both email and password');
+      if (!email || !password || !firstName || !lastName) {
+        setError('Please fill in all fields');
         return;
       }
 
-      const response = await fetch(
-        `http://localhost:5000/permissions?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
-      );
+      const response = await fetch('http://localhost:5000/permissions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          firstName,
+          lastName,
+          access: true
+        }),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -184,20 +207,19 @@ export default function SlotsSignIn(props) {
 
       const data = await response.json();
 
-      if (data.authorized) {
-        // Store user information in localStorage
+      if (data.success) {
         localStorage.setItem('userEmail', email);
-        localStorage.setItem('userName', `${data.first_name} ${data.last_name}`);
-        props.setAuthorization(true);
+        localStorage.setItem('userName', `${firstName} ${lastName}`);
+        window.location.href = '/';
       } else {
-        setError(data.message || 'Invalid credentials');
+        setError(data.message || 'Sign up failed');
       }
     } catch (err) {
-      console.error('Sign in error:', err);
+      console.error('Sign up error:', err);
       if (err.message.includes('Failed to fetch')) {
         setError('Unable to connect to the server. Please check if the server is running.');
       } else {
-        setError('An error occurred while checking credentials.');
+        setError('An error occurred during sign up.');
       }
     } finally {
       setIsLoading(false);
@@ -207,16 +229,15 @@ export default function SlotsSignIn(props) {
   return (
     <AppProvider theme={theme}>
       <SignInPage
-        signIn={handleSignIn}
+        signIn={handleSignUp}
         slots={{
           title: Title,
-          // subtitle: Subtitle, add this back when there is a problem
+          firstNameField: CustomFirstNameField,
+          lastNameField: CustomLastNameField,
           emailField: CustomEmailField,
           passwordField: CustomPasswordField,
           submitButton: CustomButton,
-          signUpLink: SignUpLink,
-          rememberMe: RememberMeCheckbox,
-          forgotPasswordLink: ForgotPasswordLink,
+          signInLink: SignInLink,
         }}
         slotProps={{ 
           form: { noValidate: true },

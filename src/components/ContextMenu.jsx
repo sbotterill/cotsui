@@ -3,6 +3,7 @@ import * as React from 'react';
 import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
 import { Checkbox, FormControlLabel } from '@mui/material';
+import CustomSnackbar from './Snackbar';
 
 export default function BasicMenu({
   commodities,    // full list of sections
@@ -10,9 +11,10 @@ export default function BasicMenu({
   onFilterChange, // (newSelected: string[]) => void
 }) {
   const [anchorEl, setAnchorEl] = React.useState(null);
+  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const open = Boolean(anchorEl);
 
-  // local copy of “what’s checked”
+  // local copy of "what's checked"
   const [checkedList, setCheckedList] = React.useState(selected);
 
   // if parent ever resets `selected`, copy it in
@@ -24,19 +26,46 @@ export default function BasicMenu({
   const handleClose = () => setAnchorEl(null);
 
   // toggle one commodity on/off
-   const handleToggle = (commodity) => {
-        // build the new list
-        const next = checkedList.includes(commodity)
-        ? checkedList.filter(c => c !== commodity)
-        : [...checkedList, commodity];
+  const handleToggle = (commodity) => {
+    // build the new list
+    const next = checkedList.includes(commodity)
+      ? checkedList.filter(c => c !== commodity)
+      : [...checkedList, commodity];
 
-        // sort alphabetically
-        const sorted = [...next].sort((a, b) => a.localeCompare(b));
+    // sort alphabetically
+    const sorted = [...next].sort((a, b) => a.localeCompare(b));
 
-        // update both local and parent
-        setCheckedList(sorted);
-        onFilterChange(sorted);
-    };
+    // update both local and parent
+    setCheckedList(sorted);
+    onFilterChange(sorted);
+  };
+
+  const handleSavePreferences = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/preferences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: localStorage.getItem('userEmail'), // Assuming you store the email in localStorage after login
+          preferences: {
+            table_filters: checkedList
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save preferences');
+      }
+
+      setSnackbarOpen(true);
+      handleClose();
+    } catch (error) {
+      console.error('Error saving preferences:', error);
+    }
+  };
+
   return (
     <div>
       <Button
@@ -73,11 +102,17 @@ export default function BasicMenu({
         <Button
           variant="outlined"
           sx={{ alignSelf: 'center', m: 1, width: 250 }}
-          onClick={handleClose}
+          onClick={handleSavePreferences}
         >
           Save Preferences
         </Button>
       </Menu>
+      <CustomSnackbar
+        open={snackbarOpen}
+        message="Preferences saved successfully"
+        onClose={() => setSnackbarOpen(false)}
+        autoHideDuration={3000}
+      />
     </div>
   );
 }

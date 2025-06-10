@@ -7,10 +7,13 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import WarningIcon from '@mui/icons-material/Warning';
 import InfoIcon from '@mui/icons-material/Info';
 import CloseIcon from '@mui/icons-material/Close';
+import Profile from './Profile';
+import ProfileCard from './ProfileCard';
 
 export default function DrawerAppBar(props) {
   const theme = useTheme();
   const [showAlert, setShowAlert] = React.useState(true);
+  const [showProfileCard, setShowProfileCard] = React.useState(false);
   const rawDate = props.reportDate;
   const date = new Date(rawDate);
   const lastChecked = props.lastChecked ? new Date(props.lastChecked) : null;
@@ -37,6 +40,20 @@ export default function DrawerAppBar(props) {
 
     props.setFilteredData(filtered)
   }
+
+  // Close profile card when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showProfileCard && !event.target.closest('.profile-container')) {
+        setShowProfileCard(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProfileCard]);
 
   return (
     <>
@@ -84,7 +101,10 @@ export default function DrawerAppBar(props) {
         </Toolbar>
         <div className='appbar-context-menu'>
           <BasicMenu commodities={props.exchanges} selected={props.displayExchanges} onFilterChange={props.onExchangeFilterChange}/>
-          <ThemeSwitch />
+          <div className="profile-container" style={{display: 'flex', alignItems: 'center', gap: '8px', position: 'relative'}}>
+            <Profile onProfileClick={() => setShowProfileCard(!showProfileCard)} />
+            <ProfileCard open={showProfileCard} onClose={() => setShowProfileCard(false)} />
+          </div>
         </div>
       </AppBar>
       {!props.isLatestData && showAlert && (

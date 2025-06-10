@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, createContext } from 'react';
 import axios from 'axios';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
@@ -9,6 +10,7 @@ import DrawerAppBar from './components/AppBar';
 import CollapsibleTable from './components/CollapsableTable';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import SlotsSignIn from './components/SigninPage';
+import SignUpPage from './components/SignUpPage';
 
 // Context to expose toggle function for theme switch
 export const ColorModeContext = createContext({ toggleColorMode: () => {} });
@@ -262,37 +264,44 @@ export default function App() {
   };
 
   return (
-    <>
-      {authorized && filteredData.length > 0 && exchanges.length > 0 ? (
-        <ColorModeContext.Provider value={colorMode}>
-          <ThemeProvider theme={theme}>
-            <div className="app-js-container">
-              <DrawerAppBar
-                exchanges={exchanges}
-                displayExchanges={displayExchanges}
-                onExchangeFilterChange={handleExchangeFilterChange}
-                futuresData={futuresData}
-                setFilteredData={setFilteredData}
-                reportDate={lastUpdated}
-                isLatestData={isLatestData}
-                onRefresh={handleRefresh}
-                isRefreshing={isRefreshing}
-                lastChecked={lastChecked}
-              />
-              <div style={{ paddingTop: 90, width: '100%' }}>
-                <CollapsibleTable
-                  futuresData={filteredData}
-                  exchanges={displayExchanges}
-                  favorites={favorites}
-                  onToggleFavorite={handleToggleFavorite}
-                />
-              </div>
-            </div>
-          </ThemeProvider>
-        </ColorModeContext.Provider>
-      ) : (
-        <SlotsSignIn setAuthorization={setAuthorization} />
-      )}
-    </>
+    <Router>
+      <Routes>
+        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/" element={
+          <>
+            {authorized && filteredData.length > 0 && exchanges.length > 0 ? (
+              <ColorModeContext.Provider value={colorMode}>
+                <ThemeProvider theme={theme}>
+                  <div className="app-js-container">
+                    <DrawerAppBar
+                      exchanges={exchanges}
+                      displayExchanges={displayExchanges}
+                      onExchangeFilterChange={handleExchangeFilterChange}
+                      futuresData={futuresData}
+                      setFilteredData={setFilteredData}
+                      reportDate={lastUpdated}
+                      isLatestData={isLatestData}
+                      onRefresh={handleRefresh}
+                      isRefreshing={isRefreshing}
+                      lastChecked={lastChecked}
+                    />
+                    <div style={{ paddingTop: 90, width: '100%' }}>
+                      <CollapsibleTable
+                        futuresData={filteredData}
+                        exchanges={displayExchanges}
+                        favorites={favorites}
+                        onToggleFavorite={handleToggleFavorite}
+                      />
+                    </div>
+                  </div>
+                </ThemeProvider>
+              </ColorModeContext.Provider>
+            ) : (
+              <SlotsSignIn setAuthorization={setAuthorization} />
+            )}
+          </>
+        } />
+      </Routes>
+    </Router>
   );
 }
