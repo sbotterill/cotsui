@@ -21,6 +21,7 @@ import { AppProvider } from '@toolpad/core/AppProvider';
 import { SignInPage } from '@toolpad/core/SignInPage';
 import { useTheme } from '@mui/material/styles';
 import { Link as RouterLink } from 'react-router-dom';
+import { API_BASE_URL } from '../config';
 
 const providers = [{ id: 'credentials', name: 'Email and Password' }];
 
@@ -177,27 +178,16 @@ export default function SignUpPage() {
       setIsLoading(true);
       setError(null);
       
-      const email = formData.get('email');
-      const password = formData.get('password');
-      const firstName = formData.get('firstName');
-      const lastName = formData.get('lastName');
-
-      if (!email || !password || !firstName || !lastName) {
-        setError('Please fill in all fields');
-        return;
-      }
-
-      const response = await fetch('http://localhost:5000/permissions', {
+      const response = await fetch(`${API_BASE_URL}/permissions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email,
-          password,
-          firstName,
-          lastName,
-          access: true
+          email: formData.get('email'),
+          password: formData.get('password'),
+          first_name: formData.get('firstName'),
+          last_name: formData.get('lastName')
         }),
       });
 
@@ -208,8 +198,8 @@ export default function SignUpPage() {
       const data = await response.json();
 
       if (data.success) {
-        localStorage.setItem('userEmail', email);
-        localStorage.setItem('userName', `${firstName} ${lastName}`);
+        localStorage.setItem('userEmail', formData.get('email'));
+        localStorage.setItem('userName', `${formData.get('firstName')} ${formData.get('lastName')}`);
         window.location.href = '/';
       } else {
         setError(data.message || 'Sign up failed');
