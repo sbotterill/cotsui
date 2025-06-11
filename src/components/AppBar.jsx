@@ -120,7 +120,24 @@ export default function DrawerAppBar(props) {
           />
           <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
             {!props.isLatestData && (
-              <Tooltip sx={{width: "1500px"}} title="Showing previous week's data, new data available Friday 15:30 EST.">
+              <Tooltip 
+                title="Showing previous week's data, new data available Friday 15:30 EST."
+                slotProps={{
+                  tooltip: {
+                    sx: {
+                      width: '2000px',
+                      fontSize: '14px',
+                      bgcolor: 'background.paper',
+                      color: 'text.primary',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      '& .MuiTooltip-arrow': {
+                        color: 'background.paper',
+                      }
+                    }
+                  }
+                }}
+              >
                 <WarningIcon sx={{ color: theme.palette.warning.main, fontSize: '1.2rem' }} />
               </Tooltip>
             )}
