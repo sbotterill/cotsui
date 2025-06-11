@@ -31,7 +31,7 @@ function stringAvatar(name, isDarkMode) {
 
   return {
     sx: {
-      bgcolor: isDarkMode ? '#000' : '#fff',
+      bgcolor: isDarkMode ? '#2a2a2a' : '#fff',
       color: isDarkMode ? '#fff' : '#000',
       border: '1px solid',
       borderColor: isDarkMode ? '#fff' : '#000',

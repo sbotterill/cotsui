@@ -175,17 +175,30 @@ export default function SlotsSignIn(props) {
         return;
       }
 
+      console.log('Attempting to sign in with email:', email);
       const response = await fetch(
         `${API_BASE_URL}/permissions?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
       );
 
+      const data = await response.json();
+      console.log('Sign in response:', data);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        if (response.status === 401) {
+          if (data.message.includes('verify your email')) {
+            // Redirect to verification page if email not verified
+            window.location.href = `/verify?email=${encodeURIComponent(email)}`;
+            return;
+          }
+          setError(data.message || 'Invalid credentials');
+        } else {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return;
       }
 
-      const data = await response.json();
-
       if (data.authorized) {
+        console.log('Login successful, storing user info');
         // Store user information in localStorage
         localStorage.setItem('userEmail', email);
         localStorage.setItem('userName', `${data.first_name} ${data.last_name}`);

@@ -86,6 +86,7 @@ export default function BasicMenu({
         slotProps={{
           list: { 'aria-labelledby': 'basic-button' },
         }}
+        sx={{marginTop: "10px"}}
       >
         {commodities.map(commodity => (
           <FormControlLabel
@@ -97,7 +98,7 @@ export default function BasicMenu({
                 onChange={() => handleToggle(commodity)}
               />
             }
-            label={commodity}
+            label={<span style={{ fontSize: "14px" }}>{commodity}</span>}
           />
         ))}
         <Button

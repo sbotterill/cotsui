@@ -12,6 +12,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import SlotsSignIn from './components/SigninPage';
 import SignUpPage from './components/SignUpPage';
 import VerificationPage from './components/VerificationPage';
+import { Box, CircularProgress } from '@mui/material';
 
 // Context to expose toggle function for theme switch
 export const ColorModeContext = createContext({ toggleColorMode: () => {} });
@@ -20,20 +21,20 @@ export const ColorModeContext = createContext({ toggleColorMode: () => {} });
 async function getThisWeeksTuesday() {
   const date = new Date();
   const day = date.getDay();
-  // Calculate days until next Tuesday (2 is Tuesday)
-  const daysUntilTuesday = (2 - day + 7) % 7;
+  // Calculate days since last Tuesday (2 is Tuesday)
+  const daysSinceTuesday = (day - 2 + 7) % 7;
   const tuesday = new Date(date);
-  tuesday.setDate(date.getDate() + daysUntilTuesday);
+  tuesday.setDate(date.getDate() - daysSinceTuesday);
   return formatDate(tuesday);
 }
 
 async function getLastWeeksTuesday() {
   const date = new Date();
   const day = date.getDay();
-  // Calculate days until next Tuesday (2 is Tuesday)
-  const daysUntilTuesday = (2 - day + 7) % 7;
+  // Calculate days since last Tuesday (2 is Tuesday)
+  const daysSinceTuesday = (day - 2 + 7) % 7;
   const thisWeekTuesday = new Date(date);
-  thisWeekTuesday.setDate(date.getDate() + daysUntilTuesday);
+  thisWeekTuesday.setDate(date.getDate() - daysSinceTuesday);
   // Subtract 7 days to get last week's Tuesday
   const lastWeekTuesday = new Date(thisWeekTuesday);
   lastWeekTuesday.setDate(thisWeekTuesday.getDate() - 7);
@@ -53,11 +54,14 @@ console.log(getLastWeeksTuesday());
 async function checkLatestDataAvailability() {
   try {
     const thisWeekTuesday = await getThisWeeksTuesday();
+    console.log('Checking data availability for:', thisWeekTuesday);
     const response = await axios.get(
       `https://publicreporting.cftc.gov/resource/6dca-aqww.json?$limit=1&report_date_as_yyyy_mm_dd=${thisWeekTuesday}`
     );
+    const isAvailable = response.data.length > 0;
+    console.log('Data available:', isAvailable);
     return {
-      isAvailable: response.data.length > 0,
+      isAvailable,
       checkedAt: new Date().toISOString()
     };
   } catch (error) {
@@ -81,11 +85,14 @@ async function fetchData() {
     // First check if this week's data is available
     const availabilityCheck = await checkLatestDataAvailability();
     lastChecked = availabilityCheck.checkedAt;
+    
     if (!availabilityCheck.isAvailable) {
+      console.log('This week\'s data not available, falling back to last week');
       isLatestData = false;
       reportDate = await getLastWeeksTuesday();
     }
 
+    console.log('Fetching data for date:', reportDate);
     const firstResponse = await axios.get(
       "https://publicreporting.cftc.gov/resource/6dca-aqww.json"
     );
@@ -103,6 +110,7 @@ async function fetchData() {
 
         const data = response.data[0];
         if (!data || !data.noncomm_positions_long_all || !data.noncomm_positions_short_all || data.noncomm_positions_long_all === "undefined") {
+          console.warn(`Invalid data for ${element.contract_market_name} on ${reportDate}`);
           return;
         }
 
@@ -271,7 +279,9 @@ export default function App() {
         <Route path="/verify" element={<VerificationPage />} />
         <Route path="/" element={
           <>
-            {authorized && filteredData.length > 0 && exchanges.length > 0 ? (
+            {!authorized ? (
+              <SlotsSignIn setAuthorization={setAuthorization} />
+            ) : (
               <ColorModeContext.Provider value={colorMode}>
                 <ThemeProvider theme={theme}>
                   <div className="app-js-container">
@@ -288,18 +298,22 @@ export default function App() {
                       lastChecked={lastChecked}
                     />
                     <div style={{ paddingTop: 90, width: '100%' }}>
-                      <CollapsibleTable
-                        futuresData={filteredData}
-                        exchanges={displayExchanges}
-                        favorites={favorites}
-                        onToggleFavorite={handleToggleFavorite}
-                      />
+                      {filteredData.length > 0 && exchanges.length > 0 ? (
+                        <CollapsibleTable
+                          futuresData={filteredData}
+                          exchanges={displayExchanges}
+                          favorites={favorites}
+                          onToggleFavorite={handleToggleFavorite}
+                        />
+                      ) : (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 90px)' }}>
+                          <CircularProgress />
+                        </Box>
+                      )}
                     </div>
                   </div>
                 </ThemeProvider>
               </ColorModeContext.Provider>
-            ) : (
-              <SlotsSignIn setAuthorization={setAuthorization} />
             )}
           </>
         } />

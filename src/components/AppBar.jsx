@@ -15,6 +15,7 @@ export default function DrawerAppBar(props) {
   const [showAlert, setShowAlert] = React.useState(true);
   const [showProfileCard, setShowProfileCard] = React.useState(false);
   const [showNoResults, setShowNoResults] = React.useState(false);
+  const [searchTerm, setSearchTerm] = React.useState('');
   const rawDate = props.reportDate;
   const date = new Date(rawDate);
   const lastChecked = props.lastChecked ? new Date(props.lastChecked) : null;
@@ -34,13 +35,14 @@ export default function DrawerAppBar(props) {
 
   const handleFuturesFilter = (event) => {
     try {
-      const searchTerm = event.target.value.trim().toLowerCase();
+      const searchValue = event.target.value.trim().toLowerCase();
+      setSearchTerm(event.target.value);
       const filtered = props.futuresData.filter(row =>
-        row.commodity.toLowerCase().includes(searchTerm)
+        row.commodity.toLowerCase().includes(searchValue)
       );
 
       // Show no results message if search term exists but no results found
-      if (searchTerm && filtered.length === 0) {
+      if (searchValue && filtered.length === 0) {
         setShowNoResults(true);
         // Hide the message after 3 seconds
         setTimeout(() => setShowNoResults(false), 3000);
@@ -57,6 +59,12 @@ export default function DrawerAppBar(props) {
       setShowNoResults(false);
     }
   }
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    props.setFilteredData(props.futuresData);
+    setShowNoResults(false);
+  };
 
   // Close profile card when clicking outside
   React.useEffect(() => {
@@ -83,10 +91,36 @@ export default function DrawerAppBar(props) {
           >
             COTS UI
           </Typography>
-          <TextField onChange={handleFuturesFilter} sx={{width: "250px", marginRight: "15px"}} size='small' id="outlined-basic" label="Search" variant="outlined" InputLabelProps={{ style: { color: 'inherit' } }} InputProps={{ style: { color: 'inherit' } }} />
+          <TextField 
+            onChange={handleFuturesFilter} 
+            value={searchTerm}
+            sx={{width: "250px", marginRight: "15px"}} 
+            size='small' 
+            id="outlined-basic" 
+            label="Search" 
+            variant="outlined" 
+            InputLabelProps={{ style: { color: 'inherit' } }} 
+            InputProps={{ 
+              style: { color: 'inherit' },
+              endAdornment: searchTerm && (
+                <IconButton
+                  size="small"
+                  onClick={handleClearSearch}
+                  sx={{ 
+                    padding: '2px',
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                    }
+                  }}
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              )
+            }} 
+          />
           <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
             {!props.isLatestData && (
-              <Tooltip title="Showing previous week's data, new data available Friday 15:30 EST.">
+              <Tooltip sx={{width: "1500px"}} title="Showing previous week's data, new data available Friday 15:30 EST.">
                 <WarningIcon sx={{ color: theme.palette.warning.main, fontSize: '1.2rem' }} />
               </Tooltip>
             )}

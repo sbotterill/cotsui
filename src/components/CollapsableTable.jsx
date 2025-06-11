@@ -225,8 +225,8 @@ function Row({ name, data, favorites, onToggleFavorite, order, orderBy, onReques
                           active={orderBy === (i === 5 ? 'non_commercial_percentage_long' : `non_commercial_${lbl.toLowerCase()}`)}
                           direction={orderBy === (i === 5 ? 'non_commercial_percentage_long' : `non_commercial_${lbl.toLowerCase()}`) ? order : 'asc'}
                           onClick={() => onRequestSort(i === 5 ? 'non_commercial_percentage_long' : `non_commercial_${lbl.toLowerCase()}`)}
-                        >
-                          {lbl}
+                      >
+                        {lbl}
                         </TableSortLabel>
                       </TableCell>
                     ))}
@@ -250,8 +250,8 @@ function Row({ name, data, favorites, onToggleFavorite, order, orderBy, onReques
                           active={orderBy === (i === 5 ? 'commerical_percentage_long' : `commerical_${lbl.toLowerCase()}`)}
                           direction={orderBy === (i === 5 ? 'commerical_percentage_long' : `commerical_${lbl.toLowerCase()}`) ? order : 'asc'}
                           onClick={() => onRequestSort(i === 5 ? 'commerical_percentage_long' : `commerical_${lbl.toLowerCase()}`)}
-                        >
-                          {lbl}
+                      >
+                        {lbl}
                         </TableSortLabel>
                       </TableCell>
                     ))}
@@ -269,8 +269,8 @@ function Row({ name, data, favorites, onToggleFavorite, order, orderBy, onReques
                           active={orderBy === (i === 5 ? 'non_reportable_percentage_long' : `non_reportable_${lbl.toLowerCase()}`)}
                           direction={orderBy === (i === 5 ? 'non_reportable_percentage_long' : `non_reportable_${lbl.toLowerCase()}`) ? order : 'asc'}
                           onClick={() => onRequestSort(i === 5 ? 'non_reportable_percentage_long' : `non_reportable_${lbl.toLowerCase()}`)}
-                        >
-                          {lbl}
+                      >
+                        {lbl}
                         </TableSortLabel>
                       </TableCell>
                     ))}
@@ -602,8 +602,8 @@ export default function CollapsableTable({
                                   active={orderBy === `non_commercial_percentage_long`}
                                   direction={orderBy === `non_commercial_percentage_long` ? order : 'asc'}
                                   onClick={() => handleRequestSort(`non_commercial_percentage_long`)}
-                                >
-                                  {lbl}
+                              >
+                                {lbl}
                                 </TableSortLabel>
                               </TableCell>
                             ))}
@@ -627,8 +627,8 @@ export default function CollapsableTable({
                                   active={orderBy === `commerical_percentage_long`}
                                   direction={orderBy === `commerical_percentage_long` ? order : 'asc'}
                                   onClick={() => handleRequestSort(`commerical_percentage_long`)}
-                                >
-                                  {lbl}
+                              >
+                                {lbl}
                                 </TableSortLabel>
                               </TableCell>
                             ))}
@@ -646,8 +646,8 @@ export default function CollapsableTable({
                                   active={orderBy === `non_reportable_percentage_long`}
                                   direction={orderBy === `non_reportable_percentage_long` ? order : 'asc'}
                                   onClick={() => handleRequestSort(`non_reportable_percentage_long`)}
-                                >
-                                  {lbl}
+                              >
+                                {lbl}
                                 </TableSortLabel>
                               </TableCell>
                             ))}
