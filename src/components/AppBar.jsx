@@ -14,6 +14,7 @@ export default function DrawerAppBar(props) {
   const theme = useTheme();
   const [showAlert, setShowAlert] = React.useState(true);
   const [showProfileCard, setShowProfileCard] = React.useState(false);
+  const [showNoResults, setShowNoResults] = React.useState(false);
   const rawDate = props.reportDate;
   const date = new Date(rawDate);
   const lastChecked = props.lastChecked ? new Date(props.lastChecked) : null;
@@ -32,13 +33,29 @@ export default function DrawerAppBar(props) {
   }) : null;
 
   const handleFuturesFilter = (event) => {
-    const filtered = props.futuresData.filter(row =>
-      row.commodity
-        .toLowerCase()
-        .includes(event.target.value.trim().toLowerCase())
-    );
+    try {
+      const searchTerm = event.target.value.trim().toLowerCase();
+      const filtered = props.futuresData.filter(row =>
+        row.commodity.toLowerCase().includes(searchTerm)
+      );
 
-    props.setFilteredData(filtered)
+      // Show no results message if search term exists but no results found
+      if (searchTerm && filtered.length === 0) {
+        setShowNoResults(true);
+        // Hide the message after 3 seconds
+        setTimeout(() => setShowNoResults(false), 3000);
+      } else {
+        setShowNoResults(false);
+      }
+
+      // If no results found, show all data instead of empty list
+      props.setFilteredData(filtered.length > 0 ? filtered : props.futuresData);
+    } catch (error) {
+      console.error('Error filtering data:', error);
+      // On error, show all data
+      props.setFilteredData(props.futuresData);
+      setShowNoResults(false);
+    }
   }
 
   // Close profile card when clicking outside
@@ -69,21 +86,21 @@ export default function DrawerAppBar(props) {
           <TextField onChange={handleFuturesFilter} sx={{width: "250px", marginRight: "15px"}} size='small' id="outlined-basic" label="Search" variant="outlined" InputLabelProps={{ style: { color: 'inherit' } }} InputProps={{ style: { color: 'inherit' } }} />
           <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
             {!props.isLatestData && (
-              <Tooltip title="Showing previous week's data">
+              <Tooltip title="Showing previous week's data, new data available Friday 15:30 EST.">
                 <WarningIcon sx={{ color: theme.palette.warning.main, fontSize: '1.2rem' }} />
               </Tooltip>
             )}
             <div style={{display: 'flex', flexDirection: 'column', fontSize: "12px", color: "#0000052"}}>
               <div style={{fontStyle: "italic"}}>
-                {`Last Updated: ${readable}`}
+                {`Report Date: ${readable}`}
               </div>
-              {lastCheckedReadable && (
+              {/* {lastCheckedReadable && (
                 <div style={{fontSize: "10px", opacity: 0.7}}>
                   {`Last Checked: ${lastCheckedReadable}`}
                 </div>
-              )}
+              )} */}
             </div>
-            <Tooltip title="Refresh data">
+            {/* <Tooltip title="Refresh data">
               <IconButton 
                 onClick={props.onRefresh} 
                 disabled={props.isRefreshing}
@@ -96,7 +113,7 @@ export default function DrawerAppBar(props) {
                   <RefreshIcon />
                 )}
               </IconButton>
-            </Tooltip>
+            </Tooltip> */}
           </div>
         </Toolbar>
         <div className='appbar-context-menu'>
@@ -107,6 +124,26 @@ export default function DrawerAppBar(props) {
           </div>
         </div>
       </AppBar>
+      {showNoResults && (
+        <Alert 
+          severity="info" 
+          icon={<InfoIcon />}
+          sx={{ 
+            position: 'fixed',
+            top: '64px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1300,
+            width: 'auto',
+            minWidth: '300px',
+            maxWidth: '80%',
+            boxShadow: 1,
+            borderRadius: '0 0 4px 4px'
+          }}
+        >
+          No results found for your search. Showing all data.
+        </Alert>
+      )}
       {!props.isLatestData && showAlert && (
         <Alert 
           severity="info" 

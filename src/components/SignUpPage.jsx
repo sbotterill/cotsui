@@ -13,30 +13,59 @@ import {
   Paper,
   Typography,
   Container,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import PersonIcon from '@mui/icons-material/Person';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { useTheme } from '@mui/material/styles';
 import { Link as RouterLink } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
+
+// Password validation functions
+const hasMinLength = (password) => password.length >= 10;
+const hasUpperCase = (password) => /[A-Z]/.test(password);
+const hasNumber = (password) => /[0-9]/.test(password);
+const hasSymbol = (password) => /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+const passwordRequirements = [
+  { label: 'At least 10 characters', validator: hasMinLength },
+  { label: 'At least one uppercase letter', validator: hasUpperCase },
+  { label: 'At least one number', validator: hasNumber },
+  { label: 'At least one special character', validator: hasSymbol },
+];
 
 export default function SignUpPage() {
   const theme = useTheme();
   const [error, setError] = React.useState(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
+  const [password, setPassword] = React.useState('');
 
   const handleClickShowPassword = () => setShowPassword((show) => !show);
   const handleMouseDownPassword = (event) => {
     event.preventDefault();
   };
 
+  const isPasswordValid = () => {
+    return passwordRequirements.every(req => req.validator(password));
+  };
+
   const handleSignUp = async (event) => {
     event.preventDefault();
     const formData = new FormData(event.target);
     
+    if (!isPasswordValid()) {
+      setError('Please ensure your password meets all requirements');
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -61,9 +90,8 @@ export default function SignUpPage() {
       const data = await response.json();
 
       if (data.success) {
-        localStorage.setItem('userEmail', formData.get('email'));
-        localStorage.setItem('userName', `${formData.get('firstName')} ${formData.get('lastName')}`);
-        window.location.href = '/';
+        // Redirect to verification page instead of directly logging in
+        window.location.href = `/verify?email=${encodeURIComponent(formData.get('email'))}`;
       } else {
         setError(data.message || 'Sign up failed');
       }
@@ -182,6 +210,8 @@ export default function SignUpPage() {
                   type={showPassword ? 'text' : 'password'}
                   required
                   size="small"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   endAdornment={
                     <InputAdornment position="end">
                       <IconButton
@@ -198,12 +228,35 @@ export default function SignUpPage() {
                   label="Password"
                 />
               </FormControl>
+              
+              {/* Password Requirements List */}
+              <List dense sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper', mt: 1 }}>
+                {passwordRequirements.map((req, index) => (
+                  <ListItem key={index} sx={{ py: 0.5 }}>
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      {req.validator(password) ? (
+                        <CheckCircleIcon color="success" fontSize="small" />
+                      ) : (
+                        <CancelIcon color="error" fontSize="small" />
+                      )}
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={req.label}
+                      primaryTypographyProps={{
+                        fontSize: '0.75rem',
+                        color: req.validator(password) ? 'success.main' : 'error.main'
+                      }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+
               <Button
                 type="submit"
                 fullWidth
                 variant="contained"
                 sx={{ mt: 3, mb: 2 }}
-                disabled={isLoading}
+                disabled={isLoading || !isPasswordValid()}
               >
                 {isLoading ? 'Signing up...' : 'Sign Up'}
               </Button>

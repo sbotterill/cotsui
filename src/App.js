@@ -11,6 +11,7 @@ import CollapsibleTable from './components/CollapsableTable';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import SlotsSignIn from './components/SigninPage';
 import SignUpPage from './components/SignUpPage';
+import VerificationPage from './components/VerificationPage';
 
 // Context to expose toggle function for theme switch
 export const ColorModeContext = createContext({ toggleColorMode: () => {} });
@@ -267,6 +268,7 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/verify" element={<VerificationPage />} />
         <Route path="/" element={
           <>
             {authorized && filteredData.length > 0 && exchanges.length > 0 ? (

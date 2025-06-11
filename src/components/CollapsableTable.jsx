@@ -10,6 +10,7 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import TableSortLabel from '@mui/material/TableSortLabel';
 import Paper from '@mui/material/Paper';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -40,12 +41,61 @@ function getPercentageColor(value) {
   }
 }
 
+function descendingComparator(a, b, orderBy) {
+  // Debug log to see the entire row structure
+  if (orderBy.includes('%')) {
+    console.log('Row structure:', a);
+  }
+
+  // Handle percentage fields - check for exact field names
+  if (orderBy === 'non_commercial_percentage_long' || 
+      orderBy === 'commerical_percentage_long' || 
+      orderBy === 'non_reportable_percentage_long') {
+    const aValue = parseFloat(a[orderBy]) || 0;
+    const bValue = parseFloat(b[orderBy]) || 0;
+    if (bValue < aValue) return -1;
+    if (bValue > aValue) return 1;
+    return 0;
+  }
+  
+  // Handle numeric fields
+  if (typeof a[orderBy] === 'number' || !isNaN(Number(a[orderBy]))) {
+    const aValue = Number(a[orderBy]) || 0;
+    const bValue = Number(b[orderBy]) || 0;
+    if (bValue < aValue) return -1;
+    if (bValue > aValue) return 1;
+    return 0;
+  }
+  
+  // Handle string fields (like commodity names)
+  if (b[orderBy] < a[orderBy]) {
+    return -1;
+  }
+  if (b[orderBy] > a[orderBy]) {
+    return 1;
+  }
+  return 0;
+}
+
+function getComparator(order, orderBy) {
+  return order === 'desc'
+    ? (a, b) => descendingComparator(a, b, orderBy)
+    : (a, b) => -descendingComparator(a, b, orderBy);
+}
+
 // Inlined "Row" from before:
-function Row({ name, data, favorites, onToggleFavorite }) {
+function Row({ name, data, favorites, onToggleFavorite, order, orderBy, onRequestSort }) {
   const [open, setOpen] = React.useState(false);
   const theme = useTheme();
   const fmt = new Intl.NumberFormat('en-US');
   const rows = data.filter(d => name.includes(d.market_code.trim()));
+  
+  // Move useMemo outside of conditional
+  const sortedRows = React.useMemo(() => {
+    if (!rows.length) return [];
+    return [...rows].sort(getComparator(order, orderBy));
+  }, [rows, order, orderBy]);
+
   if (!rows.length) return null;
 
   return (
@@ -85,8 +135,8 @@ function Row({ name, data, favorites, onToggleFavorite }) {
               boxShadow: theme.palette.mode === 'dark' 
                 ? '0 2px 4px rgba(0,0,0,0.2)' 
                 : '0 2px 4px rgba(0,0,0,0.05)',
-              my: 1,
-              mx: 0.5,
+              my: 0.5,
+              mx: 0.25,
               maxHeight: '400px',
               overflowY: 'auto',
               '&::-webkit-scrollbar': {
@@ -124,9 +174,17 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                   }}>
                     <TableCell rowSpan={2} sx={{ 
                       color: theme.palette.mode === 'dark' ? '#fff' : '#000', 
-                      minWidth: '150px',
+                      minWidth: '120px',
                       backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                    }}>Commodity</TableCell>
+                    }}>
+                      <TableSortLabel
+                        active={orderBy === 'commodity'}
+                        direction={orderBy === 'commodity' ? order : 'asc'}
+                        onClick={() => onRequestSort('commodity')}
+                      >
+                        Commodity
+                      </TableSortLabel>
+                    </TableCell>
                     <TableCell colSpan={6} align="center" sx={{ 
                       color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                       backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
@@ -152,12 +210,24 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                         key={`h1-${i}`}
                         sx={{
                           color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                          minWidth: '100px',
+                          minWidth: '80px',
+                          maxWidth: '120px',
                           backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                          ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {})
+                          ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {}),
+                          padding: '8px 4px',
+                          fontSize: '0.875rem',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
                         }}
                       >
-                        {lbl}
+                        <TableSortLabel
+                          active={orderBy === (i === 5 ? 'non_commercial_percentage_long' : `non_commercial_${lbl.toLowerCase()}`)}
+                          direction={orderBy === (i === 5 ? 'non_commercial_percentage_long' : `non_commercial_${lbl.toLowerCase()}`) ? order : 'asc'}
+                          onClick={() => onRequestSort(i === 5 ? 'non_commercial_percentage_long' : `non_commercial_${lbl.toLowerCase()}`)}
+                        >
+                          {lbl}
+                        </TableSortLabel>
                       </TableCell>
                     ))}
                     {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
@@ -165,12 +235,24 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                         key={`h2-${i}`}
                         sx={{
                           color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                          minWidth: '100px',
+                          minWidth: '80px',
+                          maxWidth: '120px',
                           backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                          ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {})
+                          ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {}),
+                          padding: '8px 4px',
+                          fontSize: '0.875rem',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
                         }}
                       >
-                        {lbl}
+                        <TableSortLabel
+                          active={orderBy === (i === 5 ? 'commerical_percentage_long' : `commerical_${lbl.toLowerCase()}`)}
+                          direction={orderBy === (i === 5 ? 'commerical_percentage_long' : `commerical_${lbl.toLowerCase()}`) ? order : 'asc'}
+                          onClick={() => onRequestSort(i === 5 ? 'commerical_percentage_long' : `commerical_${lbl.toLowerCase()}`)}
+                        >
+                          {lbl}
+                        </TableSortLabel>
                       </TableCell>
                     ))}
                     {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
@@ -178,17 +260,24 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                         key={`h3-${i}`} 
                         sx={{ 
                           color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                          minWidth: '100px',
+                          minWidth: '80px',
+                          maxWidth: '120px',
                           backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
                         }}
                       >
-                        {lbl}
+                        <TableSortLabel
+                          active={orderBy === (i === 5 ? 'non_reportable_percentage_long' : `non_reportable_${lbl.toLowerCase()}`)}
+                          direction={orderBy === (i === 5 ? 'non_reportable_percentage_long' : `non_reportable_${lbl.toLowerCase()}`) ? order : 'asc'}
+                          onClick={() => onRequestSort(i === 5 ? 'non_reportable_percentage_long' : `non_reportable_${lbl.toLowerCase()}`)}
+                        >
+                          {lbl}
+                        </TableSortLabel>
                       </TableCell>
                     ))}
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {rows.map(r => (
+                  {sortedRows.map(r => (
                     <TableRow
                       key={r.commodity}
                       sx={{
@@ -221,13 +310,15 @@ function Row({ name, data, favorites, onToggleFavorite }) {
                           display: 'flex', 
                           alignItems: 'center', 
                           justifyContent: 'space-between',
-                          minWidth: '200px',
-                          maxWidth: '300px'
+                          minWidth: '120px',
+                          maxWidth: '200px',
+                          padding: '8px 4px',
                         }}>
                           <Typography 
                             sx={{ 
-                              whiteSpace: 'normal',
-                              wordBreak: 'break-word',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
                               lineHeight: 1.2,
                               pr: 1,
                               fontSize: '0.875rem'
@@ -334,9 +425,22 @@ export default function CollapsableTable({
   onToggleFavorite,
 }) {
   const theme = useTheme();
+  const [order, setOrder] = React.useState('asc');
+  const [orderBy, setOrderBy] = React.useState('commodity');
   const favoriteRows = futuresData.filter(r => favorites.includes(r.commodity));
   const fmt = new Intl.NumberFormat('en-US');
   const [open, setOpen] = React.useState(false);
+
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
+  // Sort favorite rows
+  const sortedFavoriteRows = React.useMemo(() => {
+    return [...favoriteRows].sort(getComparator(order, orderBy));
+  }, [favoriteRows, order, orderBy]);
 
   return (
     <TableContainer
@@ -345,6 +449,22 @@ export default function CollapsableTable({
       sx={{
         backgroundColor: theme.palette.background.paper,
         boxShadow: 'none',
+        maxWidth: '100%',
+        overflowX: 'auto',
+        '&::-webkit-scrollbar': {
+          height: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f1f1f1',
+          borderRadius: '4px',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: theme.palette.mode === 'dark' ? '#444' : '#888',
+          borderRadius: '4px',
+          '&:hover': {
+            background: theme.palette.mode === 'dark' ? '#555' : '#999',
+          },
+        },
       }}
     >
       <Table
@@ -390,8 +510,8 @@ export default function CollapsableTable({
                       boxShadow: theme.palette.mode === 'dark' 
                         ? '0 2px 4px rgba(0,0,0,0.2)' 
                         : '0 2px 4px rgba(0,0,0,0.05)',
-                      my: 1,
-                      mx: 0.5,
+                      my: 0.5,
+                      mx: 0.25,
                       maxHeight: '400px',
                       overflowY: 'auto',
                       '&::-webkit-scrollbar': {
@@ -425,9 +545,17 @@ export default function CollapsableTable({
                           }}>
                             <TableCell rowSpan={2} sx={{ 
                               color: theme.palette.mode === 'dark' ? '#fff' : '#000', 
-                              minWidth: '150px',
+                              minWidth: '120px',
                               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                            }}>Commodity</TableCell>
+                            }}>
+                              <TableSortLabel
+                                active={orderBy === 'commodity'}
+                                direction={orderBy === 'commodity' ? order : 'asc'}
+                                onClick={() => handleRequestSort('commodity')}
+                              >
+                                Commodity
+                              </TableSortLabel>
+                            </TableCell>
                             <TableCell colSpan={6} align="center" sx={{ 
                               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
@@ -459,12 +587,24 @@ export default function CollapsableTable({
                                 key={`f-h1-${i}`}
                                 sx={{
                                   color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                                  minWidth: '100px',
+                                  minWidth: '80px',
+                                  maxWidth: '120px',
                                   backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                                  ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {})
+                                  ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {}),
+                                  padding: '8px 4px',
+                                  fontSize: '0.875rem',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
                                 }}
                               >
-                                {lbl}
+                                <TableSortLabel
+                                  active={orderBy === `non_commercial_percentage_long`}
+                                  direction={orderBy === `non_commercial_percentage_long` ? order : 'asc'}
+                                  onClick={() => handleRequestSort(`non_commercial_percentage_long`)}
+                                >
+                                  {lbl}
+                                </TableSortLabel>
                               </TableCell>
                             ))}
                             {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
@@ -472,12 +612,24 @@ export default function CollapsableTable({
                                 key={`f-h2-${i}`}
                                 sx={{
                                   color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                                  minWidth: '100px',
+                                  minWidth: '80px',
+                                  maxWidth: '120px',
                                   backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                                  ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {})
+                                  ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {}),
+                                  padding: '8px 4px',
+                                  fontSize: '0.875rem',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
                                 }}
                               >
-                                {lbl}
+                                <TableSortLabel
+                                  active={orderBy === `commerical_percentage_long`}
+                                  direction={orderBy === `commerical_percentage_long` ? order : 'asc'}
+                                  onClick={() => handleRequestSort(`commerical_percentage_long`)}
+                                >
+                                  {lbl}
+                                </TableSortLabel>
                               </TableCell>
                             ))}
                             {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
@@ -485,17 +637,24 @@ export default function CollapsableTable({
                                 key={`f-h3-${i}`} 
                                 sx={{ 
                                   color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                                  minWidth: '100px',
+                                  minWidth: '80px',
+                                  maxWidth: '120px',
                                   backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
                                 }}
                               >
-                                {lbl}
+                                <TableSortLabel
+                                  active={orderBy === `non_reportable_percentage_long`}
+                                  direction={orderBy === `non_reportable_percentage_long` ? order : 'asc'}
+                                  onClick={() => handleRequestSort(`non_reportable_percentage_long`)}
+                                >
+                                  {lbl}
+                                </TableSortLabel>
                               </TableCell>
                             ))}
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {favoriteRows.map(r => (
+                          {sortedFavoriteRows.map(r => (
                             <TableRow
                               key={r.commodity}
                               sx={{
@@ -528,13 +687,15 @@ export default function CollapsableTable({
                                   display: 'flex', 
                                   alignItems: 'center', 
                                   justifyContent: 'space-between',
-                                  minWidth: '200px',
-                                  maxWidth: '300px'
+                                  minWidth: '120px',
+                                  maxWidth: '200px',
+                                  padding: '8px 4px',
                                 }}>
                                   <Typography 
                                     sx={{ 
-                                      whiteSpace: 'normal',
-                                      wordBreak: 'break-word',
+                                      whiteSpace: 'nowrap',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
                                       lineHeight: 1.2,
                                       pr: 1,
                                       fontSize: '0.875rem'
@@ -662,6 +823,9 @@ export default function CollapsableTable({
               data={futuresData}
               favorites={favorites}
               onToggleFavorite={onToggleFavorite}
+              order={order}
+              orderBy={orderBy}
+              onRequestSort={handleRequestSort}
             />
           ))}
         </TableBody>
