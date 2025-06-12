@@ -25,7 +25,7 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { useTheme } from '@mui/material/styles';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
 
 // Password validation functions
@@ -43,6 +43,7 @@ const passwordRequirements = [
 
 export default function SignUpPage() {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [error, setError] = React.useState(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
@@ -90,8 +91,8 @@ export default function SignUpPage() {
       const data = await response.json();
 
       if (data.success) {
-        // Redirect to verification page instead of directly logging in
-        window.location.href = `/verify?email=${encodeURIComponent(formData.get('email'))}`;
+        // Use React Router navigation instead of window.location
+        navigate(`/verify?email=${encodeURIComponent(formData.get('email'))}`);
       } else {
         setError(data.message || 'Sign up failed');
       }

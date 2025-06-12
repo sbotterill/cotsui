@@ -18,7 +18,7 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { AppProvider } from '@toolpad/core/AppProvider';
 import { SignInPage } from '@toolpad/core/SignInPage';
 import { useTheme } from '@mui/material/styles';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
 
 const providers = [{ id: 'credentials', name: 'Email and Password' }];
@@ -159,6 +159,7 @@ function RememberMeCheckbox() {
 
 export default function SlotsSignIn(props) {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [error, setError] = React.useState(null);
   const [isLoading, setIsLoading] = React.useState(false);
 
@@ -175,19 +176,16 @@ export default function SlotsSignIn(props) {
         return;
       }
 
-      console.log('Attempting to sign in with email:', email);
       const response = await fetch(
         `${API_BASE_URL}/permissions?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
       );
 
       const data = await response.json();
-      console.log('Sign in response:', data);
 
       if (!response.ok) {
         if (response.status === 401) {
           if (data.message.includes('verify your email')) {
-            // Redirect to verification page if email not verified
-            window.location.href = `/verify?email=${encodeURIComponent(email)}`;
+            navigate(`/verify?email=${encodeURIComponent(email)}`);
             return;
           }
           setError(data.message || 'Invalid credentials');
@@ -198,17 +196,13 @@ export default function SlotsSignIn(props) {
       }
 
       if (data.authorized) {
-        console.log('Login successful, storing user info');
-        // Store user information in localStorage
         localStorage.setItem('userEmail', email);
         localStorage.setItem('userName', `${data.first_name} ${data.last_name}`);
         
-        // Load user preferences
         try {
           const prefsResponse = await fetch(`${API_BASE_URL}/preferences?email=${encodeURIComponent(email)}`);
           if (prefsResponse.ok) {
             const prefsData = await prefsResponse.json();
-            console.log('Loaded preferences after login:', prefsData);
           }
         } catch (prefsError) {
           console.error('Error loading preferences after login:', prefsError);
