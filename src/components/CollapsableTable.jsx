@@ -223,8 +223,8 @@ function Row({ name, data, favorites, onToggleFavorite, order, orderBy, onReques
                           active={orderBy === `non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}`}
                           direction={orderBy === `non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}` ? order : 'asc'}
                           onClick={() => onRequestSort(`non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}`)}
-                        >
-                          {lbl}
+                      >
+                        {lbl}
                         </TableSortLabel>
                       </TableCell>
                     ))}
@@ -248,8 +248,8 @@ function Row({ name, data, favorites, onToggleFavorite, order, orderBy, onReques
                           active={orderBy === `commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}`}
                           direction={orderBy === `commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}` ? order : 'asc'}
                           onClick={() => onRequestSort(`commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}`)}
-                        >
-                          {lbl}
+                      >
+                        {lbl}
                         </TableSortLabel>
                       </TableCell>
                     ))}
@@ -272,8 +272,8 @@ function Row({ name, data, favorites, onToggleFavorite, order, orderBy, onReques
                           active={orderBy === `non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}`}
                           direction={orderBy === `non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}` ? order : 'asc'}
                           onClick={() => onRequestSort(`non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}`)}
-                        >
-                          {lbl}
+                      >
+                        {lbl}
                         </TableSortLabel>
                       </TableCell>
                     ))}

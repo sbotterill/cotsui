@@ -236,14 +236,13 @@ export default function App() {
       setFavorites(newFavorites);
       
       // Save favorites immediately
-      const response = await fetch(`${API_BASE_URL}/preferences`, {
+      const response = await fetch(`${API_BASE_URL}/preferences/favorites`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           email: localStorage.getItem('userEmail'),
-          preferences: {},
           favorites: { selected: newFavorites }
         }),
       });
@@ -262,24 +261,35 @@ export default function App() {
 
   const loadFavorites = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/preferences?email=${localStorage.getItem('userEmail')}`);
+      const response = await fetch(`${API_BASE_URL}/preferences/favorites?email=${localStorage.getItem('userEmail')}`);
       if (!response.ok) {
-        throw new Error('Failed to load preferences');
+        throw new Error('Failed to load favorites');
       }
       const data = await response.json();
-      console.log('Loaded preferences:', data);  // Debug log
       
       // Load favorites
       if (data.favorites && data.favorites.selected) {
         setFavorites(data.favorites.selected);
       }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+    }
+  };
+
+  const loadTableFilters = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/preferences/table_filters?email=${localStorage.getItem('userEmail')}`);
+      if (!response.ok) {
+        throw new Error('Failed to load table filters');
+      }
+      const data = await response.json();
       
       // Load table filters
-      if (data.preferences && data.preferences.table_filters && data.preferences.table_filters.selected) {
-        setDisplayExchanges(data.preferences.table_filters.selected);
+      if (data.table_filters && data.table_filters.selected) {
+        setDisplayExchanges(data.table_filters.selected);
       }
     } catch (error) {
-      console.error('Error loading preferences:', error);
+      console.error('Error loading table filters:', error);
     }
   };
 
@@ -294,14 +304,37 @@ export default function App() {
       setLastUpdated(date);
       setIsLatestData(latest);
       setLastChecked(checked);
-      await loadFavorites();
+      await Promise.all([loadFavorites(), loadTableFilters()]);
     };
     loadData();
   }, []);
 
   // Exchange filter handler
-  const handleExchangeFilterChange = newList => {
+  const handleExchangeFilterChange = async (newList) => {
     setDisplayExchanges(newList);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/preferences/table_filters`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: localStorage.getItem('userEmail'),
+          table_filters: { selected: newList }
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to save table filters');
+        // Optionally revert the state if save fails
+        setDisplayExchanges(displayExchanges);
+      }
+    } catch (error) {
+      console.error('Error saving table filters:', error);
+      // Optionally revert the state if save fails
+      setDisplayExchanges(displayExchanges);
+    }
   };
 
   // Refresh data handler
