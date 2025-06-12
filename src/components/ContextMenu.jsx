@@ -12,7 +12,7 @@ export default function BasicMenu({
   onFilterChange, // (newSelected: string[]) => void
 }) {
   const [anchorEl, setAnchorEl] = React.useState(null);
-  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
+  const [snackbarOpen, setSnackbarOpen] = React.useState(true);
   const open = Boolean(anchorEl);
 
   // local copy of "what's checked"
@@ -51,19 +51,27 @@ export default function BasicMenu({
         body: JSON.stringify({
           email: localStorage.getItem('userEmail'),
           preferences: {
-            table_filters: checkedList
+            table_filters: { selected: checkedList }
           }
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save preferences');
+        const errorData = await response.json().catch(() => null);
+        console.error('Failed to save preferences:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        });
+        throw new Error(`Failed to save preferences: ${response.status} ${response.statusText}`);
       }
 
+      await response.json();
       setSnackbarOpen(true);
       handleClose();
     } catch (error) {
       console.error('Error saving preferences:', error);
+      // You might want to show an error message to the user here
     }
   };
 

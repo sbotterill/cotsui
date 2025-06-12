@@ -3,6 +3,7 @@ import Button from '@mui/material/Button';
 import Snackbar from '@mui/material/Snackbar';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
+import { useTheme } from '@mui/material/styles';
 
 export default function CustomSnackbar({ 
   open, 
@@ -12,6 +13,7 @@ export default function CustomSnackbar({
   onAction,
   autoHideDuration = 6000 
 }) {
+  const theme = useTheme();
   const handleClose = (event, reason) => {
     if (reason === 'clickaway') {
       return;
@@ -44,6 +46,27 @@ export default function CustomSnackbar({
       onClose={handleClose}
       message={message}
       action={action}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      sx={{
+        '& .MuiSnackbarContent-root': {
+          backgroundColor: theme.palette.mode === 'dark' ? '#2a2a2a' : '#fff',
+          color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+          border: '1px solid',
+          borderColor: theme.palette.mode === 'dark' ? '#444' : '#ddd',
+          boxShadow: theme.palette.mode === 'dark' 
+            ? '0 2px 8px rgba(0,0,0,0.3)' 
+            : '0 2px 8px rgba(0,0,0,0.1)',
+          minWidth: '300px',
+          fontSize: '14px',
+          padding: '8px 16px',
+        },
+        '& .MuiSnackbarContent-message': {
+          padding: '8px 0',
+        },
+        '& .MuiSnackbarContent-action': {
+          paddingLeft: '16px',
+        }
+      }}
     />
   );
 }

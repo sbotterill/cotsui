@@ -42,10 +42,8 @@ function getPercentageColor(value) {
 }
 
 function descendingComparator(a, b, orderBy) {
-  // Debug log to see the entire row structure
-  if (orderBy.includes('%')) {
-    console.log('Row structure:', a);
-  }
+  // Remove debug log
+  // console.log('Row structure:', a);
 
   // Handle percentage fields - check for exact field names
   if (orderBy === 'non_commercial_percentage_long' || 
@@ -210,23 +208,23 @@ function Row({ name, data, favorites, onToggleFavorite, order, orderBy, onReques
                         key={`h1-${i}`}
                         sx={{
                           color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                          minWidth: '80px',
-                          maxWidth: '120px',
+                          minWidth: lbl === 'Change' ? '60px' : '70px',
+                          maxWidth: lbl === 'Change' ? '70px' : '80px',
                           backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
                           ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {}),
-                          padding: '8px 4px',
-                          fontSize: '0.875rem',
+                          padding: lbl === 'Long' ? '8px 4px 8px 10px' : '8px 4px',
+                          fontSize: '0.75rem',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                         }}
                       >
                         <TableSortLabel
-                          active={orderBy === (i === 5 ? 'non_commercial_percentage_long' : `non_commercial_${lbl.toLowerCase()}`)}
-                          direction={orderBy === (i === 5 ? 'non_commercial_percentage_long' : `non_commercial_${lbl.toLowerCase()}`) ? order : 'asc'}
-                          onClick={() => onRequestSort(i === 5 ? 'non_commercial_percentage_long' : `non_commercial_${lbl.toLowerCase()}`)}
-                      >
-                        {lbl}
+                          active={orderBy === `non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}`}
+                          direction={orderBy === `non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}` ? order : 'asc'}
+                          onClick={() => onRequestSort(`non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}`)}
+                        >
+                          {lbl}
                         </TableSortLabel>
                       </TableCell>
                     ))}
@@ -235,23 +233,23 @@ function Row({ name, data, favorites, onToggleFavorite, order, orderBy, onReques
                         key={`h2-${i}`}
                         sx={{
                           color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                          minWidth: '80px',
-                          maxWidth: '120px',
+                          minWidth: lbl === 'Change' ? '60px' : '70px',
+                          maxWidth: lbl === 'Change' ? '70px' : '80px',
                           backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
                           ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {}),
-                          padding: '8px 4px',
-                          fontSize: '0.875rem',
+                          padding: lbl === 'Long' ? '8px 4px 8px 10px' : '8px 4px',
+                          fontSize: '0.75rem',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                         }}
                       >
                         <TableSortLabel
-                          active={orderBy === (i === 5 ? 'commerical_percentage_long' : `commerical_${lbl.toLowerCase()}`)}
-                          direction={orderBy === (i === 5 ? 'commerical_percentage_long' : `commerical_${lbl.toLowerCase()}`) ? order : 'asc'}
-                          onClick={() => onRequestSort(i === 5 ? 'commerical_percentage_long' : `commerical_${lbl.toLowerCase()}`)}
-                      >
-                        {lbl}
+                          active={orderBy === `commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}`}
+                          direction={orderBy === `commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}` ? order : 'asc'}
+                          onClick={() => onRequestSort(`commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}`)}
+                        >
+                          {lbl}
                         </TableSortLabel>
                       </TableCell>
                     ))}
@@ -260,17 +258,22 @@ function Row({ name, data, favorites, onToggleFavorite, order, orderBy, onReques
                         key={`h3-${i}`} 
                         sx={{ 
                           color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                          minWidth: '80px',
-                          maxWidth: '120px',
+                          minWidth: lbl === 'Change' ? '60px' : '70px',
+                          maxWidth: lbl === 'Change' ? '70px' : '80px',
                           backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                          padding: lbl === 'Long' ? '8px 4px 8px 10px' : '8px 4px',
+                          fontSize: '0.75rem',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
                         }}
                       >
                         <TableSortLabel
-                          active={orderBy === (i === 5 ? 'non_reportable_percentage_long' : `non_reportable_${lbl.toLowerCase()}`)}
-                          direction={orderBy === (i === 5 ? 'non_reportable_percentage_long' : `non_reportable_${lbl.toLowerCase()}`) ? order : 'asc'}
-                          onClick={() => onRequestSort(i === 5 ? 'non_reportable_percentage_long' : `non_reportable_${lbl.toLowerCase()}`)}
-                      >
-                        {lbl}
+                          active={orderBy === `non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}`}
+                          direction={orderBy === `non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}` ? order : 'asc'}
+                          onClick={() => onRequestSort(`non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase()}`)}
+                        >
+                          {lbl}
                         </TableSortLabel>
                       </TableCell>
                     ))}
@@ -310,9 +313,9 @@ function Row({ name, data, favorites, onToggleFavorite, order, orderBy, onReques
                           display: 'flex', 
                           alignItems: 'center', 
                           justifyContent: 'space-between',
-                          minWidth: '120px',
-                          maxWidth: '200px',
-                          padding: '8px 4px',
+                          minWidth: '100px',
+                          maxWidth: '150px',
+                          padding: '4px 2px',
                         }}>
                           <Typography 
                             sx={{ 
@@ -321,7 +324,7 @@ function Row({ name, data, favorites, onToggleFavorite, order, orderBy, onReques
                               textOverflow: 'ellipsis',
                               lineHeight: 1.2,
                               pr: 1,
-                              fontSize: '0.875rem'
+                              fontSize: '0.75rem'
                             }}
                           >
                             {r.commodity}
@@ -334,21 +337,23 @@ function Row({ name, data, favorites, onToggleFavorite, order, orderBy, onReques
                       </TableCell>
 
                       {/* Non-commercial */}
-                      <TableCell align="left">{fmt.format(r.non_commercial_long)}</TableCell>
-                      <TableCell align="left" sx={{ color: r.non_commercial_long_change < 0 ? 'red' : 'green' }}>
+                      <TableCell align="left" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_commercial_long)}</TableCell>
+                      <TableCell align="left" sx={{ color: r.non_commercial_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
                         {fmt.format(r.non_commercial_long_change)}
                       </TableCell>
-                      <TableCell align="left">{fmt.format(r.non_commercial_short)}</TableCell>
-                      <TableCell align="left" sx={{ color: r.non_commercial_short_change < 0 ? 'red' : 'green' }}>
+                      <TableCell align="left" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_commercial_short)}</TableCell>
+                      <TableCell align="left" sx={{ color: r.non_commercial_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
                         {fmt.format(r.non_commercial_short_change)}
                       </TableCell>
-                      <TableCell align="left">{fmt.format(r.non_commercial_total)}</TableCell>
+                      <TableCell align="left" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_commercial_total)}</TableCell>
                       <TableCell
                         align="left"
                         sx={{
                           color: getPercentageColor(r.non_commercial_percentage_long),
                           borderRight: `2px solid ${theme.palette.divider}`,
                           position: 'relative',
+                          padding: '8px 4px',
+                          fontSize: '0.75rem',
                           '&::after': {
                             content: '""',
                             position: 'absolute',
@@ -364,21 +369,23 @@ function Row({ name, data, favorites, onToggleFavorite, order, orderBy, onReques
                       </TableCell>
 
                       {/* Commercial */}
-                      <TableCell align="left">{fmt.format(r.commerical_long)}</TableCell>
-                      <TableCell align="left" sx={{ color: r.commerical_long_change < 0 ? 'red' : 'green' }}>
+                      <TableCell align="left" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_long)}</TableCell>
+                      <TableCell align="left" sx={{ color: r.commerical_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
                         {fmt.format(r.commerical_long_change)}
                       </TableCell>
-                      <TableCell align="left">{fmt.format(r.commerical_short)}</TableCell>
-                      <TableCell align="left" sx={{ color: r.commerical_short_change < 0 ? 'red' : 'green' }}>
+                      <TableCell align="left" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_short)}</TableCell>
+                      <TableCell align="left" sx={{ color: r.commerical_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
                         {fmt.format(r.commerical_short_change)}
                       </TableCell>
-                      <TableCell align="left">{fmt.format(r.commerical_total)}</TableCell>
+                      <TableCell align="left" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_total)}</TableCell>
                       <TableCell
                         align="left"
                         sx={{
                           color: getPercentageColor(r.commerical_percentage_long),
                           borderRight: `2px solid ${theme.palette.divider}`,
                           position: 'relative',
+                          padding: '8px 4px',
+                          fontSize: '0.75rem',
                           '&::after': {
                             content: '""',
                             position: 'absolute',
@@ -394,16 +401,16 @@ function Row({ name, data, favorites, onToggleFavorite, order, orderBy, onReques
                       </TableCell>
 
                       {/* Non-reportable */}
-                      <TableCell align="left">{fmt.format(r.non_reportable_long)}</TableCell>
-                      <TableCell align="left" sx={{ color: r.non_reportable_long_change < 0 ? 'red' : 'green' }}>
+                      <TableCell align="left" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_long)}</TableCell>
+                      <TableCell align="left" sx={{ color: r.non_reportable_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
                         {fmt.format(r.non_reportable_long_change)}
                       </TableCell>
-                      <TableCell align="left">{fmt.format(r.non_reportable_short)}</TableCell>
-                      <TableCell align="left" sx={{ color: r.non_reportable_short_change < 0 ? 'red' : 'green' }}>
+                      <TableCell align="left" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_short)}</TableCell>
+                      <TableCell align="left" sx={{ color: r.non_reportable_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
                         {fmt.format(r.non_reportable_short_change)}
                       </TableCell>
-                      <TableCell align="left">{fmt.format(r.non_reportable_total)}</TableCell>
-                      <TableCell align="left" sx={{ color: getPercentageColor(r.non_reportable_percentage_long) }}>
+                      <TableCell align="left" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_total)}</TableCell>
+                      <TableCell align="left" sx={{ color: getPercentageColor(r.non_reportable_percentage_long), padding: '8px 4px', fontSize: '0.75rem' }}>
                         {formatPercentage(r.non_reportable_percentage_long)}
                       </TableCell>
                     </TableRow>

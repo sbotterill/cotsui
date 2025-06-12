@@ -13,6 +13,7 @@ import SlotsSignIn from './components/SigninPage';
 import SignUpPage from './components/SignUpPage';
 import VerificationPage from './components/VerificationPage';
 import { Box, CircularProgress } from '@mui/material';
+import { API_BASE_URL } from './config';
 
 // Context to expose toggle function for theme switch
 export const ColorModeContext = createContext({ toggleColorMode: () => {} });
@@ -47,19 +48,14 @@ function formatDate(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T00:00:00.000`;
 }
 
-console.log(getThisWeeksTuesday());
-console.log(getLastWeeksTuesday());
-
 // Add this new function to check data availability
 async function checkLatestDataAvailability() {
   try {
     const thisWeekTuesday = await getThisWeeksTuesday();
-    console.log('Checking data availability for:', thisWeekTuesday);
     const response = await axios.get(
       `https://publicreporting.cftc.gov/resource/6dca-aqww.json?$limit=1&report_date_as_yyyy_mm_dd=${thisWeekTuesday}`
     );
     const isAvailable = response.data.length > 0;
-    console.log('Data available:', isAvailable);
     return {
       isAvailable,
       checkedAt: new Date().toISOString()
@@ -230,12 +226,61 @@ export default function App() {
 
   // Favorites
   const [favorites, setFavorites] = useState([]);
-  const handleToggleFavorite = commodity => {
-    setFavorites(favs =>
-      favs.includes(commodity)
-        ? favs.filter(f => f !== commodity)
-        : [...favs, commodity]
-    );
+
+  const handleToggleFavorite = async (commodity) => {
+    try {
+      const newFavorites = favorites.includes(commodity)
+        ? favorites.filter(f => f !== commodity)
+        : [...favorites, commodity];
+      
+      setFavorites(newFavorites);
+      
+      // Save favorites immediately
+      const response = await fetch(`${API_BASE_URL}/preferences`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: localStorage.getItem('userEmail'),
+          preferences: {},
+          favorites: { selected: newFavorites }
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to save favorites');
+        // Optionally revert the state if save fails
+        setFavorites(favorites);
+      }
+    } catch (error) {
+      console.error('Error saving favorites:', error);
+      // Optionally revert the state if save fails
+      setFavorites(favorites);
+    }
+  };
+
+  const loadFavorites = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/preferences?email=${localStorage.getItem('userEmail')}`);
+      if (!response.ok) {
+        throw new Error('Failed to load preferences');
+      }
+      const data = await response.json();
+      console.log('Loaded preferences:', data);  // Debug log
+      
+      // Load favorites
+      if (data.favorites && data.favorites.selected) {
+        setFavorites(data.favorites.selected);
+      }
+      
+      // Load table filters
+      if (data.preferences && data.preferences.table_filters && data.preferences.table_filters.selected) {
+        setDisplayExchanges(data.preferences.table_filters.selected);
+      }
+    } catch (error) {
+      console.error('Error loading preferences:', error);
+    }
   };
 
   // Load data on mount
@@ -249,6 +294,7 @@ export default function App() {
       setLastUpdated(date);
       setIsLatestData(latest);
       setLastChecked(checked);
+      await loadFavorites();
     };
     loadData();
   }, []);

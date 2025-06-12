@@ -202,6 +202,18 @@ export default function SlotsSignIn(props) {
         // Store user information in localStorage
         localStorage.setItem('userEmail', email);
         localStorage.setItem('userName', `${data.first_name} ${data.last_name}`);
+        
+        // Load user preferences
+        try {
+          const prefsResponse = await fetch(`${API_BASE_URL}/preferences?email=${encodeURIComponent(email)}`);
+          if (prefsResponse.ok) {
+            const prefsData = await prefsResponse.json();
+            console.log('Loaded preferences after login:', prefsData);
+          }
+        } catch (prefsError) {
+          console.error('Error loading preferences after login:', prefsError);
+        }
+        
         props.setAuthorization(true);
       } else {
         setError(data.message || 'Invalid credentials');
