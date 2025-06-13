@@ -12,7 +12,7 @@ export default function BasicMenu({
   onFilterChange, // (newSelected: string[]) => void
 }) {
   const [anchorEl, setAnchorEl] = React.useState(null);
-  const [snackbarOpen, setSnackbarOpen] = React.useState(true);
+  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const open = Boolean(anchorEl);
 
   // local copy of "what's checked"
@@ -36,9 +36,9 @@ export default function BasicMenu({
     // sort alphabetically
     const sorted = [...next].sort((a, b) => a.localeCompare(b));
 
-    // update both local and parent
+    // update both local and parent state, but don't save to server
     setCheckedList(sorted);
-    onFilterChange(sorted);
+    onFilterChange(sorted, false);
   };
 
   const handleSavePreferences = async () => {
@@ -57,12 +57,6 @@ export default function BasicMenu({
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        console.error('Failed to save preferences:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorData
-        });
         throw new Error(`Failed to save preferences: ${response.status} ${response.statusText}`);
       }
 
@@ -70,7 +64,6 @@ export default function BasicMenu({
       setSnackbarOpen(true);
       handleClose();
     } catch (error) {
-      console.error('Error saving preferences:', error);
       // You might want to show an error message to the user here
     }
   };
@@ -94,16 +87,30 @@ export default function BasicMenu({
         slotProps={{
           list: { 'aria-labelledby': 'basic-button' },
         }}
-        sx={{marginTop: "10px"}}
+        sx={{
+          marginTop: "10px",
+          maxHeight: '400px',
+          '& .MuiPaper-root': {
+            maxHeight: '400px',
+            overflowY: 'auto'
+          }
+        }}
       >
         {commodities.map(commodity => (
           <FormControlLabel
             key={commodity}
-            sx={{ pl: 1 }}
+            sx={{ 
+              pl: 1,
+              pr: 2,
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)'
+              }
+            }}
             control={
               <Checkbox
                 checked={checkedList.includes(commodity)}
                 onChange={() => handleToggle(commodity)}
+                size="small"
               />
             }
             label={<span style={{ fontSize: "14px" }}>{commodity}</span>}
@@ -111,7 +118,14 @@ export default function BasicMenu({
         ))}
         <Button
           variant="outlined"
-          sx={{ alignSelf: 'center', m: 1, width: 250 }}
+          sx={{ 
+            alignSelf: 'center', 
+            m: 1, 
+            width: 250,
+            position: 'sticky',
+            bottom: 0,
+            backgroundColor: 'background.paper'
+          }}
           onClick={handleSavePreferences}
         >
           Save Preferences

@@ -9,6 +9,7 @@ import InfoIcon from '@mui/icons-material/Info';
 import CloseIcon from '@mui/icons-material/Close';
 import Profile from './Profile';
 import ProfileCard from './ProfileCard';
+import { ALLOWED_EXCHANGES, isValidExchange } from '../constants';
 
 export default function DrawerAppBar(props) {
   const theme = useTheme();
@@ -36,12 +37,40 @@ export default function DrawerAppBar(props) {
   const handleFuturesFilter = (event) => {
     try {
       const searchValue = event.target.value.trim().toLowerCase();
-      setSearchTerm(event.target.value);
+      setSearchTerm(searchValue);
+      
+      // Filter data based on search term
       const filtered = props.futuresData.filter(row =>
         row.commodity.toLowerCase().includes(searchValue)
       );
 
-      // Show no results message if search term exists but no results found
+      // Get unique exchanges that have matching data
+      const matchingExchanges = new Set(
+        filtered.map(row => {
+          if (!row.market_and_exchange_name) {
+            return null;
+          }
+          const parts = row.market_and_exchange_name.split("-");
+          if (parts.length < 2) {
+            return null;
+          }
+          const exchangeName = parts[1].trim();
+          // Only include if it's one of our allowed exchanges
+          return isValidExchange(exchangeName) ? `${row.market_code?.trim() || ''} - ${exchangeName}` : null;
+        }).filter(Boolean) // Remove null values
+      );
+
+      // Update filtered data
+      props.setFilteredData(filtered.length > 0 ? filtered : props.futuresData);
+      
+      // Update visible exchanges based on search results
+      if (searchValue) {
+        props.onExchangeFilterChange(Array.from(matchingExchanges), false);
+      } else {
+        props.onExchangeFilterChange(props.exchanges, false);
+      }
+
+      // Show no results message if needed
       if (searchValue && filtered.length === 0) {
         setShowNoResults(true);
         // Hide the message after 3 seconds
@@ -49,13 +78,10 @@ export default function DrawerAppBar(props) {
       } else {
         setShowNoResults(false);
       }
-
-      // If no results found, show all data instead of empty list
-      props.setFilteredData(filtered.length > 0 ? filtered : props.futuresData);
     } catch (error) {
-      console.error('Error filtering data:', error);
-      // On error, show all data
+      // On error, show all data and exchanges
       props.setFilteredData(props.futuresData);
+      props.onExchangeFilterChange(props.exchanges, false);
       setShowNoResults(false);
     }
   }
@@ -63,6 +89,7 @@ export default function DrawerAppBar(props) {
   const handleClearSearch = () => {
     setSearchTerm('');
     props.setFilteredData(props.futuresData);
+    props.onExchangeFilterChange(props.exchanges, false);
     setShowNoResults(false);
   };
 
@@ -121,22 +148,7 @@ export default function DrawerAppBar(props) {
           <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
             {!props.isLatestData && (
               <Tooltip 
-                title="Showing previous week's data, new data available Friday 15:30 EST."
-                slotProps={{
-                  tooltip: {
-                    sx: {
-                      width: '2000px',
-                      fontSize: '14px',
-                      bgcolor: 'background.paper',
-                      color: 'text.primary',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      '& .MuiTooltip-arrow': {
-                        color: 'background.paper',
-                      }
-                    }
-                  }
-                }}
+                title="This week's data available Friday 15:30 EST."
               >
                 <WarningIcon sx={{ color: theme.palette.warning.main, fontSize: '1.2rem' }} />
               </Tooltip>

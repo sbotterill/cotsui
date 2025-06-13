@@ -91,13 +91,11 @@ export default function SignUpPage() {
       const data = await response.json();
 
       if (data.success) {
-        // Use React Router navigation instead of window.location
         navigate(`/verify?email=${encodeURIComponent(formData.get('email'))}`);
       } else {
         setError(data.message || 'Sign up failed');
       }
     } catch (err) {
-      console.error('Sign up error:', err);
       if (err.message.includes('Failed to fetch')) {
         setError('Unable to connect to the server. Please check if the server is running.');
       } else {

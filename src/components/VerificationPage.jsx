@@ -60,7 +60,6 @@ export default function VerificationPage() {
         setError(data.message || 'Invalid verification code');
       }
     } catch (err) {
-      console.error('Verification error:', err);
       setError('An error occurred during verification. Please try again.');
     } finally {
       setIsLoading(false);
@@ -87,7 +86,6 @@ export default function VerificationPage() {
         setError(data.message || 'Failed to resend verification code');
       }
     } catch (err) {
-      console.error('Resend error:', err);
       setError('Failed to resend verification code. Please try again.');
     }
   };

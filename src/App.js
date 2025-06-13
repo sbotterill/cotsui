@@ -14,6 +14,7 @@ import SignUpPage from './components/SignUpPage';
 import VerificationPage from './components/VerificationPage';
 import { Box, CircularProgress } from '@mui/material';
 import { API_BASE_URL } from './config';
+import TradingViewIndicator from './components/TradingView';
 
 // Context to expose toggle function for theme switch
 export const ColorModeContext = createContext({ toggleColorMode: () => {} });
@@ -71,6 +72,7 @@ async function checkLatestDataAvailability() {
 
 // Fetching and processing CFTC data
 async function fetchData() {
+  console.log('=== Fetching Data ===');
   let fullList = [];
   let exchangesList = [];
   let reportDate = await getThisWeeksTuesday();
@@ -92,6 +94,7 @@ async function fetchData() {
     const firstResponse = await axios.get(
       "https://publicreporting.cftc.gov/resource/6dca-aqww.json"
     );
+    console.log('First response data:', firstResponse.data);
 
     const requests = firstResponse.data.map(async element => {
       try {
@@ -176,6 +179,13 @@ async function fetchData() {
     });
 
     await Promise.all(requests);
+    console.log('Final data:', {
+      exchangesList,
+      fullList,
+      reportDate,
+      isLatestData,
+      lastChecked
+    });
 
     return [
       exchangesList.sort((a, b) => a.localeCompare(b)),
@@ -296,6 +306,7 @@ export default function App() {
   // Load data on mount
   useEffect(() => {
     const loadData = async () => {
+      console.log('=== Loading Data ===');
       const [exchs, futs, date, latest, checked] = await fetchData();
       setExchanges(exchs);
       setDisplayExchanges(exchs);
@@ -310,30 +321,27 @@ export default function App() {
   }, []);
 
   // Exchange filter handler
-  const handleExchangeFilterChange = async (newList) => {
+  const handleExchangeFilterChange = async (newList, shouldSaveToServer = true) => {
     setDisplayExchanges(newList);
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/preferences/table_filters`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: localStorage.getItem('userEmail'),
-          table_filters: { selected: newList }
-        }),
-      });
+    if (shouldSaveToServer) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/preferences/table_filters`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: localStorage.getItem('userEmail'),
+            selected: newList
+          }),
+        });
 
-      if (!response.ok) {
-        console.error('Failed to save table filters');
-        // Optionally revert the state if save fails
-        setDisplayExchanges(displayExchanges);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+      } catch (error) {
+        console.error('Error saving table filters:', error);
       }
-    } catch (error) {
-      console.error('Error saving table filters:', error);
-      // Optionally revert the state if save fails
-      setDisplayExchanges(displayExchanges);
     }
   };
 
@@ -378,12 +386,15 @@ export default function App() {
                     />
                     <div style={{ paddingTop: 90, width: '100%' }}>
                       {filteredData.length > 0 && exchanges.length > 0 ? (
-                        <CollapsibleTable
-                          futuresData={filteredData}
-                          exchanges={displayExchanges}
-                          favorites={favorites}
-                          onToggleFavorite={handleToggleFavorite}
-                        />
+                        <div>
+                          <CollapsibleTable
+                            futuresData={filteredData}
+                            exchanges={displayExchanges}
+                            favorites={favorites}
+                            onToggleFavorite={handleToggleFavorite}
+                          />
+                          <TradingViewIndicator />
+                        </div>                        
                       ) : (
                         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 90px)' }}>
                           <CircularProgress />

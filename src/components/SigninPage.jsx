@@ -205,7 +205,7 @@ export default function SlotsSignIn(props) {
             const prefsData = await prefsResponse.json();
           }
         } catch (prefsError) {
-          console.error('Error loading preferences after login:', prefsError);
+          // Error loading preferences after login
         }
         
         props.setAuthorization(true);
@@ -213,7 +213,6 @@ export default function SlotsSignIn(props) {
         setError(data.message || 'Invalid credentials');
       }
     } catch (err) {
-      console.error('Sign in error:', err);
       if (err.message.includes('Failed to fetch')) {
         setError('Unable to connect to the server. Please check if the server is running.');
       } else {
