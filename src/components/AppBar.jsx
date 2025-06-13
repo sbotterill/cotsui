@@ -207,7 +207,7 @@ export default function DrawerAppBar(props) {
           No results found for your search. Showing all data.
         </Alert>
       )}
-      {!props.isLatestData && showAlert && (
+      {/* {!props.isLatestData && showAlert && (
         <Alert 
           severity="info" 
           icon={<InfoIcon />}
@@ -242,7 +242,7 @@ export default function DrawerAppBar(props) {
             </Typography>
           </Typography>
         </Alert>
-      )}
+      )} */}
     </>
   );
 }

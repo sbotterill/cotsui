@@ -15,6 +15,7 @@ import VerificationPage from './components/VerificationPage';
 import { Box, CircularProgress } from '@mui/material';
 import { API_BASE_URL } from './config';
 import TradingViewIndicator from './components/TradingView';
+import LineChartWithReferenceLines from './components/LineGraph';
 
 // Context to expose toggle function for theme switch
 export const ColorModeContext = createContext({ toggleColorMode: () => {} });
@@ -233,6 +234,10 @@ export default function App() {
   const [isLatestData, setIsLatestData] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastChecked, setLastChecked] = useState(null);
+  const [commericalChartData, setCommericalChartData] = useState([]);
+  const [nonCommercialChartData, setNonCommercialChartData] = useState([]);
+  const [nonReportableChartData, setNonReportableChartData] = useState([]);
+  const [chartDates, setChartDates] = useState([]);
 
   // Favorites
   const [favorites, setFavorites] = useState([]);
@@ -268,6 +273,32 @@ export default function App() {
       setFavorites(favorites);
     }
   };
+
+  const getChartData = async (marketCode) => {
+    const response = await axios.get(
+      `https://publicreporting.cftc.gov/resource/6dca-aqww.json?$query=SELECT * WHERE report_date_as_yyyy_mm_dd between '2000-01-01T00:00:00' and '2025-06-13T00:00:00' AND cftc_contract_market_code='${marketCode}' ORDER BY report_date_as_yyyy_mm_dd DESC`
+    );
+    console.log(response.data);
+    
+    // Format dates to MM/DD/YY
+    const formattedData = response.data.map(item => ({
+      ...item,
+      report_date_as_yyyy_mm_dd: new Date(item.report_date_as_yyyy_mm_dd).toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: '2-digit'
+      })
+    }));
+
+    setChartDates(formattedData.map(item => item.report_date_as_yyyy_mm_dd));
+    setCommericalChartData(formattedData.map(item => item.comm_positions_long_all - item.comm_positions_short_all));
+    setNonCommercialChartData(formattedData.map(item => item.noncomm_positions_long_all - item.noncomm_positions_short_all));
+    setNonReportableChartData(formattedData.map(item => item.nonrept_positions_long_all - item.nonrept_positions_short_all));
+  };
+
+  useEffect(() => {
+    getChartData('001602');
+  }, []);
 
   const loadFavorites = async () => {
     try {
@@ -386,14 +417,15 @@ export default function App() {
                     />
                     <div style={{ paddingTop: 90, width: '100%' }}>
                       {filteredData.length > 0 && exchanges.length > 0 ? (
-                        <div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, width: '100%', height: '100%' }}>
                           <CollapsibleTable
                             futuresData={filteredData}
                             exchanges={displayExchanges}
                             favorites={favorites}
                             onToggleFavorite={handleToggleFavorite}
                           />
-                          <TradingViewIndicator />
+                          {/* <TradingViewIndicator /> */}
+                          <LineChartWithReferenceLines commericalChartData={commericalChartData} nonCommercialChartData={nonCommercialChartData} nonReportableChartData={nonReportableChartData} chartDates={chartDates} />
                         </div>                        
                       ) : (
                         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 90px)' }}>
