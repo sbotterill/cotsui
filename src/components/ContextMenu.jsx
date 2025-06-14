@@ -51,16 +51,21 @@ export default function BasicMenu({
         body: JSON.stringify({
           email: localStorage.getItem('userEmail'),
           preferences: {
-            table_filters: { selected: checkedList }
+            selected: checkedList  // Save directly in preferences.selected
           }
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to save preferences: ${response.status} ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(`Failed to save preferences: ${response.status} ${response.statusText} - ${errorData.error || ''}`);
       }
 
-      await response.json();
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error('Server returned unsuccessful response');
+      }
+
       setSnackbarOpen(true);
       handleClose();
     } catch (error) {

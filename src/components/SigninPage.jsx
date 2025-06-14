@@ -11,6 +11,7 @@ import {
   Link,
   Alert,
   IconButton,
+  Box,
 } from '@mui/material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import Visibility from '@mui/icons-material/Visibility';
@@ -157,6 +158,25 @@ function RememberMeCheckbox() {
   );
 }
 
+function ErrorAlert({ error, onClose }) {
+  if (!error) return null;
+  
+  return (
+    <Alert
+      severity="error"
+      sx={{
+        width: '100%',
+        boxShadow: 1,
+        borderRadius: 1,
+        mt: 2
+      }}
+      onClose={onClose}
+    >
+      {error}
+    </Alert>
+  );
+}
+
 export default function SlotsSignIn(props) {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -225,29 +245,37 @@ export default function SlotsSignIn(props) {
 
   return (
     <AppProvider theme={theme}>
-      <SignInPage
-        signIn={handleSignIn}
-        slots={{
-          title: Title,
-          // subtitle: Subtitle, add this back when there is a problem
-          emailField: CustomEmailField,
-          passwordField: CustomPasswordField,
-          submitButton: CustomButton,
-          signUpLink: SignUpLink,
-          rememberMe: RememberMeCheckbox,
-          forgotPasswordLink: ForgotPasswordLink,
-        }}
-        slotProps={{ 
-          form: { noValidate: true },
-          submitButton: { disabled: isLoading }
-        }}
-        providers={providers}
-      />
-      {error && (
-        <Alert severity="error" sx={{ mt: 2 }}>
-          {error}
-        </Alert>
-      )}
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        minHeight: '100vh'
+      }}>
+        <SignInPage
+          signIn={handleSignIn}
+          sx={{
+            width: '475px',
+            minHeight: '600px',
+            padding: '32px',
+          }}
+          slots={{
+            title: Title,
+            emailField: CustomEmailField,
+            passwordField: CustomPasswordField,
+            submitButton: CustomButton,
+            signUpLink: SignUpLink,
+            rememberMe: RememberMeCheckbox,
+            forgotPasswordLink: ForgotPasswordLink,
+            subtitle: () => <ErrorAlert error={error} onClose={() => setError(null)} />
+          }}
+          slotProps={{ 
+            form: { noValidate: true },
+            submitButton: { disabled: isLoading }
+          }}
+          providers={providers}
+        />
+      </div>
     </AppProvider>
   );
 }

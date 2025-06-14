@@ -63,7 +63,6 @@ async function checkLatestDataAvailability() {
       checkedAt: new Date().toISOString()
     };
   } catch (error) {
-    console.error("Error checking data availability:", error);
     return {
       isAvailable: false,
       checkedAt: new Date().toISOString()
@@ -73,7 +72,6 @@ async function checkLatestDataAvailability() {
 
 // Fetching and processing CFTC data
 async function fetchData() {
-  console.log('=== Fetching Data ===');
   let fullList = [];
   let exchangesList = [];
   let reportDate = await getThisWeeksTuesday();
@@ -86,16 +84,13 @@ async function fetchData() {
     lastChecked = availabilityCheck.checkedAt;
     
     if (!availabilityCheck.isAvailable) {
-      console.log('This week\'s data not available, falling back to last week');
       isLatestData = false;
       reportDate = await getLastWeeksTuesday();
     }
 
-    console.log('Fetching data for date:', reportDate);
     const firstResponse = await axios.get(
       "https://publicreporting.cftc.gov/resource/6dca-aqww.json"
     );
-    console.log('First response data:', firstResponse.data);
 
     const requests = firstResponse.data.map(async element => {
       try {
@@ -104,13 +99,11 @@ async function fetchData() {
         );
 
         if (response.data.length === 0) {
-          console.warn(`No data found for ${element.contract_market_name} on ${reportDate}`);
           return;
         }
 
         const data = response.data[0];
         if (!data || !data.noncomm_positions_long_all || !data.noncomm_positions_short_all || data.noncomm_positions_long_all === "undefined") {
-          console.warn(`Invalid data for ${element.contract_market_name} on ${reportDate}`);
           return;
         }
 
@@ -175,18 +168,10 @@ async function fetchData() {
         }
 
       } catch (err) {
-        console.warn(`Failed to fetch data for ${element.contract_market_name}:`, err.message);
       }
     });
 
     await Promise.all(requests);
-    console.log('Final data:', {
-      exchangesList,
-      fullList,
-      reportDate,
-      isLatestData,
-      lastChecked
-    });
 
     return [
       exchangesList.sort((a, b) => a.localeCompare(b)),
@@ -197,7 +182,6 @@ async function fetchData() {
     ];
 
   } catch (error) {
-    console.error("Error fetching data:", error);
     // Return empty data with error state
     return [
       [],
@@ -230,7 +214,10 @@ export default function App() {
   const [exchanges, setExchanges] = useState([]);
   const [displayExchanges, setDisplayExchanges] = useState([]);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [authorized, setAuthorization] = useState(false);
+  const [authorized, setAuthorization] = useState(() => {
+    // On initial load, check if userEmail exists in localStorage
+    return !!localStorage.getItem('userEmail');
+  });
   const [isLatestData, setIsLatestData] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastChecked, setLastChecked] = useState(null);
@@ -243,6 +230,8 @@ export default function App() {
   const [favorites, setFavorites] = useState([]);
 
   const [selectedCommodity, setSelectedCommodity] = useState('');
+
+  const [error, setError] = useState(null);
 
   const handleToggleFavorite = async (commodity) => {
     try {
@@ -265,13 +254,9 @@ export default function App() {
       });
 
       if (!response.ok) {
-        console.error('Failed to save favorites');
-        // Optionally revert the state if save fails
         setFavorites(favorites);
       }
     } catch (error) {
-      console.error('Error saving favorites:', error);
-      // Optionally revert the state if save fails
       setFavorites(favorites);
     }
   };
@@ -280,7 +265,6 @@ export default function App() {
     const response = await axios.get(
       `https://publicreporting.cftc.gov/resource/6dca-aqww.json?cftc_contract_market_code=${marketCode}&$order=report_date_as_yyyy_mm_dd DESC&$limit=1000`
     );
-    console.log(response.data);
     
     // Format dates to MM/DD/YY
     const formattedData = response.data.map(item => ({
@@ -311,31 +295,38 @@ export default function App() {
         setFavorites(data.favorites.selected);
       }
     } catch (error) {
-      console.error('Error loading favorites:', error);
     }
   };
 
   const loadTableFilters = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/preferences/table_filters?email=${localStorage.getItem('userEmail')}`);
-      if (!response.ok) {
-        throw new Error('Failed to load table filters');
+      const email = localStorage.getItem('userEmail');
+      if (!email) {
+        return;
       }
+
+      const response = await fetch(`${API_BASE_URL}/preferences?email=${encodeURIComponent(email)}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       
-      // Load table filters
-      if (data.table_filters && data.table_filters.selected) {
-        setDisplayExchanges(data.table_filters.selected);
+      // Check for preferences.selected first (direct array)
+      if (data.preferences?.selected) {
+        setDisplayExchanges(data.preferences.selected);
+      }
+      // Fallback to table_filters.selected if direct selected array is not present
+      else if (data.preferences?.table_filters?.selected) {
+        setDisplayExchanges(data.preferences.table_filters.selected);
       }
     } catch (error) {
-      console.error('Error loading table filters:', error);
     }
   };
 
   // Load data on mount
   useEffect(() => {
     const loadData = async () => {
-      console.log('=== Loading Data ===');
       const [exchs, futs, date, latest, checked] = await fetchData();
       setExchanges(exchs);
       setDisplayExchanges(exchs);
@@ -369,7 +360,6 @@ export default function App() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
       } catch (error) {
-        console.error('Error saving table filters:', error);
       }
     }
   };
@@ -401,7 +391,12 @@ export default function App() {
         <Route path="/" element={
           <>
             {!authorized ? (
-              <SlotsSignIn setAuthorization={setAuthorization} />
+              <div style={{ display: 'flex', flexDirection: 'column'}}>
+                <SlotsSignIn 
+                  setAuthorization={setAuthorization} 
+                  setError={setError}
+                />
+              </div>
             ) : (
               <ColorModeContext.Provider value={colorMode}>
                 <ThemeProvider theme={theme}>

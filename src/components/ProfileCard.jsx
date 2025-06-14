@@ -71,7 +71,6 @@ export default function ProfileCard({ open, onClose }) {
               size="small"
               onClick={() => {
                 // TODO: Implement cancel subscription logic
-                console.log('Cancel subscription clicked');
               }}
             >
               Cancel Subscription
