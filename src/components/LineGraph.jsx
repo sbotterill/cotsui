@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { Box } from '@mui/material';
+import { Box, Typography, useTheme } from '@mui/material';
 import { LineChartPro } from '@mui/x-charts-pro';
 import { LicenseInfo } from '@mui/x-license';
 
 LicenseInfo.setLicenseKey("f66e40461091cc90836adea4ece3cdfaTz0xMTQ2NDAsRT0xNzgxNDgxNTk5MDAwLFM9cHJvLExNPXN1YnNjcmlwdGlvbixQVj1RMy0yMDI0LEtWPTI=");
 
 export default function LineChartWithReferenceLines(props) {
+  const theme = useTheme();
   // Reverse the data arrays to show oldest data on the left
   const reversedDates = React.useMemo(() => [...props.chartDates].reverse(), [props.chartDates]);
   const reversedCommercialData = React.useMemo(() => [...props.commericalChartData].reverse(), [props.commericalChartData]);
@@ -110,7 +111,34 @@ export default function LineChartWithReferenceLines(props) {
   };
 
   return (
-    <Box sx={{ width: '100%', height: '47vh' }}>
+    <Box sx={{ width: '100%', height: '47vh', position: 'relative' }}>
+      {props.selectedCommodity && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 10,
+            left: 10,
+            zIndex: 1,
+            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+            padding: '4px 12px',
+            borderRadius: 1,
+            boxShadow: 1,
+            border: '1px solid',
+            borderColor: theme.palette.divider,
+            marginBottom: '10px',
+          }}
+        >
+          <Typography 
+            variant="subtitle1" 
+            sx={{ 
+              fontWeight: 'medium',
+              color: theme.palette.text.primary,
+            }}
+          >
+            {props.selectedCommodity}
+          </Typography>
+        </Box>
+      )}
       <LineChartPro
         sx={{ 
           width: '100%', 
@@ -134,7 +162,11 @@ export default function LineChartWithReferenceLines(props) {
           scaleType: 'point',
           valueFormatter: (value) => {
             const date = new Date(value);
-            return date.getFullYear().toString();
+            return date.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            });
           },
           tickNumber: uniqueYears.length,
           tickInterval: (index) => {
@@ -165,9 +197,17 @@ export default function LineChartWithReferenceLines(props) {
           trigger: 'axis',
           axisPointer: {
             type: 'cross',
+            animation: false,
             label: {
-              backgroundColor: '#6a7985'
+              backgroundColor: theme.palette.mode === 'dark' ? '#6a7985' : '#8796A5'
             }
+          }
+        }}
+        axisPointer={{
+          type: 'cross',
+          animation: false,
+          label: {
+            backgroundColor: theme.palette.mode === 'dark' ? '#6a7985' : '#8796A5'
           }
         }}
         slotProps={{
@@ -211,25 +251,44 @@ export default function LineChartWithReferenceLines(props) {
         grid={{
           horizontal: true,
           vertical: true,
+          style: {
+            stroke: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            strokeWidth: 1,
+          }
         }}
-        crosshair={{
-          horizontal: {
-            enabled: true,
-            style: {
-              stroke: 'rgba(128, 128, 128, 0.5)',
-              strokeWidth: 1,
-              strokeDasharray: '5 5',
-            },
-          },
-          vertical: {
-            enabled: true,
-            style: {
-              stroke: 'rgba(128, 128, 128, 0.5)',
-              strokeWidth: 1,
-              strokeDasharray: '5 5',
-            },
-          },
+        axisHighlight={{
+          x: 'line',
+          y: 'line',
+          style: {
+            stroke: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
+            strokeWidth: 1,
+            strokeDasharray: '5 5',
+          }
         }}
+        hover={{
+          mode: 'nearest',
+          intersect: true,
+          axis: 'x',
+          animationDuration: 200
+        }}
+        // crosshair={{
+        //   horizontal: {
+        //     enabled: true,
+        //     style: {
+        //       stroke: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
+        //       strokeWidth: 1,
+        //       strokeDasharray: '5 5',
+        //     },
+        //   },
+        //   vertical: {
+        //     enabled: true,
+        //     style: {
+        //       stroke: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
+        //       strokeWidth: 1,
+        //       strokeDasharray: '5 5',
+        //     },
+        //   },
+        // }}
       />
     </Box>
   );

@@ -55,7 +55,7 @@ async function checkLatestDataAvailability() {
   try {
     const thisWeekTuesday = await getThisWeeksTuesday();
     const response = await axios.get(
-      `https://publicreporting.cftc.gov/resource/6dca-aqww.json?$limit=1&report_date_as_yyyy_mm_dd=${thisWeekTuesday}`
+      `https://publicreporting.cftc.gov/resource/6dca-aqww.json?$where=report_date_as_yyyy_mm_dd>='${thisWeekTuesday}'&$order=report_date_as_yyyy_mm_dd DESC&$limit=1`
     );
     const isAvailable = response.data.length > 0;
     return {
@@ -242,6 +242,8 @@ export default function App() {
   // Favorites
   const [favorites, setFavorites] = useState([]);
 
+  const [selectedCommodity, setSelectedCommodity] = useState('');
+
   const handleToggleFavorite = async (commodity) => {
     try {
       const newFavorites = favorites.includes(commodity)
@@ -276,7 +278,7 @@ export default function App() {
 
   const getChartData = async (marketCode) => {
     const response = await axios.get(
-      `https://publicreporting.cftc.gov/resource/6dca-aqww.json?$query=SELECT * WHERE report_date_as_yyyy_mm_dd between '2000-01-01T00:00:00' and '2025-06-13T00:00:00' AND cftc_contract_market_code='${marketCode}' ORDER BY report_date_as_yyyy_mm_dd DESC`
+      `https://publicreporting.cftc.gov/resource/6dca-aqww.json?cftc_contract_market_code=${marketCode}&$order=report_date_as_yyyy_mm_dd DESC&$limit=1000`
     );
     console.log(response.data);
     
@@ -295,10 +297,6 @@ export default function App() {
     setNonCommercialChartData(formattedData.map(item => item.noncomm_positions_long_all - item.noncomm_positions_short_all));
     setNonReportableChartData(formattedData.map(item => item.nonrept_positions_long_all - item.nonrept_positions_short_all));
   };
-
-  useEffect(() => {
-    getChartData('001602');
-  }, []);
 
   const loadFavorites = async () => {
     try {
@@ -390,6 +388,11 @@ export default function App() {
     setIsRefreshing(false);
   };
 
+  const handleCommoditySelect = async (marketCode, commodityName) => {
+    setSelectedCommodity(commodityName);
+    await getChartData(marketCode);
+  };
+
   return (
     <Router>
       <Routes>
@@ -423,9 +426,15 @@ export default function App() {
                             exchanges={displayExchanges}
                             favorites={favorites}
                             onToggleFavorite={handleToggleFavorite}
+                            onCommoditySelect={handleCommoditySelect}
                           />
-                          {/* <TradingViewIndicator /> */}
-                          <LineChartWithReferenceLines commericalChartData={commericalChartData} nonCommercialChartData={nonCommercialChartData} nonReportableChartData={nonReportableChartData} chartDates={chartDates} />
+                          <LineChartWithReferenceLines 
+                            commericalChartData={commericalChartData} 
+                            nonCommercialChartData={nonCommercialChartData} 
+                            nonReportableChartData={nonReportableChartData} 
+                            chartDates={chartDates}
+                            selectedCommodity={selectedCommodity}
+                          />
                         </div>                        
                       ) : (
                         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 90px)' }}>

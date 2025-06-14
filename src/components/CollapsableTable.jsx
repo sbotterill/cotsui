@@ -99,6 +99,7 @@ export default function TabbedTable({
   exchanges,
   favorites,
   onToggleFavorite,
+  onCommoditySelect,
 }) {
   const theme = useTheme();
   const [order, setOrder] = React.useState('asc');
@@ -170,7 +171,11 @@ export default function TabbedTable({
   }, [currentExchangeData, order, orderBy]);
 
   const handleRowClick = (commodity) => {
-    setSelectedCommodity(commodity);
+    // Find the selected commodity's data
+    const selectedData = futuresData.find(r => r.commodity === commodity);
+    if (selectedData && onCommoditySelect) {
+      onCommoditySelect(selectedData.contract_code, selectedData.commodity);
+    }
   };
 
   const renderTable = () => {
