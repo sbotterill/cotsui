@@ -106,19 +106,45 @@ export default function TabbedTable({
   const [orderBy, setOrderBy] = React.useState('commodity');
   const [selectedTab, setSelectedTab] = React.useState(0);
   const [selectedCommodity, setSelectedCommodity] = React.useState(null);
+  const [initialLoadDone, setInitialLoadDone] = React.useState(false);
   const fmt = new Intl.NumberFormat('en-US');
 
   // Filter exchanges to only include allowed ones
-  const filteredExchanges = exchanges.filter(exchange => {
-    const exchangeName = exchange.split(' - ')[1]?.trim();
-    console.log('Filtering exchange in table:', {
-      fullExchange: exchange,
-      exchangeName: exchangeName,
-      isValid: isValidExchange(exchangeName),
-      allowedExchanges: ALLOWED_EXCHANGES
-    });
-    return isValidExchange(exchangeName);
-  });
+  const filteredExchanges = React.useMemo(() => 
+    exchanges.filter(exchange => {
+      const exchangeName = exchange.split(' - ')[1]?.trim();
+      return isValidExchange(exchangeName);
+    }), [exchanges]);
+
+  // Handle initial load behavior
+  React.useEffect(() => {
+    const shouldInitialize = !initialLoadDone && futuresData.length > 0 && filteredExchanges.length > 0;
+    
+    if (shouldInitialize) {
+      const initializeSelection = () => {
+        if (favorites.length > 0) {
+          // If user has favorites, select favorites tab and first favorite item
+          setSelectedTab(0);
+          const firstFavorite = futuresData.find(d => favorites.includes(d.commodity));
+          if (firstFavorite && onCommoditySelect) {
+            onCommoditySelect(firstFavorite.contract_code, firstFavorite.commodity);
+          }
+        } else {
+          // If no favorites, select first exchange tab and first item
+          setSelectedTab(1);
+          const firstExchange = filteredExchanges[0];
+          const firstExchangeData = getFilteredData(firstExchange);
+          if (firstExchangeData.length > 0 && onCommoditySelect) {
+            const firstItem = firstExchangeData[0];
+            onCommoditySelect(firstItem.contract_code, firstItem.commodity);
+          }
+        }
+        setInitialLoadDone(true);
+      };
+
+      initializeSelection();
+    }
+  }, [favorites, filteredExchanges, futuresData, onCommoditySelect, initialLoadDone]);
 
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === 'asc';
