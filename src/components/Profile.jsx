@@ -2,6 +2,7 @@ import * as React from 'react';
 import Avatar from '@mui/material/Avatar';
 import Stack from '@mui/material/Stack';
 import { useTheme } from '@mui/material/styles';
+import ProfileCard from './ProfileCard';
 
 function stringToColor(string) {
   let hash = 0;
@@ -40,15 +41,43 @@ function stringAvatar(name, isDarkMode) {
   };
 }
 
-export default function BackgroundLetterAvatars({ onProfileClick }) {
+export default function BackgroundLetterAvatars() {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
   const userName = localStorage.getItem('userName') || 'User Name';
+  const [showProfileCard, setShowProfileCard] = React.useState(false);
+  const [showSettings, setShowSettings] = React.useState(false);
+
+  const handleProfileClick = () => {
+    setShowProfileCard(!showProfileCard);
+    if (showSettings) {
+      setShowSettings(false);
+    }
+  };
+
+  const handleClose = () => {
+    setShowProfileCard(false);
+    setShowSettings(false);
+  };
+
+  // Handle click outside
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showProfileCard && !event.target.closest('.profile-container')) {
+        handleClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProfileCard]);
 
   return (
     <Stack sx={{ marginRight: '20px' }} direction="row" spacing={2}>
       <Avatar 
-        onClick={onProfileClick} 
+        onClick={handleProfileClick} 
         sx={{ 
           width: 32, 
           height: 32, 
@@ -59,6 +88,12 @@ export default function BackgroundLetterAvatars({ onProfileClick }) {
           }
         }} 
         {...stringAvatar(userName, isDarkMode)} 
+      />
+      <ProfileCard 
+        open={showProfileCard} 
+        onClose={handleClose}
+        showSettings={showSettings}
+        setShowSettings={setShowSettings}
       />
     </Stack>
   );

@@ -17,6 +17,12 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  CircularProgress,
+  RadioGroup,
+  Radio,
+  FormControlLabel,
+  FormLabel,
+  Divider,
 } from '@mui/material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import PersonIcon from '@mui/icons-material/Person';
@@ -26,6 +32,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { useTheme } from '@mui/material/styles';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
+import PayPalIcon from '@mui/icons-material/Payment';
 import { API_BASE_URL } from '../config';
 
 // Password validation functions
@@ -48,6 +56,14 @@ export default function SignUpPage() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
   const [password, setPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
+  const [selectedPlan, setSelectedPlan] = React.useState('monthly');
+  const [paymentMethod, setPaymentMethod] = React.useState('credit');
+  const [cardNumber, setCardNumber] = React.useState('');
+  const [cardName, setCardName] = React.useState('');
+  const [expiryDate, setExpiryDate] = React.useState('');
+  const [cvv, setCvv] = React.useState('');
+  const [email, setEmail] = React.useState('');
 
   const handleClickShowPassword = () => setShowPassword((show) => !show);
   const handleMouseDownPassword = (event) => {
@@ -58,49 +74,94 @@ export default function SignUpPage() {
     return passwordRequirements.every(req => req.validator(password));
   };
 
+  const formatCardNumber = (value) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const matches = v.match(/\d{4,16}/g);
+    const match = (matches && matches[0]) || '';
+    const parts = [];
+
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+
+    if (parts.length) {
+      return parts.join(' ');
+    } else {
+      return value;
+    }
+  };
+
+  const formatExpiryDate = (value) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    if (v.length >= 3) {
+      return `${v.substring(0, 2)}/${v.substring(2, 4)}`;
+    }
+    return v;
+  };
+
+  const handleCardNumberChange = (e) => {
+    const formatted = formatCardNumber(e.target.value);
+    setCardNumber(formatted);
+  };
+
+  const handleExpiryDateChange = (e) => {
+    const formatted = formatExpiryDate(e.target.value);
+    setExpiryDate(formatted);
+  };
+
   const handleSignUp = async (event) => {
     event.preventDefault();
-    const formData = new FormData(event.target);
-    
+    setIsLoading(true);
+    setError(null);
+
     if (!isPasswordValid()) {
-      setError('Please ensure your password meets all requirements');
+      setError('Password does not meet requirements');
+      setIsLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+
+    if (paymentMethod === 'credit' && (!cardNumber || !cardName || !expiryDate || !cvv)) {
+      setError('Please fill in all credit card details');
+      setIsLoading(false);
       return;
     }
 
     try {
-      setIsLoading(true);
-      setError(null);
-      
-      const response = await fetch(`${API_BASE_URL}/permissions`, {
+      const response = await fetch(`${API_BASE_URL}/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: formData.get('email'),
-          password: formData.get('password'),
-          first_name: formData.get('firstName'),
-          last_name: formData.get('lastName')
+          email,
+          password,
+          subscription_plan: selectedPlan === 'monthly' ? 'basic' : 'premium',
+          renewal_date: new Date(Date.now() + (selectedPlan === 'monthly' ? 30 : 365) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          payment_method: paymentMethod,
+          payment_details: paymentMethod === 'credit' ? {
+            card_number: cardNumber.replace(/\s/g, ''),
+            card_name: cardName,
+            expiry_date: expiryDate,
+            cvv: cvv
+          } : null
         }),
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
 
       const data = await response.json();
 
       if (data.success) {
-        navigate(`/verify?email=${encodeURIComponent(formData.get('email'))}`);
+        navigate('/verify', { state: { email } });
       } else {
-        setError(data.message || 'Sign up failed');
+        setError(data.message || 'Failed to create account');
       }
     } catch (err) {
-      if (err.message.includes('Failed to fetch')) {
-        setError('Unable to connect to the server. Please check if the server is running.');
-      } else {
-        setError('An error occurred during sign up.');
-      }
+      setError('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -123,6 +184,13 @@ export default function SignUpPage() {
       <Container 
         component="main" 
         maxWidth="xs"
+        sx={{
+          height: '1000px',
+          overflowY: 'scroll',
+          overflowX: 'hidden',
+          boxShadow: '0px 0px 10px 0px rgba(0, 0, 0, 0.1)',
+          borderRadius: '10px',
+        }}
       >
         <Box
           sx={{
@@ -250,14 +318,213 @@ export default function SignUpPage() {
                 ))}
               </List>
 
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                name="confirmPassword"
+                label="Confirm Password"
+                type={showPassword ? 'text' : 'password'}
+                id="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                size="small"
+              />
+
+              <FormControl component="fieldset" sx={{ mt: 3, width: '100%' }}>
+                <FormLabel component="legend">Choose Your Plan</FormLabel>
+                <RadioGroup
+                  value={selectedPlan}
+                  onChange={(e) => setSelectedPlan(e.target.value)}
+                  sx={{ mt: 1 }}
+                >
+                  <Box sx={{ 
+                    display: 'flex', 
+                    gap: 2,
+                    '& .MuiFormControlLabel-root': {
+                      flex: 1,
+                      margin: 0,
+                      border: '1px solid',
+                      borderColor: theme.palette.divider,
+                      borderRadius: 1,
+                      padding: 2,
+                      '&:hover': {
+                        backgroundColor: theme.palette.action.hover,
+                      },
+                      '&.Mui-checked': {
+                        borderColor: theme.palette.primary.main,
+                        backgroundColor: theme.palette.primary.light + '20',
+                      },
+                    },
+                  }}>
+                    <FormControlLabel
+                      value="monthly"
+                      control={<Radio />}
+                      label={
+                        <Box>
+                          <Typography variant="subtitle1" fontWeight="bold">
+                            Monthly
+                          </Typography>
+                          <Typography variant="h6" color="primary">
+                            $4.99
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            per month
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                    <FormControlLabel
+                      value="annual"
+                      control={<Radio />}
+                      label={
+                        <Box>
+                          <Typography variant="subtitle1" fontWeight="bold">
+                            Annual
+                          </Typography>
+                          <Typography variant="h6" color="primary">
+                            $49.99
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            per year
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  </Box>
+                </RadioGroup>
+                <Box sx={{ 
+                  mt: 2, 
+                  p: 2, 
+                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                  borderRadius: 1,
+                  border: '1px solid',
+                  borderColor: theme.palette.divider,
+                }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    <strong>7-Day Free Trial</strong>
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                    Start with a 7-day free trial. You will be automatically charged {selectedPlan === 'monthly' ? '$4.99/month' : '$49.99/year'} after the trial period unless you cancel your subscription.
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: '0.875rem' }}>
+                    You can cancel anytime during the trial period to avoid being charged.
+                  </Typography>
+                </Box>
+              </FormControl>
+
+              <FormControl component="fieldset" sx={{ mt: 3, width: '100%' }}>
+                <FormLabel component="legend">Payment Method</FormLabel>
+                <RadioGroup
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  sx={{ mt: 1 }}
+                >
+                  <Box sx={{ 
+                    display: 'flex', 
+                    gap: 2,
+                    '& .MuiFormControlLabel-root': {
+                      flex: 1,
+                      margin: 0,
+                      border: '1px solid',
+                      borderColor: theme.palette.divider,
+                      borderRadius: 1,
+                      padding: 2,
+                      '&:hover': {
+                        backgroundColor: theme.palette.action.hover,
+                      },
+                      '&.Mui-checked': {
+                        borderColor: theme.palette.primary.main,
+                        backgroundColor: theme.palette.primary.light + '20',
+                      },
+                    },
+                  }}>
+                    <FormControlLabel
+                      value="credit"
+                      control={<Radio />}
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <CreditCardIcon />
+                          <Typography>Credit Card</Typography>
+                        </Box>
+                      }
+                    />
+                    <FormControlLabel
+                      value="paypal"
+                      control={<Radio />}
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <PayPalIcon />
+                          <Typography>PayPal</Typography>
+                        </Box>
+                      }
+                    />
+                  </Box>
+                </RadioGroup>
+
+                {paymentMethod === 'credit' && (
+                  <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: theme.palette.divider, borderRadius: 1 }}>
+                    <TextField
+                      margin="normal"
+                      required
+                      fullWidth
+                      label="Card Number"
+                      value={cardNumber}
+                      onChange={handleCardNumberChange}
+                      inputProps={{ maxLength: 19 }}
+                      size="small"
+                    />
+                    <TextField
+                      margin="normal"
+                      required
+                      fullWidth
+                      label="Name on Card"
+                      value={cardName}
+                      onChange={(e) => setCardName(e.target.value)}
+                      size="small"
+                    />
+                    <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                      <TextField
+                        required
+                        fullWidth
+                        label="Expiry Date"
+                        value={expiryDate}
+                        onChange={handleExpiryDateChange}
+                        placeholder="MM/YY"
+                        inputProps={{ maxLength: 5 }}
+                        size="small"
+                      />
+                      <TextField
+                        required
+                        fullWidth
+                        label="CVV"
+                        value={cvv}
+                        onChange={(e) => setCvv(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))}
+                        inputProps={{ maxLength: 3 }}
+                        size="small"
+                      />
+                    </Box>
+                  </Box>
+                )}
+
+                {paymentMethod === 'paypal' && (
+                  <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: theme.palette.divider, borderRadius: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      You will be redirected to PayPal to complete your payment after signing up.
+                    </Typography>
+                  </Box>
+                )}
+              </FormControl>
+
               <Button
                 type="submit"
                 fullWidth
                 variant="contained"
                 sx={{ mt: 3, mb: 2 }}
-                disabled={isLoading || !isPasswordValid()}
+                disabled={isLoading || !isPasswordValid() || !confirmPassword || 
+                  (paymentMethod === 'credit' && (!cardNumber || !cardName || !expiryDate || !cvv))}
               >
-                {isLoading ? 'Signing up...' : 'Sign Up'}
+                {isLoading ? <CircularProgress size={24} /> : 'Sign Up'}
               </Button>
               <Box sx={{ textAlign: 'center' }}>
                 <Link component={RouterLink} to="/" variant="body2">

@@ -341,7 +341,10 @@ export default function TabbedTable({
                 '& td': { 
                   border: 'none',
                   transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
-                  position: 'relative'
+                  position: 'relative',
+                },
+                '& td:first-of-type': {
+                  padding: '0 10px',
                 },
                 '&:nth-of-type(odd) td': {
                   backgroundColor: theme.palette.mode === 'dark' ? '#2a2a2a' : '#fafafa',
@@ -365,11 +368,10 @@ export default function TabbedTable({
               <TableCell>
                 <Box sx={{ 
                   display: 'flex', 
+                  flexDirection: 'row',
+                  maxWidth: '100%',
                   alignItems: 'center', 
                   justifyContent: 'space-between',
-                  minWidth: '100px',
-                  maxWidth: '150px',
-                  padding: '4px 2px',
                 }}>
                   <Typography 
                     sx={{ 
@@ -391,7 +393,21 @@ export default function TabbedTable({
               </TableCell>
 
               {/* Non-commercial */}
-              <TableCell align="left" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_commercial_long)}</TableCell>
+              <TableCell align="left" sx={{ 
+                padding: '8px 4px 8px 10px', 
+                fontSize: '0.75rem',
+                borderLeft: `2px solid ${theme.palette.divider}`,
+                position: 'relative',
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  left: 0,
+                  top: '10%',
+                  height: '80%',
+                  width: '1px',
+                  backgroundColor: theme.palette.divider
+                }
+              }}>{fmt.format(r.non_commercial_long)}</TableCell>
               <TableCell align="left" sx={{ color: r.non_commercial_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
                 {fmt.format(r.non_commercial_long_change)}
               </TableCell>

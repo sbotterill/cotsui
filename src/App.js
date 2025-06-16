@@ -12,6 +12,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import SlotsSignIn from './components/SigninPage';
 import SignUpPage from './components/SignUpPage';
 import VerificationPage from './components/VerificationPage';
+import ForgotPassword from './components/ForgotPassword';
 import { Box, CircularProgress } from '@mui/material';
 import { API_BASE_URL } from './config';
 import TradingViewIndicator from './components/TradingView';
@@ -195,8 +196,33 @@ async function fetchData() {
 
 // Main App component
 export default function App() {
-  // Theme state & toggle
   const [mode, setMode] = useState('dark');
+  const [authorized, setAuthorization] = useState(() => {
+    // On initial load, check if userEmail exists in localStorage
+    return !!localStorage.getItem('userEmail');
+  });
+  const [error, setError] = useState(null);
+  const [exchanges, setExchanges] = useState([]);
+  const [displayExchanges, setDisplayExchanges] = useState([]);
+  const [futuresData, setFuturesData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [isLatestData, setIsLatestData] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastChecked, setLastChecked] = useState(null);
+  const [selectedCommodity, setSelectedCommodity] = useState(null);
+  const [commericalChartData, setCommericalChartData] = useState([]);
+  const [nonCommercialChartData, setNonCommercialChartData] = useState([]);
+  const [nonReportableChartData, setNonReportableChartData] = useState([]);
+  const [chartDates, setChartDates] = useState([]);
+  const [favorites, setFavorites] = useState(() => {
+    const initialFavorites = localStorage.getItem('initialFavorites');
+    console.log('Initializing favorites state with:', initialFavorites);
+    return initialFavorites ? JSON.parse(initialFavorites) : [];
+  });
+  const [tableFilters, setTableFilters] = useState([]);
+
+  // Theme state & toggle
   const colorMode = useMemo(() => ({
     toggleColorMode: () => {
       setMode(prev => (prev === 'light' ? 'dark' : 'light'));
@@ -208,56 +234,87 @@ export default function App() {
     document.documentElement.style.backgroundColor = theme.palette.background.default;
   }, [theme.palette.background.default]);
   
-  // Data state
-  const [futuresData, setFuturesData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
-  const [exchanges, setExchanges] = useState([]);
-  const [displayExchanges, setDisplayExchanges] = useState([]);
-  const [lastUpdated, setLastUpdated] = useState(null);
-  const [authorized, setAuthorization] = useState(() => {
-    // On initial load, check if userEmail exists in localStorage
-    return !!localStorage.getItem('userEmail');
-  });
-  const [isLatestData, setIsLatestData] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastChecked, setLastChecked] = useState(null);
-  const [commericalChartData, setCommericalChartData] = useState([]);
-  const [nonCommercialChartData, setNonCommercialChartData] = useState([]);
-  const [nonReportableChartData, setNonReportableChartData] = useState([]);
-  const [chartDates, setChartDates] = useState([]);
+  // Load data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // First load futures data
+        const [exchs, futs, date, latest, checked] = await fetchData();
+        setExchanges(exchs);
+        setDisplayExchanges(exchs);
+        setFuturesData(futs);
+        setFilteredData(futs);
+        setLastUpdated(date);
+        setIsLatestData(latest);
+        setLastChecked(checked);
 
-  // Favorites
-  const [favorites, setFavorites] = useState([]);
+        // Then load favorites
+        const email = localStorage.getItem('userEmail');
+        if (email) {
+          console.log('Loading favorites for email:', email);
+          // Fetch latest favorites from server
+          const response = await fetch(`${API_BASE_URL}/preferences/favorites?email=${encodeURIComponent(email)}`);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Favorites data received from server:', data);
+            if (data.favorites?.selected) {
+              console.log('Setting favorites from server:', data.favorites.selected);
+              setFavorites(data.favorites.selected);
+              // Update localStorage with latest favorites
+              localStorage.setItem('initialFavorites', JSON.stringify(data.favorites.selected));
+            }
+          }
+        }
 
-  const [selectedCommodity, setSelectedCommodity] = useState('');
+        // Finally load table filters
+        await loadTableFilters();
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+    loadData();
+  }, []);
 
-  const [error, setError] = useState(null);
+  // Debug favorites state changes
+  useEffect(() => {
+    console.log('Favorites state updated:', favorites);
+  }, [favorites]);
 
+  // Handle favorites toggle
   const handleToggleFavorite = async (commodity) => {
     try {
+      const email = localStorage.getItem('userEmail');
+      if (!email) {
+        console.error('No email found in localStorage');
+        return;
+      }
+
       const newFavorites = favorites.includes(commodity)
         ? favorites.filter(f => f !== commodity)
         : [...favorites, commodity];
-      
+
+      console.log('Updating favorites to:', newFavorites);
       setFavorites(newFavorites);
-      
-      // Save favorites immediately
+      localStorage.setItem('initialFavorites', JSON.stringify(newFavorites));
+
       const response = await fetch(`${API_BASE_URL}/preferences/favorites`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: localStorage.getItem('userEmail'),
-          favorites: { selected: newFavorites }
+          email: email,
+          favorites: {
+            selected: newFavorites
+          }
         }),
       });
 
       if (!response.ok) {
-        setFavorites(favorites);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
     } catch (error) {
-      setFavorites(favorites);
+      console.error('Error updating favorites:', error);
     }
   };
 
@@ -284,7 +341,20 @@ export default function App() {
 
   const loadFavorites = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/preferences/favorites?email=${localStorage.getItem('userEmail')}`);
+      const email = localStorage.getItem('userEmail');
+      if (!email) {
+        return;
+      }
+
+      // Check for initial favorites first
+      const initialFavorites = localStorage.getItem('initialFavorites');
+      if (initialFavorites) {
+        setFavorites(JSON.parse(initialFavorites));
+        // Clear initial favorites after using them
+        localStorage.removeItem('initialFavorites');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/preferences/favorites?email=${encodeURIComponent(email)}`);
       if (!response.ok) {
         throw new Error('Failed to load favorites');
       }
@@ -295,6 +365,7 @@ export default function App() {
         setFavorites(data.favorites.selected);
       }
     } catch (error) {
+      console.error('Error loading favorites:', error);
     }
   };
 
@@ -323,22 +394,6 @@ export default function App() {
     } catch (error) {
     }
   };
-
-  // Load data on mount
-  useEffect(() => {
-    const loadData = async () => {
-      const [exchs, futs, date, latest, checked] = await fetchData();
-      setExchanges(exchs);
-      setDisplayExchanges(exchs);
-      setFuturesData(futs);
-      setFilteredData(futs);
-      setLastUpdated(date);
-      setIsLatestData(latest);
-      setLastChecked(checked);
-      await Promise.all([loadFavorites(), loadTableFilters()]);
-    };
-    loadData();
-  }, []);
 
   // Exchange filter handler
   const handleExchangeFilterChange = async (newList, shouldSaveToServer = true) => {
@@ -383,11 +438,22 @@ export default function App() {
     await getChartData(marketCode);
   };
 
+  // Add loading state
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  // Update loading state when data is ready
+  useEffect(() => {
+    if (futuresData.length > 0 && exchanges.length > 0) {
+      setIsLoading(false);
+    }
+  }, [futuresData, exchanges]);
+
   return (
     <Router>
       <Routes>
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/verify" element={<VerificationPage />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/" element={
           <>
             {!authorized ? (
@@ -414,9 +480,14 @@ export default function App() {
                       lastChecked={lastChecked}
                     />
                     <div style={{ paddingTop: 90, width: '100%' }}>
-                      {filteredData.length > 0 && exchanges.length > 0 ? (
+                      {isLoading ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 90px)' }}>
+                          <CircularProgress />
+                        </Box>
+                      ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 20, width: '100%', height: '100%' }}>
                           <CollapsibleTable
+                            key={`table-${favorites.length}`}
                             futuresData={filteredData}
                             exchanges={displayExchanges}
                             favorites={favorites}
@@ -430,11 +501,7 @@ export default function App() {
                             chartDates={chartDates}
                             selectedCommodity={selectedCommodity}
                           />
-                        </div>                        
-                      ) : (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 90px)' }}>
-                          <CircularProgress />
-                        </Box>
+                        </div>
                       )}
                     </div>
                   </div>
