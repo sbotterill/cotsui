@@ -81,6 +81,9 @@ async function getLastWeeksTuesday() {
 
 // Format date for API
 function formatDate(date) {
+  if (typeof date === 'string') {
+    date = new Date(date);
+  }
   const pad = n => n.toString().padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T00:00:00.000`;
 }
@@ -107,7 +110,6 @@ async function checkLatestDataAvailability() {
 
 // Fetching and processing CFTC data
 async function fetchData(selectedDate = null) {
-  let fullList = [];
   let exchangesList = [];
   let reportDate = selectedDate || await getThisWeeksTuesday();
   let isLatestData = true;
@@ -127,69 +129,97 @@ async function fetchData(selectedDate = null) {
       isLatestData = false;
     }
 
+    // Get only the necessary fields from the initial request
     const firstResponse = await axios.get(
-      "https://publicreporting.cftc.gov/resource/6dca-aqww.json"
+      "https://publicreporting.cftc.gov/resource/6dca-aqww.json?$select=cftc_contract_market_code,contract_market_name,market_and_exchange_names,cftc_market_code"
     );
 
-    const requests = firstResponse.data.map(async element => {
-      try {
-        let response = await axios.get(
-          `https://publicreporting.cftc.gov/resource/6dca-aqww.json?cftc_contract_market_code=${element.cftc_contract_market_code}&report_date_as_yyyy_mm_dd=${reportDate}`
-        );
+    // Use a Map to ensure uniqueness by contract_code
+    const dataMap = new Map();
+    const exchangeSet = new Set();
+    
+    // Process requests in batches
+    const batchSize = 500;
+    
+    for (let i = 0; i < firstResponse.data.length; i += batchSize) {
+      const batch = firstResponse.data.slice(i, i + batchSize);
+      
+      // Add a smaller delay between batches
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      // Process each batch
+      const batchResults = await Promise.all(
+        batch.map(async (element) => {
+          try {
+            const response = await axios.get(
+              `https://publicreporting.cftc.gov/resource/6dca-aqww.json?cftc_contract_market_code=${element.cftc_contract_market_code}&report_date_as_yyyy_mm_dd=${formatDate(reportDate)}`
+            );
 
-        if (response.data.length === 0) {
-          return;
-        }
+            if (!response.data.length) return null;
 
-        const data = response.data[0];
-        if (!data || !data.noncomm_positions_long_all || !data.noncomm_positions_short_all || data.noncomm_positions_long_all === "undefined") {
-          return;
-        }
+            const data = response.data[0];
+            if (!data || !data.noncomm_positions_long_all || !data.noncomm_positions_short_all || data.noncomm_positions_long_all === "undefined") {
+              return null;
+            }
 
-        // Calculate totals and percentages...
-        const commercialTotalPostitions = +data.comm_positions_long_all + +data.comm_positions_short_all;
-        const commercialPercentageLong = +data.comm_positions_long_all / commercialTotalPostitions;
-        const commercialPercentageShort = +data.comm_positions_short_all / commercialTotalPostitions;
-        const nonCommercialTotalPostitions = +data.noncomm_positions_long_all + +data.noncomm_positions_short_all;
-        const nonCommercialPercentageLong = +data.noncomm_positions_long_all / nonCommercialTotalPostitions;
-        const nonCommercialPercentageShort = +data.noncomm_positions_short_all / nonCommercialTotalPostitions;
-        const nonReptTotalPostitions = +data.nonrept_positions_long_all + +data.nonrept_positions_short_all;
-        const nonReptPercentageLong = +data.nonrept_positions_long_all / nonReptTotalPostitions;
-        const nonReptPercentageShort = +data.nonrept_positions_short_all / nonReptTotalPostitions;
+            // Calculate totals and percentages
+            const commercialTotalPostitions = +data.comm_positions_long_all + +data.comm_positions_short_all;
+            const commercialPercentageLong = +data.comm_positions_long_all / commercialTotalPostitions;
+            const commercialPercentageShort = +data.comm_positions_short_all / commercialTotalPostitions;
+            const nonCommercialTotalPostitions = +data.noncomm_positions_long_all + +data.noncomm_positions_short_all;
+            const nonCommercialPercentageLong = +data.noncomm_positions_long_all / nonCommercialTotalPostitions;
+            const nonCommercialPercentageShort = +data.noncomm_positions_short_all / nonCommercialTotalPostitions;
+            const nonReptTotalPostitions = +data.nonrept_positions_long_all + +data.nonrept_positions_short_all;
+            const nonReptPercentageLong = +data.nonrept_positions_long_all / nonReptTotalPostitions;
+            const nonReptPercentageShort = +data.nonrept_positions_short_all / nonReptTotalPostitions;
 
-        const obj = {
-          commodity: element.contract_market_name,
-          contract_code: element.cftc_contract_market_code,
-          market_and_exchange_name: element.market_and_exchange_names,
-          market_code: element.cftc_market_code,
-          report_date: reportDate,
-          commerical_long: +data.comm_positions_long_all,
-          commerical_long_change: +data.change_in_comm_long_all,
-          commerical_short: +data.comm_positions_short_all,
-          commerical_short_change: +data.change_in_comm_short_all,
-          commerical_total: commercialTotalPostitions,
-          commerical_percentage_long: commercialPercentageLong,
-          commerical_percentage_short: commercialPercentageShort,
-          non_commercial_long: +data.noncomm_positions_long_all,
-          non_commercial_long_change: +data.change_in_noncomm_long_all,
-          non_commercial_short: +data.noncomm_positions_short_all,
-          non_commercial_short_change: +data.change_in_noncomm_short_all,
-          non_commercial_total: nonCommercialTotalPostitions,
-          non_commercial_percentage_long: nonCommercialPercentageLong,
-          non_commercial_percentage_short: nonCommercialPercentageShort,
-          non_reportable_long: +data.nonrept_positions_long_all,
-          non_reportable_long_change: +data.change_in_nonrept_long_all,
-          non_reportable_short: +data.nonrept_positions_short_all,
-          non_reportable_short_change: +data.change_in_nonrept_short_all,
-          non_reportable_total: nonReptTotalPostitions,
-          non_reportable_percentage_long: nonReptPercentageLong,
-          non_reportable_percentage_short: nonReptPercentageShort,
-        };
+            const obj = {
+              commodity: element.contract_market_name,
+              contract_code: element.cftc_contract_market_code,
+              market_and_exchange_name: element.market_and_exchange_names,
+              market_code: element.cftc_market_code,
+              report_date: reportDate,
+              commerical_long: +data.comm_positions_long_all,
+              commerical_long_change: +data.change_in_comm_long_all,
+              commerical_short: +data.comm_positions_short_all,
+              commerical_short_change: +data.change_in_comm_short_all,
+              commerical_total: commercialTotalPostitions,
+              commerical_percentage_long: commercialPercentageLong,
+              commerical_percentage_short: commercialPercentageShort,
+              non_commercial_long: +data.noncomm_positions_long_all,
+              non_commercial_long_change: +data.change_in_noncomm_long_all,
+              non_commercial_short: +data.noncomm_positions_short_all,
+              non_commercial_short_change: +data.change_in_noncomm_short_all,
+              non_commercial_total: nonCommercialTotalPostitions,
+              non_commercial_percentage_long: nonCommercialPercentageLong,
+              non_commercial_percentage_short: nonCommercialPercentageShort,
+              non_reportable_long: +data.nonrept_positions_long_all,
+              non_reportable_long_change: +data.change_in_nonrept_long_all,
+              non_reportable_short: +data.nonrept_positions_short_all,
+              non_reportable_short_change: +data.change_in_nonrept_short_all,
+              non_reportable_total: nonReptTotalPostitions,
+              non_reportable_percentage_long: nonReptPercentageLong,
+              non_reportable_percentage_short: nonReptPercentageShort,
+            };
 
-        if (!fullList.some(item => item.commodity === obj.commodity)) {
-          fullList.push(obj);
-        }
+            return obj;
+          } catch (error) {
+            console.error(`Error processing element ${element.cftc_contract_market_code}:`, error);
+            return null;
+          }
+        })
+      );
 
+      // Filter out null results and add to dataMap
+      const validResults = batchResults.filter(result => result !== null);
+      for (const result of validResults) {
+        dataMap.set(result.contract_code, result);
+      }
+
+      // Update exchangesList
+      for (const element of batch) {
         const market_exchange_full_name = element.market_and_exchange_names.split("-");
         const words = [
           "CHICAGO MERCANTILE EXCHANGE",
@@ -199,18 +229,16 @@ async function fetchData(selectedDate = null) {
           "ICE FUTURES U.S.",
           "NEW YORK MERCANTILE EXCHANGE"
         ];
-        if (words.some(word => market_exchange_full_name[1].includes(word))) {
+        if (words.some(word => market_exchange_full_name[1]?.includes(word))) {
           const tag = `${element.cftc_market_code.trim()} - ${market_exchange_full_name[1].trim()}`;
-          if (!exchangesList.includes(tag)) {
-            exchangesList.push(tag);
-          }
+          exchangeSet.add(tag);
         }
-
-      } catch (err) {
       }
-    });
+    }
 
-    await Promise.all(requests);
+    // Convert Map and Set to arrays
+    const fullList = Array.from(dataMap.values());
+    exchangesList = Array.from(exchangeSet);
 
     return [
       exchangesList.sort((a, b) => a.localeCompare(b)),
@@ -221,6 +249,7 @@ async function fetchData(selectedDate = null) {
     ];
 
   } catch (error) {
+    console.error('Error in fetchData:', error);
     // Return empty data with error state
     return [
       [],
@@ -261,6 +290,8 @@ export default function App() {
     return initialFavorites ? JSON.parse(initialFavorites) : [];
   });
   const [tableFilters, setTableFilters] = useState([]);
+  const [isDateLoading, setIsDateLoading] = React.useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Theme state & toggle
   const colorMode = useMemo(() => ({
@@ -278,15 +309,19 @@ export default function App() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // First load futures data
-        const [exchs, futs, date, latest, checked] = await fetchData(selectedDate);
-        setExchanges(exchs);
-        setDisplayExchanges(exchs);
-        setFuturesData(futs);
-        setFilteredData(futs);
-        setLastUpdated(date);
-        setIsLatestData(latest);
-        setLastChecked(checked);
+        setIsLoading(true);
+        const [exchangesList, fullList, reportDate, isLatestData, lastChecked] = await fetchData(selectedDate);
+        setExchanges(exchangesList);
+        setDisplayExchanges(exchangesList);
+        setFuturesData(fullList);
+        setFilteredData(fullList);
+        setLastUpdated(reportDate);
+        // Set selectedDate to match the report date on initial load
+        if (!selectedDate) {
+          setSelectedDate(new Date(reportDate).toISOString());
+        }
+        setIsLatestData(isLatestData);
+        setLastChecked(lastChecked);
 
         // Then load favorites
         const email = localStorage.getItem('userEmail');
@@ -310,6 +345,8 @@ export default function App() {
         await loadTableFilters();
       } catch (error) {
         console.error('Error loading data:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
     loadData();
@@ -478,9 +515,6 @@ export default function App() {
     await getChartData(marketCode);
   };
 
-  // Add loading state
-  const [isLoading, setIsLoading] = React.useState(true);
-
   // Update loading state when data is ready
   useEffect(() => {
     if (futuresData.length > 0 && exchanges.length > 0) {
@@ -489,7 +523,17 @@ export default function App() {
   }, [futuresData, exchanges]);
 
   const handleDateChange = async (newDate) => {
+    setIsDateLoading(true);
     setSelectedDate(newDate);
+    const [exchs, futs, date, latest, checked] = await fetchData(newDate);
+    setExchanges(exchs);
+    setDisplayExchanges(exchs);
+    setFuturesData(futs);
+    setFilteredData(futs);
+    setLastUpdated(date);
+    setIsLatestData(latest);
+    setLastChecked(checked);
+    setIsDateLoading(false);
   };
 
   return (
@@ -508,16 +552,18 @@ export default function App() {
                   <CssBaseline />
                   <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
                     <DrawerAppBar
-                      reportDate={lastUpdated}
-                      lastChecked={lastChecked}
                       futuresData={futuresData}
                       setFilteredData={setFilteredData}
                       exchanges={exchanges}
                       displayExchanges={displayExchanges}
                       onExchangeFilterChange={handleExchangeFilterChange}
+                      lastUpdated={lastUpdated}
                       selectedDate={selectedDate}
                       onDateChange={handleDateChange}
+                      isDateLoading={isDateLoading}
                       pastTuesdays={pastTuesdays}
+                      isLatestData={isLatestData}
+                      lastChecked={lastChecked}
                     />
                     <Box
                       component="main"

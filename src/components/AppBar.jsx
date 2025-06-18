@@ -11,7 +11,8 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel
+  InputLabel,
+  Snackbar
 } from '@mui/material'
 import BasicMenu from './ContextMenu';
 import ThemeSwitch from './ThemeSwitch';
@@ -27,7 +28,7 @@ export default function DrawerAppBar(props) {
   const [showAlert, setShowAlert] = React.useState(true);
   const [showNoResults, setShowNoResults] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState('');
-  const rawDate = props.reportDate;
+  const rawDate = props.lastUpdated;
   const date = new Date(rawDate);
   const lastChecked = props.lastChecked ? new Date(props.lastChecked) : null;
 
@@ -167,6 +168,19 @@ export default function DrawerAppBar(props) {
                 value={props.selectedDate || ''}
                 label="Report Date"
                 onChange={(e) => props.onDateChange(e.target.value)}
+                disabled={props.isDateLoading}
+                endAdornment={
+                  props.isDateLoading ? (
+                    <CircularProgress
+                      size={20}
+                      sx={{
+                        position: 'absolute',
+                        right: 25,
+                        color: theme.palette.primary.main
+                      }}
+                    />
+                  ) : null
+                }
                 MenuProps={{
                   PaperProps: {
                     style: {
@@ -248,6 +262,26 @@ export default function DrawerAppBar(props) {
           No results found for your search. Showing all data.
         </Alert>
       )}
+      <Snackbar
+        open={props.isDateLoading}
+        message="Loading data for selected date..."
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{
+          '& .MuiSnackbarContent-root': {
+            backgroundColor: theme.palette.mode === 'dark' ? '#2a2a2a' : '#fff',
+            color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+            border: '1px solid',
+            borderColor: theme.palette.mode === 'dark' ? '#444' : '#ddd',
+            boxShadow: theme.palette.mode === 'dark' 
+              ? '0 2px 8px rgba(0,0,0,0.3)' 
+              : '0 2px 8px rgba(0,0,0,0.1)',
+            minWidth: '300px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }
+        }}
+      />
     </>
   );
 }

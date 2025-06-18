@@ -207,28 +207,55 @@ export default function TabbedTable({
   const renderTable = () => {
     return (
       <Table size="small" aria-label="futures data" sx={{ 
-        borderCollapse: 'separate', 
-        borderSpacing: 0,
-        tableLayout: 'fixed', // Prevent row stretching
+        borderCollapse: 'collapse',
+        tableLayout: 'fixed',
+        minWidth: '100%',
+        border: `1px solid ${theme.palette.divider}`,
+        '& .MuiTableCell-root': {
+          paddingLeft: '2px',
+          textAlign: 'left'
+        },
         '& thead': {
           position: 'sticky',
           top: 0,
-          zIndex: 1,
+          zIndex: 1
+        },
+        '& .MuiTableSortLabel-root': {
+          width: '100%',
+          justifyContent: 'flex-start'
         }
       }}>
         <TableHead>
           <TableRow sx={{ 
             backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
             '& th': {
-              borderBottom: `2px solid ${theme.palette.divider}`,
+              border: 'none',
               fontWeight: 'bold',
-              height: '50px'
+              height: '50px',
+              '&:not(:last-child)': {
+                borderRight: `1px solid ${theme.palette.divider}`
+              }
             }
           }}>
             <TableCell rowSpan={2} sx={{ 
               color: theme.palette.mode === 'dark' ? '#fff' : '#000', 
-              minWidth: '120px',
+              minWidth: '200px !important',
+              maxWidth: '300px !important',
+              width: '250px !important',
               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              position: 'sticky',
+              left: 0,
+              zIndex: 2,
+              borderLeft: 'none !important',
+              borderTop: 'none !important',
+              borderBottom: 'none !important',
+              '& .MuiTableSortLabel-root': {
+                width: '100%',
+                display: 'flex'
+              }
             }}>
               <TableSortLabel
                 active={orderBy === 'commodity'}
@@ -238,25 +265,31 @@ export default function TabbedTable({
                 Commodity
               </TableSortLabel>
             </TableCell>
-            <TableCell colSpan={6} align="center" sx={{ 
+            <TableCell colSpan={6} align="left" sx={{ 
               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+              paddingLeft: '2px'
             }}>Non-commercial</TableCell>
-            <TableCell colSpan={6} align="center" sx={{ 
+            <TableCell colSpan={6} align="left" sx={{ 
               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+              paddingLeft: '2px'
             }}>Commercial</TableCell>
-            <TableCell colSpan={6} align="center" sx={{ 
+            <TableCell colSpan={6} align="left" sx={{ 
               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+              paddingLeft: '2px'
             }}>Non-reportable</TableCell>
           </TableRow>
           <TableRow sx={{ 
             backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
             '& th': {
-              borderBottom: `2px solid ${theme.palette.divider}`,
+              border: 'none',
               fontWeight: 'bold',
-              height: '50px'
+              height: '50px',
+              '&:not(:last-child)': {
+                borderRight: `1px solid ${theme.palette.divider}`
+              }
             }
           }}>
             {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
@@ -342,6 +375,7 @@ export default function TabbedTable({
               onClick={() => handleRowClick(r.commodity)}
               sx={{
                 height: '30px !important',
+                width: '100px !important',
                 '& td': { 
                   border: 'none',
                   transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
@@ -371,32 +405,34 @@ export default function TabbedTable({
                 }
               }}
             >
-              <TableCell>
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'row',
-                  maxWidth: '100%',
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                }}>
-                  <Typography 
-                    sx={{ 
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      lineHeight: 1.2,
-                      pr: 1,
-                      fontSize: '0.75rem'
-                    }}
-                  >
-                    {r.commodity}
-                  </Typography>
-                  <FavoriteButton
-                    initial={favorites.includes(r.commodity)}
-                    onToggle={() => onToggleFavorite(r.commodity)}
-                  />
-                </Box>
-              </TableCell>
+                          <TableCell sx={{ minWidth: '200px', maxWidth: '300px' }}>
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'row',
+                width: '100%',
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+              }}>
+                <Typography 
+                  sx={{ 
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    lineHeight: 1.2,
+                    pr: 1,
+                    fontSize: '0.75rem',
+                    flex: 1
+                  }}
+                >
+                  {r.commodity}
+                </Typography>
+                <FavoriteButton
+                  initial={favorites.includes(r.commodity)}
+                  onToggle={() => onToggleFavorite(r.commodity)}
+                  sx={{ flexShrink: 0 }}
+                />
+              </Box>
+            </TableCell>
 
               {/* Non-commercial */}
               <TableCell align="left" sx={{ 
@@ -560,41 +596,41 @@ export default function TabbedTable({
           ))}
         </Tabs>
       </Box>
-      <TableContainer
-        component={Paper}
-        elevation={0}
-        sx={{
-          flex: 1,
-          minHeight: 0, // Important for proper flex behavior
-          height: 'auto', // Let height adjust based on content up to maxHeight
-          overflowY: 'scroll', // Always show vertical scrollbar
-          overflowX: 'auto',
-          borderRadius: 0,
-          '&::-webkit-scrollbar': {
-            height: '8px',
-            width: '8px',
+      <TableContainer component={Paper} sx={{ 
+        border: 'none',
+        '& .MuiPaper-root': {
+          border: 'none'
+        }
+      }}>
+        <Table size="small" aria-label="futures data" sx={{ 
+          borderCollapse: 'collapse',
+          tableLayout: 'fixed',
+          minWidth: '100%',
+          border: 'none',
+          '& .MuiTableCell-root': {
+            border: 'none'
           },
-          '&::-webkit-scrollbar-track': {
-            background: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f1f1f1',
-            borderRadius: '4px',
+          '& thead': {
+            position: 'sticky',
+            top: 0,
+            zIndex: 1,
           },
-          '&::-webkit-scrollbar-thumb': {
-            background: theme.palette.mode === 'dark' ? '#444' : '#888',
-            borderRadius: '4px',
-            '&:hover': {
-              background: theme.palette.mode === 'dark' ? '#555' : '#999',
-            },
-          },
-        }}
-      >
-        <TabPanel value={selectedTab} index={0}>
-          {renderTable()}
-        </TabPanel>
-        {filteredExchanges.map((exchange, index) => (
-          <TabPanel key={exchange} value={selectedTab} index={index + 1}>
+          '& td, & th': {
+            borderRight: `1px solid ${theme.palette.divider}`,
+            '&:last-child': {
+              borderRight: 'none'
+            }
+          }
+        }}>
+          <TabPanel value={selectedTab} index={0}>
             {renderTable()}
           </TabPanel>
-        ))}
+          {filteredExchanges.map((exchange, index) => (
+            <TabPanel key={exchange} value={selectedTab} index={index + 1}>
+              {renderTable()}
+            </TabPanel>
+          ))}
+        </Table>
       </TableContainer>
     </Box>
   );
