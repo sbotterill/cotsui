@@ -112,6 +112,8 @@ async function checkLatestDataAvailability() {
 async function fetchData(selectedDate = null) {
   let exchangesList = [];
   let reportDate = selectedDate || await getThisWeeksTuesday();
+  console.log('fetchData - selectedDate:', selectedDate);
+  console.log('fetchData - initial reportDate:', reportDate);
   let isLatestData = true;
   let lastChecked = null;
 
@@ -124,6 +126,7 @@ async function fetchData(selectedDate = null) {
       if (!availabilityCheck.isAvailable) {
         isLatestData = false;
         reportDate = await getLastWeeksTuesday();
+        console.log('fetchData - using last week\'s Tuesday:', reportDate);
       }
     } else {
       isLatestData = false;
@@ -311,6 +314,10 @@ export default function App() {
       try {
         setIsLoading(true);
         const [exchangesList, fullList, reportDate, isLatestData, lastChecked] = await fetchData(selectedDate);
+        console.log('Initial load - reportDate:', reportDate);
+        console.log('Initial load - selectedDate:', selectedDate);
+        console.log('Initial load - pastTuesdays:', pastTuesdays.map(d => d.toISOString()));
+        
         setExchanges(exchangesList);
         setDisplayExchanges(exchangesList);
         setFuturesData(fullList);
@@ -318,7 +325,9 @@ export default function App() {
         setLastUpdated(reportDate);
         // Set selectedDate to match the report date on initial load
         if (!selectedDate) {
-          setSelectedDate(new Date(reportDate).toISOString());
+          const newDate = new Date(reportDate).toISOString();
+          console.log('Setting initial selectedDate to:', newDate);
+          setSelectedDate(newDate);
         }
         setIsLatestData(isLatestData);
         setLastChecked(lastChecked);

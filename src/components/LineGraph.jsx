@@ -237,13 +237,6 @@ export default function LineChartWithReferenceLines(props) {
             }
           }
         }}
-        axisPointer={{
-          type: 'cross',
-          animation: false,
-          label: {
-            backgroundColor: theme.palette.mode === 'dark' ? '#6a7985' : '#8796A5'
-          }
-        }}
         grid={{
           horizontal: true,
           vertical: true,

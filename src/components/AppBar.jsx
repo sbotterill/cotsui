@@ -165,7 +165,9 @@ export default function DrawerAppBar(props) {
               <Select
                 labelId="date-select-label"
                 id="date-select"
-                value={props.selectedDate || ''}
+                value={props.selectedDate ? props.pastTuesdays.find(date => 
+                  date.toISOString().split('T')[0] === new Date(props.selectedDate).toISOString().split('T')[0]
+                )?.toISOString() || '' : ''}
                 label="Report Date"
                 onChange={(e) => props.onDateChange(e.target.value)}
                 disabled={props.isDateLoading}

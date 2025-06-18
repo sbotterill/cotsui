@@ -595,29 +595,10 @@ export default function TabbedTable({
           border: 'none'
         }
       }}>
-        <Table size="small" aria-label="futures data" sx={{ 
-          borderCollapse: 'collapse',
-          tableLayout: 'fixed',
-          minWidth: '100%',
-          border: 'none',
-          '& .MuiTableCell-root': {
-            border: 'none'
-          },
-          '& thead': {
-            position: 'sticky',
-            top: 0,
-            zIndex: 1,
-          }
-        }}>
-          <TabPanel value={selectedTab} index={0}>
-            {renderTable()}
-          </TabPanel>
-          {filteredExchanges.map((exchange, index) => (
-            <TabPanel key={exchange} value={selectedTab} index={index + 1}>
-              {renderTable()}
-            </TabPanel>
-          ))}
-        </Table>
+        {selectedTab === 0 && renderTable()}
+        {filteredExchanges.map((exchange, index) => (
+          selectedTab === index + 1 && renderTable()
+        ))}
       </TableContainer>
     </Box>
   );
