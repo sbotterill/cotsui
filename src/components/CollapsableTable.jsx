@@ -213,11 +213,10 @@ export default function TabbedTable({
         border: `1px solid ${theme.palette.divider}`,
         '& .MuiTableCell-root': {
           paddingLeft: '2px',
-          textAlign: 'left'
         },
         '& thead': {
           position: 'sticky',
-          top: 0,
+          top: '-1px',
           zIndex: 1
         },
         '& .MuiTableSortLabel-root': {
@@ -232,9 +231,6 @@ export default function TabbedTable({
               border: 'none',
               fontWeight: 'bold',
               height: '50px',
-              '&:not(:last-child)': {
-                borderRight: `1px solid ${theme.palette.divider}`
-              }
             }
           }}>
             <TableCell rowSpan={2} sx={{ 
@@ -261,21 +257,26 @@ export default function TabbedTable({
                 active={orderBy === 'commodity'}
                 direction={orderBy === 'commodity' ? order : 'asc'}
                 onClick={() => handleRequestSort('commodity')}
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
               >
                 Commodity
               </TableSortLabel>
             </TableCell>
-            <TableCell colSpan={6} align="left" sx={{ 
+            <TableCell colSpan={6} align="center" sx={{ 
               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
               paddingLeft: '2px'
             }}>Non-commercial</TableCell>
-            <TableCell colSpan={6} align="left" sx={{ 
+            <TableCell colSpan={6} align="center" sx={{ 
               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
               paddingLeft: '2px'
             }}>Commercial</TableCell>
-            <TableCell colSpan={6} align="left" sx={{ 
+            <TableCell colSpan={6} align="center" sx={{ 
               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
               paddingLeft: '2px'
@@ -286,10 +287,7 @@ export default function TabbedTable({
             '& th': {
               border: 'none',
               fontWeight: 'bold',
-              height: '50px',
-              '&:not(:last-child)': {
-                borderRight: `1px solid ${theme.palette.divider}`
-              }
+              height: '50px'
             }
           }}>
             {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
@@ -300,7 +298,6 @@ export default function TabbedTable({
                   minWidth: lbl === 'Change' ? '60px' : '70px',
                   maxWidth: lbl === 'Change' ? '70px' : '80px',
                   backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                  ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {}),
                   padding: lbl === 'Long' ? '8px 4px 8px 10px' : '8px 4px',
                   fontSize: '0.75rem',
                   whiteSpace: 'nowrap',
@@ -325,7 +322,6 @@ export default function TabbedTable({
                   minWidth: lbl === 'Change' ? '60px' : '70px',
                   maxWidth: lbl === 'Change' ? '70px' : '80px',
                   backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                  ...(i === 5 ? { borderRight: `2px solid ${theme.palette.divider}` } : {}),
                   padding: lbl === 'Long' ? '8px 4px 8px 10px' : '8px 4px',
                   fontSize: '0.75rem',
                   whiteSpace: 'nowrap',
@@ -462,7 +458,6 @@ export default function TabbedTable({
                 align="left"
                 sx={{
                   color: getPercentageColor(r.non_commercial_percentage_long),
-                  borderRight: `2px solid ${theme.palette.divider}`,
                   position: 'relative',
                   padding: '8px 4px',
                   fontSize: '0.75rem',
@@ -494,7 +489,6 @@ export default function TabbedTable({
                 align="left"
                 sx={{
                   color: getPercentageColor(r.commerical_percentage_long),
-                  borderRight: `2px solid ${theme.palette.divider}`,
                   position: 'relative',
                   padding: '8px 4px',
                   fontSize: '0.75rem',
@@ -538,7 +532,6 @@ export default function TabbedTable({
       display: 'flex', 
       flexDirection: 'column',
       height: '45vh',
-      borderBottom: '1px solid #414141 !important',
       borderRadius: 1,
       overflow: 'hidden' // Prevent content from spilling out
     }}>
@@ -614,12 +607,6 @@ export default function TabbedTable({
             position: 'sticky',
             top: 0,
             zIndex: 1,
-          },
-          '& td, & th': {
-            borderRight: `1px solid ${theme.palette.divider}`,
-            '&:last-child': {
-              borderRight: 'none'
-            }
           }
         }}>
           <TabPanel value={selectedTab} index={0}>
