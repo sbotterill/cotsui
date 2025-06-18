@@ -12,6 +12,8 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import SlotsSignIn from './components/SigninPage';
 import SignUpPage from './components/SignUpPage';
 import VerificationPage from './components/VerificationPage';
+import SubscriptionPage from './components/SubscriptionPage';
+import SubscriptionGuard from './components/SubscriptionGuard';
 import ForgotPassword from './components/ForgotPassword';
 import { Box, CircularProgress } from '@mui/material';
 import { API_BASE_URL } from './config';
@@ -550,67 +552,70 @@ export default function App() {
       <Routes>
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/verify" element={<VerificationPage />} />
+        <Route path="/subscription" element={<SubscriptionPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/" element={
           <>
             {!authorized ? (
               <SlotsSignIn setAuthorization={setAuthorization} />
             ) : (
-              <ColorModeContext.Provider value={colorMode}>
-                <ThemeProvider theme={theme}>
-                  <CssBaseline />
-                  <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-                    <DrawerAppBar
-                      futuresData={futuresData}
-                      setFilteredData={setFilteredData}
-                      exchanges={exchanges}
-                      displayExchanges={displayExchanges}
-                      onExchangeFilterChange={handleExchangeFilterChange}
-                      lastUpdated={lastUpdated}
-                      selectedDate={selectedDate}
-                      onDateChange={handleDateChange}
-                      isDateLoading={isDateLoading}
-                      pastTuesdays={pastTuesdays}
-                      isLatestData={isLatestData}
-                      lastChecked={lastChecked}
-                    />
-                    <Box
-                      component="main"
-                      sx={{
-                        flexGrow: 1,
-                        pt: { xs: '56px', sm: '64px' }, // Responsive top padding based on AppBar height
-                        px: 2, // Add some horizontal padding
-                        width: '100%',
-                        overflow: 'hidden' // Prevent any potential scrollbar issues
-                      }}
-                    >
-                      {isLoading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 64px)' }}>
-                          <CircularProgress />
-                        </Box>
-                      ) : (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', height: '100%' }}>
-                          <CollapsibleTable
-                            key={`table-${favorites.length}`}
-                            futuresData={filteredData}
-                            exchanges={displayExchanges}
-                            favorites={favorites}
-                            onToggleFavorite={handleToggleFavorite}
-                            onCommoditySelect={handleCommoditySelect}
-                          />
-                          <LineChartWithReferenceLines 
-                            commericalChartData={commericalChartData} 
-                            nonCommercialChartData={nonCommercialChartData} 
-                            nonReportableChartData={nonReportableChartData} 
-                            chartDates={chartDates}
-                            selectedCommodity={selectedCommodity}
-                          />
-                        </Box>
-                      )}
+              <SubscriptionGuard>
+                <ColorModeContext.Provider value={colorMode}>
+                  <ThemeProvider theme={theme}>
+                    <CssBaseline />
+                    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                      <DrawerAppBar
+                        futuresData={futuresData}
+                        setFilteredData={setFilteredData}
+                        exchanges={exchanges}
+                        displayExchanges={displayExchanges}
+                        onExchangeFilterChange={handleExchangeFilterChange}
+                        lastUpdated={lastUpdated}
+                        selectedDate={selectedDate}
+                        onDateChange={handleDateChange}
+                        isDateLoading={isDateLoading}
+                        pastTuesdays={pastTuesdays}
+                        isLatestData={isLatestData}
+                        lastChecked={lastChecked}
+                      />
+                      <Box
+                        component="main"
+                        sx={{
+                          flexGrow: 1,
+                          pt: { xs: '56px', sm: '64px' }, // Responsive top padding based on AppBar height
+                          px: 2, // Add some horizontal padding
+                          width: '100%',
+                          overflow: 'hidden' // Prevent any potential scrollbar issues
+                        }}
+                      >
+                        {isLoading ? (
+                          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 64px)' }}>
+                            <CircularProgress />
+                          </Box>
+                        ) : (
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', height: '100%' }}>
+                            <CollapsibleTable
+                              key={`table-${favorites.length}`}
+                              futuresData={filteredData}
+                              exchanges={displayExchanges}
+                              favorites={favorites}
+                              onToggleFavorite={handleToggleFavorite}
+                              onCommoditySelect={handleCommoditySelect}
+                            />
+                            <LineChartWithReferenceLines 
+                              commericalChartData={commericalChartData} 
+                              nonCommercialChartData={nonCommercialChartData} 
+                              nonReportableChartData={nonReportableChartData} 
+                              chartDates={chartDates}
+                              selectedCommodity={selectedCommodity}
+                            />
+                          </Box>
+                        )}
+                      </Box>
                     </Box>
-                  </Box>
-                </ThemeProvider>
-              </ColorModeContext.Provider>
+                  </ThemeProvider>
+                </ColorModeContext.Provider>
+              </SubscriptionGuard>
             )}
           </>
         } />

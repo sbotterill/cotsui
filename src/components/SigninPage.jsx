@@ -220,6 +220,30 @@ export default function SlotsSignIn(props) {
         localStorage.setItem('userName', `${data.first_name} ${data.last_name}`);
         
         try {
+          // Check subscription status first
+          const subscriptionResponse = await fetch(`${API_BASE_URL}/subscription-status?email=${encodeURIComponent(email)}`);
+          const subscriptionData = await subscriptionResponse.json();
+
+          if (subscriptionResponse.ok) {
+            // Check if user has active subscription or free trial
+            const hasActiveSubscription = subscriptionData.subscription_status === 'active' || 
+                                        subscriptionData.subscription_status === 'trialing' ||
+                                        subscriptionData.trial_status === 'active';
+            
+            const isTrialActive = subscriptionData.trial_status === 'active' && 
+                                new Date(subscriptionData.trial_end) > new Date();
+
+            if (!hasActiveSubscription && !isTrialActive) {
+              // Redirect to subscription page if no active subscription
+              navigate('/subscription');
+              return;
+            }
+          } else {
+            // If subscription check fails, redirect to subscription page
+            navigate('/subscription');
+            return;
+          }
+
           // Load preferences and favorites
           const [prefsResponse, favoritesResponse] = await Promise.all([
             fetch(`${API_BASE_URL}/preferences?email=${encodeURIComponent(email)}`),

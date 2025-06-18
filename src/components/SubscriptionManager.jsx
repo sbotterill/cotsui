@@ -7,17 +7,21 @@ import {
   MenuItem,
   Paper,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { format } from 'date-fns';
+import StripePayment from './StripePayment';
 
 const SUBSCRIPTION_PLANS = [
-  { value: 'free', label: 'Free' },
-  { value: 'basic', label: 'Basic' },
-  { value: 'premium', label: 'Premium' }
+  { value: 'free', label: 'Free', price: 0 },
+  { value: 'basic', label: 'Basic', price: 9.99 },
+  { value: 'premium', label: 'Premium', price: 19.99 }
 ];
 
 const SubscriptionManager = ({ email }) => {
@@ -25,6 +29,8 @@ const SubscriptionManager = ({ email }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
   const [formData, setFormData] = useState({
     subscription_plan: 'free',
     renewal_date: null,
@@ -93,6 +99,27 @@ const SubscriptionManager = ({ email }) => {
     }
   };
 
+  const handlePlanChange = (plan) => {
+    if (plan === 'free') {
+      setFormData({ ...formData, subscription_plan: plan });
+    } else {
+      setSelectedPlan(plan);
+      setShowPaymentDialog(true);
+    }
+  };
+
+  const handlePaymentSuccess = async (result) => {
+    setShowPaymentDialog(false);
+    setSuccess('Payment successful! Your subscription has been updated.');
+    setFormData({ ...formData, subscription_plan: selectedPlan });
+    await fetchSubscriptionData();
+  };
+
+  const handlePaymentError = (error) => {
+    setError(error);
+    setShowPaymentDialog(false);
+  };
+
   if (loading && !subscriptionData) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
@@ -119,54 +146,21 @@ const SubscriptionManager = ({ email }) => {
         </Alert>
       )}
 
-      <form onSubmit={handleSubmit}>
-        <Box sx={{ mb: 3 }}>
-          <TextField
-            select
-            fullWidth
-            label="Subscription Plan"
-            value={formData.subscription_plan}
-            onChange={(e) => setFormData({ ...formData, subscription_plan: e.target.value })}
-            sx={{ mb: 2 }}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="subtitle1" gutterBottom>
+          Available Plans
+        </Typography>
+        {SUBSCRIPTION_PLANS.map((plan) => (
+          <Button
+            key={plan.value}
+            variant={formData.subscription_plan === plan.value ? "contained" : "outlined"}
+            onClick={() => handlePlanChange(plan.value)}
+            sx={{ mr: 2, mb: 2 }}
           >
-            {SUBSCRIPTION_PLANS.map((plan) => (
-              <MenuItem key={plan.value} value={plan.value}>
-                {plan.label}
-              </MenuItem>
-            ))}
-          </TextField>
-
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <Box sx={{ mb: 2 }}>
-              <DatePicker
-                label="Renewal Date"
-                value={formData.renewal_date}
-                onChange={(newValue) => setFormData({ ...formData, renewal_date: newValue })}
-                renderInput={(params) => <TextField {...params} fullWidth />}
-              />
-            </Box>
-
-            <Box sx={{ mb: 2 }}>
-              <DatePicker
-                label="Cancellation Date"
-                value={formData.cancellation_date}
-                onChange={(newValue) => setFormData({ ...formData, cancellation_date: newValue })}
-                renderInput={(params) => <TextField {...params} fullWidth />}
-              />
-            </Box>
-          </LocalizationProvider>
-        </Box>
-
-        <Button
-          type="submit"
-          variant="contained"
-          color="primary"
-          disabled={loading}
-          fullWidth
-        >
-          {loading ? 'Updating...' : 'Update Subscription'}
-        </Button>
-      </form>
+            {plan.label} - ${plan.price}/month
+          </Button>
+        ))}
+      </Box>
 
       {subscriptionData && (
         <Box sx={{ mt: 3 }}>
@@ -191,6 +185,24 @@ const SubscriptionManager = ({ email }) => {
           )}
         </Box>
       )}
+
+      <Dialog
+        open={showPaymentDialog}
+        onClose={() => setShowPaymentDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Subscribe to {SUBSCRIPTION_PLANS.find(p => p.value === selectedPlan)?.label}
+        </DialogTitle>
+        <DialogContent>
+          <StripePayment
+            plan={selectedPlan}
+            onSuccess={handlePaymentSuccess}
+            onError={handlePaymentError}
+          />
+        </DialogContent>
+      </Dialog>
     </Paper>
   );
 };

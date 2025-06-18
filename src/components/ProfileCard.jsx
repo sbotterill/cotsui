@@ -60,7 +60,7 @@ export default function ProfileCard({ open, onClose, anchorEl, buttonRef }) {
 
   const fetchSubscriptionData = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/subscription`, {
+      const response = await fetch(`${API_BASE_URL}/subscription?email=${encodeURIComponent(userEmail)}`, {
         credentials: 'include'
       });
       if (response.ok) {
@@ -98,7 +98,10 @@ export default function ProfileCard({ open, onClose, anchorEl, buttonRef }) {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ auto_renewal: event.target.checked }),
+        body: JSON.stringify({ 
+          auto_renewal: event.target.checked,
+          email: userEmail
+        }),
       });
 
       if (response.ok) {
@@ -121,22 +124,38 @@ export default function ProfileCard({ open, onClose, anchorEl, buttonRef }) {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/subscription/cancel`, {
+      const response = await fetch(`${API_BASE_URL}/cancel-subscription`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         credentials: 'include',
+        body: JSON.stringify({ 
+          email: userEmail,
+          subscriptionId: subscriptionData?.stripe_subscription_id 
+        }),
       });
 
       if (response.ok) {
-        const updatedData = {
-          ...subscriptionData,
-          is_subscription_active: false,
-          cancellation_date: new Date().toISOString().split('T')[0]
-        };
-        setSubscriptionData(updatedData);
-        localStorage.setItem('subscriptionData', JSON.stringify(updatedData));
+        const result = await response.json();
+        
+        // Show appropriate message based on cancellation type
+        if (result.immediate_cancellation) {
+          alert('Your subscription has been cancelled immediately. You will not be charged.');
+        } else {
+          alert(`Your subscription has been cancelled. You will maintain access until ${result.access_until ? new Date(result.access_until).toLocaleDateString() : 'your renewal date'}.`);
+        }
+        
+        // Refresh subscription data
+        await fetchSubscriptionData();
+        handleSettingsClose();
+      } else {
+        const errorData = await response.json();
+        alert(`Error cancelling subscription: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error canceling subscription:', error);
+      alert('Error cancelling subscription. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -328,7 +347,9 @@ export default function ProfileCard({ open, onClose, anchorEl, buttonRef }) {
                       fontWeight: 500
                     }}
                   >
-                    Current Plan: {subscriptionData.subscription_plan}
+                    Current Plan: {subscriptionData.subscription_plan ? 
+                      subscriptionData.subscription_plan.charAt(0).toUpperCase() + 
+                      subscriptionData.subscription_plan.slice(1) : 'None'}
                   </Typography>
                   <Typography 
                     variant="body2" 
@@ -341,6 +362,18 @@ export default function ProfileCard({ open, onClose, anchorEl, buttonRef }) {
                   >
                     Status: {subscriptionData.is_subscription_active ? 'Active' : 'Inactive'}
                   </Typography>
+                  {subscriptionData.payment_status === 'cancelled_at_period_end' && (
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: theme.palette.warning.main,
+                        mt: 1,
+                        fontWeight: 500
+                      }}
+                    >
+                      Cancelled - Access until renewal date
+                    </Typography>
+                  )}
                   {subscriptionData.renewal_date && (
                     <Typography 
                       variant="body2" 
@@ -363,25 +396,18 @@ export default function ProfileCard({ open, onClose, anchorEl, buttonRef }) {
                       Cancellation Date: {formatDate(subscriptionData.cancellation_date)}
                     </Typography>
                   )}
-                </Box>
-
-                <Box sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  p: 2,
-                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-                  borderRadius: 1,
-                }}>
-                  <Typography sx={{ color: theme.palette.text.primary }}>
-                    Auto-Renewal
-                  </Typography>
-                  <Switch
-                    checked={autoRenewal}
-                    onChange={handleAutoRenewalToggle}
-                    disabled={loading}
-                    color="primary"
-                  />
+                  {subscriptionData.is_trial_active && (
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: theme.palette.info.main,
+                        mt: 1,
+                        fontWeight: 500
+                      }}
+                    >
+                      Free Trial Active
+                    </Typography>
+                  )}
                 </Box>
 
                 <Button
@@ -389,7 +415,7 @@ export default function ProfileCard({ open, onClose, anchorEl, buttonRef }) {
                   color="error"
                   fullWidth
                   onClick={handleCancelSubscription}
-                  disabled={loading || !subscriptionData.is_subscription_active}
+                  disabled={loading || !subscriptionData.is_subscription_active || subscriptionData.payment_status === 'cancelled_at_period_end'}
                   sx={{
                     borderColor: theme.palette.error.main,
                     color: theme.palette.error.main,
@@ -409,7 +435,11 @@ export default function ProfileCard({ open, onClose, anchorEl, buttonRef }) {
                     },
                   }}
                 >
-                  Cancel Subscription
+                  {subscriptionData.payment_status === 'cancelled_at_period_end' 
+                    ? 'Already Cancelled' 
+                    : subscriptionData.is_trial_active 
+                      ? 'Cancel Trial' 
+                      : 'Cancel Subscription'}
                 </Button>
               </>
             ) : (

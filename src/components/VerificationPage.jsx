@@ -1,4 +1,5 @@
-import * as React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -14,16 +15,24 @@ import { API_BASE_URL } from '../config';
 
 export default function VerificationPage() {
   const theme = useTheme();
-  const [verificationCode, setVerificationCode] = React.useState('');
-  const [error, setError] = React.useState(null);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [resendDisabled, setResendDisabled] = React.useState(false);
-  const [countdown, setCountdown] = React.useState(0);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [verificationCode, setVerificationCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [resendDisabled, setResendDisabled] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
   // Get email from URL parameters
-  const email = new URLSearchParams(window.location.search).get('email');
+  const email = new URLSearchParams(location.search).get('email');
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (!email) {
+      navigate('/signup');
+    }
+  }, [email, navigate]);
+
+  useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
@@ -34,7 +43,7 @@ export default function VerificationPage() {
 
   const handleVerification = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoading(true);
     setError(null);
 
     try {
@@ -52,23 +61,26 @@ export default function VerificationPage() {
       const data = await response.json();
 
       if (data.success) {
-        // Store user information and redirect to main app
+        // Store user info in localStorage
         localStorage.setItem('userEmail', email);
         localStorage.setItem('userName', `${data.first_name} ${data.last_name}`);
-        window.location.href = '/';
+        
+        // Navigate to subscription page
+        navigate('/subscription');
       } else {
-        setError(data.message || 'Invalid verification code');
+        setError(data.message || 'Verification failed');
       }
     } catch (err) {
-      setError('An error occurred during verification. Please try again.');
+      setError('An error occurred during verification');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const handleResendCode = async () => {
-    setResendDisabled(true);
-    setCountdown(60); // 60 seconds cooldown
+    if (countdown > 0) return;
+
+    setLoading(true);
     setError(null);
 
     try {
@@ -82,11 +94,15 @@ export default function VerificationPage() {
 
       const data = await response.json();
 
-      if (!data.success) {
-        setError(data.message || 'Failed to resend verification code');
+      if (data.success) {
+        setCountdown(60); // Start 60-second countdown
+      } else {
+        setError(data.message || 'Failed to resend code');
       }
     } catch (err) {
-      setError('Failed to resend verification code. Please try again.');
+      setError('An error occurred while resending the code');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -140,40 +156,40 @@ export default function VerificationPage() {
               id="verificationCode"
               label="Verification Code"
               name="verificationCode"
+              autoComplete="off"
               value={verificationCode}
               onChange={(e) => setVerificationCode(e.target.value)}
-              size="small"
-              inputProps={{ maxLength: 6 }}
+              disabled={loading}
             />
+
+            {error && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {error}
+              </Alert>
+            )}
 
             <Button
               type="submit"
               fullWidth
               variant="contained"
               sx={{ mt: 3, mb: 2 }}
-              disabled={isLoading || !verificationCode}
+              disabled={loading || !verificationCode}
             >
-              {isLoading ? <CircularProgress size={24} /> : 'Verify Email'}
+              {loading ? <CircularProgress size={24} /> : 'Verify Email'}
             </Button>
 
             <Button
               fullWidth
               variant="text"
               onClick={handleResendCode}
-              disabled={resendDisabled}
-              sx={{ mt: 1 }}
+              disabled={loading || countdown > 0}
             >
-              {resendDisabled
+              {countdown > 0
                 ? `Resend code in ${countdown}s`
                 : 'Resend verification code'}
             </Button>
           </Box>
         </Paper>
-        {error && (
-          <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
-            {error}
-          </Alert>
-        )}
       </Container>
     </Box>
   );
