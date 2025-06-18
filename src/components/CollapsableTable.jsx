@@ -209,6 +209,7 @@ export default function TabbedTable({
       <Table size="small" aria-label="futures data" sx={{ 
         borderCollapse: 'separate', 
         borderSpacing: 0,
+        tableLayout: 'fixed', // Prevent row stretching
         '& thead': {
           position: 'sticky',
           top: 0,
@@ -220,7 +221,8 @@ export default function TabbedTable({
             backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
             '& th': {
               borderBottom: `2px solid ${theme.palette.divider}`,
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              height: '50px'
             }
           }}>
             <TableCell rowSpan={2} sx={{ 
@@ -253,7 +255,8 @@ export default function TabbedTable({
             backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
             '& th': {
               borderBottom: `2px solid ${theme.palette.divider}`,
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              height: '50px'
             }
           }}>
             {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
@@ -338,10 +341,13 @@ export default function TabbedTable({
               key={r.commodity}
               onClick={() => handleRowClick(r.commodity)}
               sx={{
+                height: '30px !important',
                 '& td': { 
                   border: 'none',
                   transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
                   position: 'relative',
+                  height: '30px !important',
+                  padding: '4px', // Reduce padding to help maintain height
                 },
                 '& td:first-of-type': {
                   padding: '0 10px',
@@ -491,15 +497,26 @@ export default function TabbedTable({
   };
 
   return (
-    <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+    <Box sx={{ 
+      width: '100%', 
+      display: 'flex', 
+      flexDirection: 'column',
+      height: '45vh',
+      borderBottom: '1px solid #414141 !important',
+      borderRadius: 1,
+      overflow: 'hidden' // Prevent content from spilling out
+    }}>
+      <Box sx={{ 
+        borderBottom: 1, 
+        borderColor: 'divider',
+        bgcolor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+      }}>
         <Tabs 
           value={selectedTab} 
           onChange={handleTabChange}
           variant="scrollable"
           scrollButtons="auto"
           sx={{
-            backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
             '& .MuiTab-root': {
               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
               textTransform: 'none',
@@ -543,44 +560,42 @@ export default function TabbedTable({
           ))}
         </Tabs>
       </Box>
-      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <TableContainer
-          component={Paper}
-          elevation={0}
-          sx={{
-            backgroundColor: theme.palette.background.paper,
-            boxShadow: 'none',
-            maxWidth: '100%',
-            height: '40vh',
-            overflowY: 'auto',
-            overflowX: 'auto',
-            '&::-webkit-scrollbar': {
-              height: '8px',
-              width: '8px',
+      <TableContainer
+        component={Paper}
+        elevation={0}
+        sx={{
+          flex: 1,
+          minHeight: 0, // Important for proper flex behavior
+          height: 'auto', // Let height adjust based on content up to maxHeight
+          overflowY: 'scroll', // Always show vertical scrollbar
+          overflowX: 'auto',
+          borderRadius: 0,
+          '&::-webkit-scrollbar': {
+            height: '8px',
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f1f1f1',
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: theme.palette.mode === 'dark' ? '#444' : '#888',
+            borderRadius: '4px',
+            '&:hover': {
+              background: theme.palette.mode === 'dark' ? '#555' : '#999',
             },
-            '&::-webkit-scrollbar-track': {
-              background: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f1f1f1',
-              borderRadius: '4px',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              background: theme.palette.mode === 'dark' ? '#444' : '#888',
-              borderRadius: '4px',
-              '&:hover': {
-                background: theme.palette.mode === 'dark' ? '#555' : '#999',
-              },
-            },
-          }}
-        >
-          <TabPanel value={selectedTab} index={0}>
+          },
+        }}
+      >
+        <TabPanel value={selectedTab} index={0}>
+          {renderTable()}
+        </TabPanel>
+        {filteredExchanges.map((exchange, index) => (
+          <TabPanel key={exchange} value={selectedTab} index={index + 1}>
             {renderTable()}
           </TabPanel>
-          {filteredExchanges.map((exchange, index) => (
-            <TabPanel key={exchange} value={selectedTab} index={index + 1}>
-              {renderTable()}
-            </TabPanel>
-          ))}
-        </TableContainer>
-      </Box>
+        ))}
+      </TableContainer>
     </Box>
   );
 }

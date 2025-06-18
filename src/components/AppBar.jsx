@@ -1,11 +1,23 @@
 import * as React from 'react';
-import {AppBar, TextField, Toolbar, Typography, IconButton, Tooltip, CircularProgress, Alert} from '@mui/material'
+import {
+  AppBar,
+  TextField,
+  Toolbar,
+  Typography,
+  IconButton,
+  Tooltip,
+  CircularProgress,
+  Alert,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
+} from '@mui/material'
 import BasicMenu from './ContextMenu';
 import ThemeSwitch from './ThemeSwitch';
 import { useTheme } from '@mui/material/styles';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import WarningIcon from '@mui/icons-material/Warning';
-import InfoIcon from '@mui/icons-material/Info';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import Profile from './Profile';
 import { ALLOWED_EXCHANGES, isValidExchange } from '../constants';
@@ -31,6 +43,14 @@ export default function DrawerAppBar(props) {
     minute: '2-digit',
     second: '2-digit'
   }) : null;
+
+  const formatDateOption = (date) => {
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
   const handleFuturesFilter = (event) => {
     try {
@@ -130,18 +150,75 @@ export default function DrawerAppBar(props) {
             }} 
           />
           <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-            {!props.isLatestData && (
-              <Tooltip 
-                title="This week's data available Friday 15:30 EST."
+            <FormControl 
+              size="small" 
+              sx={{ 
+                width: "250px",
+                marginRight: "8px",
+                '& .MuiInputBase-root': {
+                  height: '40px' // Match search bar height
+                }
+              }}
+            >
+              <InputLabel id="date-select-label">Report Date</InputLabel>
+              <Select
+                labelId="date-select-label"
+                id="date-select"
+                value={props.selectedDate || ''}
+                label="Report Date"
+                onChange={(e) => props.onDateChange(e.target.value)}
+                MenuProps={{
+                  PaperProps: {
+                    style: {
+                      maxHeight: 300
+                    },
+                    sx: {
+                      '& .MuiList-root': {
+                        padding: 0,
+                        maxHeight: 300,
+                        overflowY: 'scroll',
+                        '&::-webkit-scrollbar': {
+                          display: 'none'  // Safari and Chrome
+                        },
+                        scrollbarWidth: 'none',  // Firefox
+                        msOverflowStyle: 'none',  // IE and Edge
+                        '&:hover': {
+                          '&::-webkit-scrollbar': {
+                            display: 'none'
+                          }
+                        }
+                      }
+                    }
+                  }
+                }}
               >
-                <WarningIcon sx={{ color: theme.palette.warning.main, fontSize: '1.2rem' }} />
-              </Tooltip>
-            )}
-            <div style={{display: 'flex', flexDirection: 'column', fontSize: "12px", color: "#0000052"}}>
-              <div style={{fontStyle: "italic"}}>
-                {`Report Date: ${readable}`}
-              </div>
-            </div>
+                {props.pastTuesdays.map((tuesday, index) => (
+                  <MenuItem key={index} value={tuesday.toISOString()}>
+                    {formatDateOption(tuesday)}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Tooltip 
+              title={
+                <React.Fragment>
+                  <Typography variant="body2" component="div">
+                    • This week's data available for selection Friday 3:30 PM EST
+                  </Typography>
+                  <Typography variant="body2" component="div">
+                    • Only Tuesdays are available for selection
+                  </Typography>
+                </React.Fragment>
+              }
+            >
+              <InfoOutlinedIcon 
+                sx={{ 
+                  fontSize: '1.2rem',
+                  color: theme.palette.text.secondary,
+                  cursor: 'help'
+                }} 
+              />
+            </Tooltip>
           </div>
         </Toolbar>
         <div className='appbar-context-menu'>
@@ -154,7 +231,7 @@ export default function DrawerAppBar(props) {
       {showNoResults && (
         <Alert 
           severity="info" 
-          icon={<InfoIcon />}
+          icon={<InfoOutlinedIcon />}
           sx={{ 
             position: 'fixed',
             top: '64px',

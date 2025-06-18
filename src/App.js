@@ -17,11 +17,45 @@ import { Box, CircularProgress } from '@mui/material';
 import { API_BASE_URL } from './config';
 import TradingViewIndicator from './components/TradingView';
 import LineChartWithReferenceLines from './components/LineGraph';
+import { CssBaseline } from '@mui/material';
 
 // Context to expose toggle function for theme switch
 export const ColorModeContext = createContext({ toggleColorMode: () => {} });
 
 // Utility functions for report dates
+function getPastTuesdays(weeks = 36) {
+  const tuesdays = [];
+  const today = new Date();
+  let currentDate = new Date(today);
+  
+  // Go back to the most recent Tuesday
+  const daysSinceTuesday = (currentDate.getDay() - 2 + 7) % 7;
+  currentDate.setDate(currentDate.getDate() - daysSinceTuesday);
+  
+  // Check if it's after Friday 3:31 PM EST
+  const fridayCheck = new Date(today);
+  // Convert current time to EST
+  const estOptions = { timeZone: 'America/New_York' };
+  const estTime = new Date(fridayCheck.toLocaleString('en-US', estOptions));
+  const isAfterFridayDataRelease = estTime.getDay() === 5 && 
+    (estTime.getHours() > 15 || (estTime.getHours() === 15 && estTime.getMinutes() >= 31)) || 
+    estTime.getDay() === 6 || 
+    estTime.getDay() === 0;
+
+  // If it's not after Friday 3:31 PM EST, skip the current week's Tuesday
+  if (!isAfterFridayDataRelease) {
+    currentDate.setDate(currentDate.getDate() - 7);
+  }
+  
+  // Generate the past Tuesdays
+  for (let i = 0; i < weeks; i++) {
+    tuesdays.push(new Date(currentDate));
+    currentDate.setDate(currentDate.getDate() - 7);
+  }
+  
+  return tuesdays;
+}
+
 async function getThisWeeksTuesday() {
   const date = new Date();
   const day = date.getDay();
@@ -72,10 +106,10 @@ async function checkLatestDataAvailability() {
 }
 
 // Fetching and processing CFTC data
-async function fetchData() {
+async function fetchData(selectedDate = null) {
   let fullList = [];
   let exchangesList = [];
-  let reportDate = await getThisWeeksTuesday();
+  let reportDate = selectedDate || await getThisWeeksTuesday();
   let isLatestData = true;
   let lastChecked = null;
 
@@ -84,9 +118,13 @@ async function fetchData() {
     const availabilityCheck = await checkLatestDataAvailability();
     lastChecked = availabilityCheck.checkedAt;
     
-    if (!availabilityCheck.isAvailable) {
+    if (!selectedDate) {
+      if (!availabilityCheck.isAvailable) {
+        isLatestData = false;
+        reportDate = await getLastWeeksTuesday();
+      }
+    } else {
       isLatestData = false;
-      reportDate = await getLastWeeksTuesday();
     }
 
     const firstResponse = await axios.get(
@@ -215,6 +253,8 @@ export default function App() {
   const [nonCommercialChartData, setNonCommercialChartData] = useState([]);
   const [nonReportableChartData, setNonReportableChartData] = useState([]);
   const [chartDates, setChartDates] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [pastTuesdays] = useState(() => getPastTuesdays());
   const [favorites, setFavorites] = useState(() => {
     const initialFavorites = localStorage.getItem('initialFavorites');
     console.log('Initializing favorites state with:', initialFavorites);
@@ -239,7 +279,7 @@ export default function App() {
     const loadData = async () => {
       try {
         // First load futures data
-        const [exchs, futs, date, latest, checked] = await fetchData();
+        const [exchs, futs, date, latest, checked] = await fetchData(selectedDate);
         setExchanges(exchs);
         setDisplayExchanges(exchs);
         setFuturesData(futs);
@@ -273,7 +313,7 @@ export default function App() {
       }
     };
     loadData();
-  }, []);
+  }, [selectedDate]);
 
   // Debug favorites state changes
   useEffect(() => {
@@ -422,7 +462,7 @@ export default function App() {
   // Refresh data handler
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    const [exchs, futs, date, latest, checked] = await fetchData();
+    const [exchs, futs, date, latest, checked] = await fetchData(selectedDate);
     setExchanges(exchs);
     setDisplayExchanges(exchs);
     setFuturesData(futs);
@@ -448,6 +488,10 @@ export default function App() {
     }
   }, [futuresData, exchanges]);
 
+  const handleDateChange = async (newDate) => {
+    setSelectedDate(newDate);
+  };
+
   return (
     <Router>
       <Routes>
@@ -457,35 +501,40 @@ export default function App() {
         <Route path="/" element={
           <>
             {!authorized ? (
-              <div style={{ display: 'flex', flexDirection: 'column'}}>
-                <SlotsSignIn 
-                  setAuthorization={setAuthorization} 
-                  setError={setError}
-                />
-              </div>
+              <SlotsSignIn setAuthorization={setAuthorization} />
             ) : (
               <ColorModeContext.Provider value={colorMode}>
                 <ThemeProvider theme={theme}>
-                  <div className="app-js-container">
+                  <CssBaseline />
+                  <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
                     <DrawerAppBar
+                      reportDate={lastUpdated}
+                      lastChecked={lastChecked}
+                      futuresData={futuresData}
+                      setFilteredData={setFilteredData}
                       exchanges={exchanges}
                       displayExchanges={displayExchanges}
                       onExchangeFilterChange={handleExchangeFilterChange}
-                      futuresData={futuresData}
-                      setFilteredData={setFilteredData}
-                      reportDate={lastUpdated}
-                      isLatestData={isLatestData}
-                      onRefresh={handleRefresh}
-                      isRefreshing={isRefreshing}
-                      lastChecked={lastChecked}
+                      selectedDate={selectedDate}
+                      onDateChange={handleDateChange}
+                      pastTuesdays={pastTuesdays}
                     />
-                    <div style={{ paddingTop: 90, width: '100%' }}>
+                    <Box
+                      component="main"
+                      sx={{
+                        flexGrow: 1,
+                        pt: { xs: '56px', sm: '64px' }, // Responsive top padding based on AppBar height
+                        px: 2, // Add some horizontal padding
+                        width: '100%',
+                        overflow: 'hidden' // Prevent any potential scrollbar issues
+                      }}
+                    >
                       {isLoading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 90px)' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 64px)' }}>
                           <CircularProgress />
                         </Box>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, width: '100%', height: '100%' }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', height: '100%' }}>
                           <CollapsibleTable
                             key={`table-${favorites.length}`}
                             futuresData={filteredData}
@@ -501,10 +550,10 @@ export default function App() {
                             chartDates={chartDates}
                             selectedCommodity={selectedCommodity}
                           />
-                        </div>
+                        </Box>
                       )}
-                    </div>
-                  </div>
+                    </Box>
+                  </Box>
                 </ThemeProvider>
               </ColorModeContext.Provider>
             )}

@@ -128,7 +128,12 @@ export default function LineChartWithReferenceLines(props) {
   }, []);
 
   return (
-    <Box sx={{ width: '100%', height: '47vh', position: 'relative' }}>
+    <Box sx={{ 
+      width: '100%', 
+      height: '45vh',  // Slightly taller than table for better visualization
+      position: 'relative',
+      mt: 2  // Add margin top for spacing from table
+    }}>
       {props.selectedCommodity && (
         <Box
           sx={{
@@ -142,7 +147,6 @@ export default function LineChartWithReferenceLines(props) {
             boxShadow: 1,
             border: '1px solid',
             borderColor: theme.palette.divider,
-            marginBottom: '10px',
           }}
         >
           <Typography 
