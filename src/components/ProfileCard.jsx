@@ -12,6 +12,10 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import Modal from '@mui/material/Modal';
 import Switch from '@mui/material/Switch';
 import { API_BASE_URL } from '../config';
+import DiscordIcon from '@mui/icons-material/Telegram';
+import Popper from '@mui/material/Popper';
+import ClickAwayListener from '@mui/material/ClickAwayListener';
+import { CircularProgress } from '@mui/material';
 
 const style = {
   position: 'absolute',
@@ -21,8 +25,10 @@ const style = {
   width: 400,
   bgcolor: 'background.paper',
   boxShadow: 24,
-  p: 4,
+  p: 0,
   borderRadius: 2,
+  overflow: 'hidden',
+  maxHeight: '90vh'
 };
 
 const formatDate = (dateString) => {
@@ -35,10 +41,10 @@ const formatDate = (dateString) => {
   });
 };
 
-export default function ProfileCard({ open, onClose, showSettings, setShowSettings }) {
+export default function ProfileCard({ open, onClose, anchorEl, buttonRef }) {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
-  const userEmail = localStorage.getItem('userEmail');
+  const [showSettings, setShowSettings] = React.useState(false);
   const [subscriptionData, setSubscriptionData] = React.useState(() => {
     // Initialize from localStorage if available
     const stored = localStorage.getItem('subscriptionData');
@@ -49,12 +55,16 @@ export default function ProfileCard({ open, onClose, showSettings, setShowSettin
     return stored ? JSON.parse(stored).auto_renewal || false : false;
   });
   const [loading, setLoading] = React.useState(false);
+  const userName = localStorage.getItem('userName') || 'User Name';
+  const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
 
   const fetchSubscriptionData = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/subscription?email=${encodeURIComponent(userEmail)}`);
-      const data = await response.json();
+      const response = await fetch(`${API_BASE_URL}/subscription`, {
+        credentials: 'include'
+      });
       if (response.ok) {
+        const data = await response.json();
         setSubscriptionData(data);
         setAutoRenewal(data.auto_renewal || false);
         // Store in localStorage
@@ -80,17 +90,15 @@ export default function ProfileCard({ open, onClose, showSettings, setShowSettin
   };
 
   const handleAutoRenewalToggle = async (event) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/subscription`, {
+      const response = await fetch(`${API_BASE_URL}/subscription/auto-renewal`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email: userEmail,
-          auto_renewal: event.target.checked,
-        }),
+        credentials: 'include',
+        body: JSON.stringify({ auto_renewal: event.target.checked }),
       });
 
       if (response.ok) {
@@ -107,17 +115,15 @@ export default function ProfileCard({ open, onClose, showSettings, setShowSettin
   };
 
   const handleCancelSubscription = async () => {
+    if (!window.confirm('Are you sure you want to cancel your subscription?')) {
+      return;
+    }
+
+    setLoading(true);
     try {
-      setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/subscription`, {
+      const response = await fetch(`${API_BASE_URL}/subscription/cancel`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: userEmail,
-          cancellation_date: new Date().toISOString().split('T')[0],
-        }),
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -130,94 +136,158 @@ export default function ProfileCard({ open, onClose, showSettings, setShowSettin
         localStorage.setItem('subscriptionData', JSON.stringify(updatedData));
       }
     } catch (error) {
-      console.error('Error cancelling subscription:', error);
+      console.error('Error canceling subscription:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  if (!open) return null;
-
   return (
-    <>
-      <Box 
-        sx={{ 
-          position: 'absolute',
-          top: '60px',
-          right: '0',
-          zIndex: 1000,
-          minWidth: 275,
-          boxShadow: 3,
-          borderRadius: 2,
-          backgroundColor: theme.palette.background.paper,
-        }}
-      >
-        <Card variant="outlined">
-          <Box sx={{ p: 2 }}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Logged in as:
-            </Typography>
-            <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>
-              {userEmail}
+    <Popper
+      open={open}
+      anchorEl={anchorEl}
+      placement="bottom-end"
+      sx={{
+        zIndex: 1300,
+        '& .MuiPaper-root': {
+          marginTop: '8px',
+          boxShadow: theme.palette.mode === 'dark' 
+            ? '0 4px 20px rgba(0, 0, 0, 0.5)' 
+            : '0 4px 20px rgba(0, 0, 0, 0.15)',
+          border: `1px solid ${theme.palette.mode === 'dark' ? '#444' : '#ddd'}`,
+        }
+      }}
+    >
+      <ClickAwayListener onClickAway={onClose}>
+        <Card sx={{ 
+          width: 300,
+          p: 0,
+          overflow: 'hidden',
+          backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#fff',
+          border: `1px solid ${theme.palette.mode === 'dark' ? '#444' : '#ddd'}`,
+          marginRight: '10px'
+        }}>
+          {/* Header Section */}
+          <Box sx={{ 
+            p: 2, 
+            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+            borderBottom: `1px solid ${theme.palette.divider}`
+          }}>
+            <Typography variant="h6" sx={{ fontWeight: 500 }}>
+              Profile
             </Typography>
           </Box>
+
+          {/* User Info Section */}
+          <Box sx={{ p: 2 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Logged in as:
+            </Typography>
+            <Typography variant="body1" sx={{ wordBreak: 'break-all', mb: 2 }}>
+              {userName}
+            </Typography>
+          </Box>
+
           <Divider />
-          <CardActions sx={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'flex-end', 
+
+          {/* Discord Section */}
+          <Box sx={{ 
             p: 2,
-            '& .MuiFormGroup-root': {
-              alignItems: 'flex-end'
-            }
+            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(88, 101, 242, 0.05)' : 'rgba(88, 101, 242, 0.02)',
           }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Join our Discord:
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => window.open('https://discord.gg/cQczXyMf', '_blank')}
+              sx={{
+                mt: 1,
+                backgroundColor: '#5865F2',
+                color: '#fff',
+                '&:hover': {
+                  backgroundColor: '#4752C4',
+                },
+                textTransform: 'none',
+                fontWeight: 500,
+                borderRadius: '4px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                width: '100%'
+              }}
+            >
+              Discord
+            </Button>
+          </Box>
+
+          <Divider />
+
+          {/* Theme Switch Section */}
+          <Box sx={{ p: 2 }}>
             <Box sx={{ 
-              width: '100%', 
-              mb: 2, 
               display: 'flex', 
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between'
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              p: 1,
+              borderRadius: 1,
+              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
             }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                {isDarkMode ? 'Dark Mode' : 'Light Mode'}
+              <Typography variant="body2" color="text.secondary">
+                Dark Mode
               </Typography>
               <ThemeSwitch />
             </Box>
-            <Box sx={{ 
-              width: '100%', 
-              display: 'flex', 
-              flexDirection: 'row', 
-              alignItems: 'center', 
-              justifyContent: 'space-between' 
-            }}>
-              <IconButton 
-                onClick={handleSettingsOpen}
-                sx={{ 
-                  color: theme.palette.text.secondary,
-                  '&:hover': {
-                    color: theme.palette.primary.main,
-                  }
-                }}
-              >
-                <SettingsIcon />
-              </IconButton>
-              <Button 
-                size="small" 
-                onClick={() => {
-                  localStorage.removeItem('userEmail');
-                  localStorage.removeItem('userName');
-                  localStorage.removeItem('subscriptionData');
-                  window.location.href = '/';
-                }}
-              >
-                Sign Out
-              </Button>
-            </Box>
+          </Box>
+
+          <Divider />
+
+          {/* Settings Section */}
+          <CardActions sx={{ 
+            p: 2,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <Button
+              variant="outlined"
+              onClick={handleSettingsOpen}
+              startIcon={<SettingsIcon />}
+              sx={{
+                textTransform: 'none',
+                borderColor: theme.palette.divider,
+                color: theme.palette.text.secondary,
+                '&:hover': {
+                  borderColor: theme.palette.primary.main,
+                  color: theme.palette.primary.main,
+                }
+              }}
+            >
+              Settings
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => {
+                localStorage.removeItem('userEmail');
+                localStorage.removeItem('userName');
+                localStorage.removeItem('subscriptionData');
+                window.location.href = '/';
+              }}
+              sx={{
+                textTransform: 'none',
+                borderColor: theme.palette.error.main,
+                '&:hover': {
+                  backgroundColor: theme.palette.error.main,
+                  color: '#fff'
+                }
+              }}
+            >
+              Logout
+            </Button>
           </CardActions>
         </Card>
-      </Box>
+      </ClickAwayListener>
 
+      {/* Settings Modal */}
       <Modal
         open={showSettings}
         onClose={handleSettingsClose}
@@ -228,109 +298,128 @@ export default function ProfileCard({ open, onClose, showSettings, setShowSettin
           backgroundColor: theme.palette.background.paper,
           border: `1px solid ${theme.palette.divider}`,
         }}>
-          <Typography 
-            id="subscription-settings-modal" 
-            variant="h6" 
-            component="h2" 
-            gutterBottom
-            sx={{ color: theme.palette.text.primary }}
-          >
-            Subscription Settings
-          </Typography>
+          <Box sx={{ 
+            p: 3,
+            borderBottom: `1px solid ${theme.palette.divider}`,
+            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+          }}>
+            <Typography 
+              id="subscription-settings-modal" 
+              variant="h6" 
+              component="h2" 
+              sx={{ 
+                color: theme.palette.text.primary,
+                fontWeight: 500
+              }}
+            >
+              Subscription Settings
+            </Typography>
+          </Box>
           
-          {subscriptionData && (
-            <>
-              <Box sx={{ mb: 3 }}>
-                <Typography 
-                  variant="subtitle1" 
-                  gutterBottom
-                  sx={{ color: theme.palette.text.primary }}
-                >
-                  Current Plan: {subscriptionData.subscription_plan}
-                </Typography>
-                <Typography 
-                  variant="body2" 
-                  color="text.secondary" 
-                  gutterBottom
-                  sx={{ 
-                    color: subscriptionData.is_subscription_active 
-                      ? theme.palette.success.main 
-                      : theme.palette.error.main 
+          <Box sx={{ p: 3 }}>
+            {subscriptionData ? (
+              <>
+                <Box sx={{ mb: 3 }}>
+                  <Typography 
+                    variant="subtitle1" 
+                    gutterBottom
+                    sx={{ 
+                      color: theme.palette.text.primary,
+                      fontWeight: 500
+                    }}
+                  >
+                    Current Plan: {subscriptionData.subscription_plan}
+                  </Typography>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      color: subscriptionData.is_subscription_active 
+                        ? theme.palette.success.main 
+                        : theme.palette.error.main,
+                      fontWeight: 500
+                    }}
+                  >
+                    Status: {subscriptionData.is_subscription_active ? 'Active' : 'Inactive'}
+                  </Typography>
+                  {subscriptionData.renewal_date && (
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: theme.palette.text.secondary,
+                        mt: 1
+                      }}
+                    >
+                      Renewal Date: {formatDate(subscriptionData.renewal_date)}
+                    </Typography>
+                  )}
+                  {subscriptionData.cancellation_date && (
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: theme.palette.text.secondary,
+                        mt: 1
+                      }}
+                    >
+                      Cancellation Date: {formatDate(subscriptionData.cancellation_date)}
+                    </Typography>
+                  )}
+                </Box>
+
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  p: 2,
+                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                  borderRadius: 1,
+                }}>
+                  <Typography sx={{ color: theme.palette.text.primary }}>
+                    Auto-Renewal
+                  </Typography>
+                  <Switch
+                    checked={autoRenewal}
+                    onChange={handleAutoRenewalToggle}
+                    disabled={loading}
+                    color="primary"
+                  />
+                </Box>
+
+                <Button
+                  variant="outlined"
+                  color="error"
+                  fullWidth
+                  onClick={handleCancelSubscription}
+                  disabled={loading || !subscriptionData.is_subscription_active}
+                  sx={{
+                    borderColor: theme.palette.error.main,
+                    color: theme.palette.error.main,
+                    '&:hover': {
+                      borderColor: theme.palette.error.dark,
+                      backgroundColor: theme.palette.mode === 'dark' 
+                        ? 'rgba(211, 47, 47, 0.08)' 
+                        : 'rgba(211, 47, 47, 0.04)',
+                    },
+                    '&.Mui-disabled': {
+                      borderColor: theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.12)' 
+                        : 'rgba(0, 0, 0, 0.12)',
+                      color: theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.3)' 
+                        : 'rgba(0, 0, 0, 0.26)',
+                    },
                   }}
                 >
-                  Status: {subscriptionData.is_subscription_active ? 'Active' : 'Inactive'}
-                </Typography>
-                {subscriptionData.renewal_date && (
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{ color: theme.palette.text.secondary }}
-                  >
-                    Renewal Date: {formatDate(subscriptionData.renewal_date)}
-                  </Typography>
-                )}
-                {subscriptionData.cancellation_date && (
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{ color: theme.palette.text.secondary }}
-                  >
-                    Cancellation Date: {formatDate(subscriptionData.cancellation_date)}
-                  </Typography>
-                )}
+                  Cancel Subscription
+                </Button>
+              </>
+            ) : (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                <CircularProgress />
               </Box>
-
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                mb: 3,
-                p: 2,
-                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-                borderRadius: 1,
-              }}>
-                <Typography sx={{ color: theme.palette.text.primary }}>
-                  Auto-Renewal
-                </Typography>
-                <Switch
-                  checked={autoRenewal}
-                  onChange={handleAutoRenewalToggle}
-                  disabled={loading}
-                  color="primary"
-                />
-              </Box>
-
-              <Button
-                variant="outlined"
-                color="error"
-                fullWidth
-                onClick={handleCancelSubscription}
-                disabled={loading || !subscriptionData.is_subscription_active}
-                sx={{
-                  borderColor: theme.palette.error.main,
-                  color: theme.palette.error.main,
-                  '&:hover': {
-                    borderColor: theme.palette.error.dark,
-                    backgroundColor: theme.palette.mode === 'dark' 
-                      ? 'rgba(211, 47, 47, 0.08)' 
-                      : 'rgba(211, 47, 47, 0.04)',
-                  },
-                  '&.Mui-disabled': {
-                    borderColor: theme.palette.mode === 'dark' 
-                      ? 'rgba(255, 255, 255, 0.12)' 
-                      : 'rgba(0, 0, 0, 0.12)',
-                    color: theme.palette.mode === 'dark' 
-                      ? 'rgba(255, 255, 255, 0.3)' 
-                      : 'rgba(0, 0, 0, 0.26)',
-                  },
-                }}
-              >
-                Cancel Subscription
-              </Button>
-            </>
-          )}
+            )}
+          </Box>
         </Box>
       </Modal>
-    </>
+    </Popper>
   );
 }

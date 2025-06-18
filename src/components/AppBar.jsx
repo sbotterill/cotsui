@@ -12,7 +12,8 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Snackbar
+  Snackbar,
+  Box
 } from '@mui/material'
 import BasicMenu from './ContextMenu';
 import ThemeSwitch from './ThemeSwitch';
@@ -239,9 +240,9 @@ export default function DrawerAppBar(props) {
         </Toolbar>
         <div className='appbar-context-menu'>
           <BasicMenu commodities={props.exchanges} selected={props.displayExchanges} onFilterChange={props.onExchangeFilterChange}/>
-          <div className="profile-container" style={{display: 'flex', alignItems: 'center', gap: '8px', position: 'relative'}}>
+          <Box sx={{ position: 'relative' }}>
             <Profile />
-          </div>
+          </Box>
         </div>
       </AppBar>
       {showNoResults && (

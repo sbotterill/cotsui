@@ -1,100 +1,40 @@
 import * as React from 'react';
-import Avatar from '@mui/material/Avatar';
-import Stack from '@mui/material/Stack';
-import { useTheme } from '@mui/material/styles';
+import { IconButton, Box } from '@mui/material';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ProfileCard from './ProfileCard';
 
-function stringToColor(string) {
-  let hash = 0;
-  let i;
+export default function Profile() {
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const buttonRef = React.useRef(null);
 
-  /* eslint-disable no-bitwise */
-  for (i = 0; i < string.length; i += 1) {
-    hash = string.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  let color = '#';
-
-  for (i = 0; i < 3; i += 1) {
-    const value = (hash >> (i * 8)) & 0xff;
-    color += `00${value.toString(16)}`.slice(-2);
-  }
-  /* eslint-enable no-bitwise */
-
-  return color;
-}
-
-function stringAvatar(name, isDarkMode) {
-  const nameParts = name.split(' ');
-  const initials = nameParts.length >= 2 
-    ? `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase()
-    : nameParts[0].substring(0, 2).toUpperCase();
-
-  return {
-    sx: {
-      bgcolor: isDarkMode ? '#2a2a2a' : '#fff',
-      color: isDarkMode ? '#fff' : '#000',
-      border: '1px solid',
-      borderColor: isDarkMode ? '#fff' : '#000',
-    },
-    children: initials,
-  };
-}
-
-export default function BackgroundLetterAvatars() {
-  const theme = useTheme();
-  const isDarkMode = theme.palette.mode === 'dark';
-  const userName = localStorage.getItem('userName') || 'User Name';
-  const [showProfileCard, setShowProfileCard] = React.useState(false);
-  const [showSettings, setShowSettings] = React.useState(false);
-
-  const handleProfileClick = () => {
-    setShowProfileCard(!showProfileCard);
-    if (showSettings) {
-      setShowSettings(false);
-    }
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
   };
 
   const handleClose = () => {
-    setShowProfileCard(false);
-    setShowSettings(false);
+    setAnchorEl(null);
   };
 
-  // Handle click outside
-  React.useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showProfileCard && !event.target.closest('.profile-container')) {
-        handleClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showProfileCard]);
-
   return (
-    <Stack sx={{ marginRight: '20px' }} direction="row" spacing={2}>
-      <Avatar 
-        onClick={handleProfileClick} 
-        sx={{ 
-          width: 32, 
-          height: 32, 
-          transition: 'transform 0.2s ease',
-          '&:hover': { 
-            transform: 'scale(1.1)',
-            cursor: 'pointer'
+    <Box sx={{ position: 'relative' }}>
+      <IconButton
+        ref={buttonRef}
+        onClick={handleClick}
+        sx={{
+          color: 'inherit',
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.04)'
           }
-        }} 
-        {...stringAvatar(userName, isDarkMode)} 
-      />
-      <ProfileCard 
-        open={showProfileCard} 
+        }}
+      >
+        <AccountCircleIcon />
+      </IconButton>
+      <ProfileCard
+        open={Boolean(anchorEl)}
         onClose={handleClose}
-        showSettings={showSettings}
-        setShowSettings={setShowSettings}
+        anchorEl={anchorEl}
+        buttonRef={buttonRef}
       />
-    </Stack>
+    </Box>
   );
 }

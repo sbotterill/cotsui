@@ -2,15 +2,17 @@
 import * as React from 'react';
 import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
-import { Checkbox, FormControlLabel } from '@mui/material';
+import { Checkbox, FormControlLabel, useTheme } from '@mui/material';
 import CustomSnackbar from './Snackbar';
 import { API_BASE_URL } from '../config';
+import FilterListIcon from '@mui/icons-material/FilterList';
 
 export default function BasicMenu({
   commodities,    // full list of sections
   selected = [],  // currently‐checked ones
   onFilterChange, // (newSelected: string[]) => void
 }) {
+  const theme = useTheme();
   const [anchorEl, setAnchorEl] = React.useState(null);
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
   const open = Boolean(anchorEl);
@@ -80,7 +82,16 @@ export default function BasicMenu({
         aria-haspopup="true"
         aria-expanded={open ? 'true' : undefined}
         onClick={handleClick}
-        sx={{ marginRight: 2 }}
+        startIcon={<FilterListIcon />}
+        sx={{
+          color: 'inherit',
+          textTransform: 'none',
+          minWidth: 'auto',
+          px: 1,
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.04)'
+          }
+        }}
       >
         Filter
       </Button>
@@ -97,7 +108,9 @@ export default function BasicMenu({
           maxHeight: '400px',
           '& .MuiPaper-root': {
             maxHeight: '400px',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#fff',
+            border: `1px solid ${theme.palette.mode === 'dark' ? '#444' : '#ddd'}`,
           }
         }}
       >
@@ -108,7 +121,9 @@ export default function BasicMenu({
               pl: 1,
               pr: 2,
               '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                backgroundColor: theme.palette.mode === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.05)' 
+                  : 'rgba(0, 0, 0, 0.04)'
               }
             }}
             control={
@@ -129,7 +144,14 @@ export default function BasicMenu({
             width: 250,
             position: 'sticky',
             bottom: 0,
-            backgroundColor: 'background.paper'
+            backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#fff',
+            borderColor: theme.palette.mode === 'dark' ? '#444' : '#ddd',
+            '&:hover': {
+              borderColor: theme.palette.primary.main,
+              backgroundColor: theme.palette.mode === 'dark' 
+                ? 'rgba(255, 255, 255, 0.05)' 
+                : 'rgba(0, 0, 0, 0.04)',
+            }
           }}
           onClick={handleSavePreferences}
         >
