@@ -595,9 +595,9 @@ export default function TabbedTable({
           border: 'none'
         }
       }}>
-        {selectedTab === 0 && renderTable()}
+        {selectedTab === 0 && <div key="favorites-table">{renderTable()}</div>}
         {filteredExchanges.map((exchange, index) => (
-          selectedTab === index + 1 && renderTable()
+          selectedTab === index + 1 && <div key={`table-${exchange}`}>{renderTable()}</div>
         ))}
       </TableContainer>
     </Box>

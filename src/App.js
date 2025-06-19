@@ -221,9 +221,12 @@ async function fetchData(selectedDate = null) {
 
       // Update exchangesList
       for (const element of batch) {
-        const market_exchange_full_name = element.market_and_exchange_names.split("-");
-        if (market_exchange_full_name.length >= 2) {
-          const marketCode = element.cftc_market_code.trim();
+        // Split on the last hyphen to handle cases where commodity names contain hyphens
+        const lastHyphenIndex = element.market_and_exchange_names.lastIndexOf('-');
+        if (lastHyphenIndex !== -1) {
+          const exchangeName = element.market_and_exchange_names.substring(lastHyphenIndex + 1).trim();
+          const marketCode = element.cftc_market_code?.trim() || '';
+          
           let exchangeTag;
 
           // Consolidate exchanges based on their prefix
@@ -233,17 +236,20 @@ async function fetchData(selectedDate = null) {
             exchangeTag = 'CBT - CHICAGO BOARD OF TRADE';
           } else if (marketCode.startsWith('CMX')) {
             exchangeTag = 'CMX - COMMODITY EXCHANGE INC.';
+          } else if (marketCode.startsWith('NYME')) {
+            exchangeTag = 'NYME - NEW YORK MERCANTILE EXCHANGE';
+          } else if (marketCode.startsWith('MGE')) {
+            exchangeTag = 'MGE - MINNEAPOLIS GRAIN EXCHANGE';
+          } else if (marketCode.startsWith('ICEU')) {
+            exchangeTag = 'ICE - FUTURES EUROPE';
           } else if (marketCode.startsWith('ICUS')) {
             exchangeTag = 'ICUS - ICE FUTURES U.S.';
           } else if (marketCode.startsWith('IFED')) {
             exchangeTag = 'IFED - ICE FUTURES ENERGY DIV';
           } else if (marketCode.startsWith('NODX')) {
             exchangeTag = 'NODX - NODAL EXCHANGE';
-          } else if (marketCode.startsWith('NYME')) {
-            exchangeTag = 'NYME - NEW YORK MERCANTILE EXCHANGE';
           } else {
-            // For any other exchanges, use their full name
-            exchangeTag = `${marketCode} - ${market_exchange_full_name[1].trim()}`;
+            exchangeTag = `${marketCode} - ${exchangeName}`;
           }
           
           exchangeSet.add(exchangeTag);
@@ -254,15 +260,6 @@ async function fetchData(selectedDate = null) {
     // Convert Map and Set to arrays
     const fullList = Array.from(dataMap.values());
     exchangesList = Array.from(exchangeSet);
-
-    // Log detailed counts and data
-    console.log('Exchange Data Summary:', {
-      totalExchanges: exchangesList.length,
-      exchanges: exchangesList,
-      totalDataPoints: fullList.length,
-      uniqueMarketCodes: new Set(fullList.map(item => item.market_code)).size,
-      allMarketCodes: [...new Set(fullList.map(item => item.market_code))].sort()
-    });
 
     return [
       exchangesList.sort((a, b) => a.localeCompare(b)),
@@ -330,95 +327,87 @@ export default function App() {
   // Add effect to handle authorization changes
   useEffect(() => {
     const email = localStorage.getItem('userEmail');
-    console.log('Authorization effect - userEmail:', email);
     setAuthorization(!!email);
   }, []);
   
+  // Add a call counter and initial load flag
+  const fetchCallCount = React.useRef(0);
+  const initialLoadComplete = React.useRef(false);
+  const isInitialDateSet = React.useRef(false);
+
   // Load data on mount or when selectedDate changes
   useEffect(() => {
     const loadData = async () => {
+      if (!authorized) {
+        return;
+      }
+
+      // Skip if this is a redundant call due to selectedDate being set during initial load
+      if (fetchCallCount.current > 0 && !selectedDate) {
+        return;
+      }
+      
       try {
-        console.log('Starting loadData...');
         setIsLoading(true);
         const [exchangesList, fullList, reportDate, isLatestData, lastChecked] = await fetchData(selectedDate);
-        console.log('Initial exchangesList:', exchangesList);
         
         // Load table filters first
         const email = localStorage.getItem('userEmail');
-        console.log('User email:', email);
         let filteredExchanges = exchangesList;
         
         if (email) {
           try {
-            console.log('Fetching preferences from:', `${API_BASE_URL}/preferences?email=${encodeURIComponent(email)}`);
             const response = await fetch(`${API_BASE_URL}/preferences?email=${encodeURIComponent(email)}`);
-            console.log('Preferences API response status:', response.status);
             if (response.ok) {
               const data = await response.json();
-              console.log('Preferences data from API:', data);
-              
-              // Check for preferences.selected first (direct array)
               if (data.preferences?.selected && data.preferences.selected.length > 0) {
-                console.log('Using preferences.selected:', data.preferences.selected);
                 filteredExchanges = data.preferences.selected;
-              }
-              // Fallback to table_filters.selected if direct selected array is not present
-              else if (data.preferences?.table_filters?.selected && data.preferences.table_filters.selected.length > 0) {
-                console.log('Using table_filters.selected:', data.preferences.table_filters.selected);
+              } else if (data.preferences?.table_filters?.selected && data.preferences.table_filters.selected.length > 0) {
                 filteredExchanges = data.preferences.table_filters.selected;
               }
             }
           } catch (error) {
-            console.error('Error loading table filters:', error);
           }
         }
 
-        console.log('Final filteredExchanges to be set:', filteredExchanges);
-        console.log('Original exchangesList:', exchangesList);
-
-        // Now set the states with the filtered exchanges
+        // Set all states at once to minimize re-renders
         setExchanges(exchangesList);
         setDisplayExchanges(filteredExchanges);
         setFuturesData(fullList);
         setFilteredData(fullList);
         setLastUpdated(reportDate);
-        // Set selectedDate to match the report date on initial load
-        if (!selectedDate) {
+        setIsLatestData(isLatestData);
+        setLastChecked(lastChecked);
+        
+        // Set selectedDate to match the report date on initial load only
+        if (!selectedDate && !initialLoadComplete.current) {
+          initialLoadComplete.current = true;
+          isInitialDateSet.current = true; // Mark that we're doing the initial date set
           const newDate = new Date(reportDate).toISOString();
           setSelectedDate(newDate);
         }
-        setIsLatestData(isLatestData);
-        setLastChecked(lastChecked);
-
-        // Then load favorites
-        if (email) {
-          console.log('Loading favorites...');
-          // Fetch latest favorites from server
-          const response = await fetch(`${API_BASE_URL}/preferences/favorites?email=${encodeURIComponent(email)}`);
-          console.log('Favorites API response status:', response.status);
-          if (response.ok) {
-            const data = await response.json();
-            console.log('Favorites data from API:', data);
-            if (data.favorites?.selected) {
-              console.log('Setting favorites to:', data.favorites.selected);
-              setFavorites(data.favorites.selected);
-              // Update localStorage with latest favorites
-              localStorage.setItem('initialFavorites', JSON.stringify(data.favorites.selected));
-            }
-          }
-        }
       } catch (error) {
-        console.error('Error in loadData:', error);
+        setError(error.message);
       } finally {
         setIsLoading(false);
       }
     };
 
-    // Only load data if user is authorized
-    if (authorized) {
-      loadData();
+    loadData();
+  }, [authorized]); // Only depend on authorization changes
+
+  // Handle date changes in a separate effect
+  useEffect(() => {
+    if (selectedDate && initialLoadComplete.current) {
+      if (isInitialDateSet.current) {
+        // If this is the initial date set, just clear the flag and don't reload
+        isInitialDateSet.current = false;
+        return;
+      }
+
+      handleDateChange(selectedDate);
     }
-  }, [selectedDate, authorized]); // Add authorized to dependencies
+  }, [selectedDate]);
 
   // Handle favorites toggle
   const handleToggleFavorite = async (commodity) => {
@@ -507,12 +496,10 @@ export default function App() {
 
   // Exchange filter handler
   const handleExchangeFilterChange = async (newList, shouldSaveToServer = true) => {
-    console.log('handleExchangeFilterChange called with:', { newList, shouldSaveToServer });
     setDisplayExchanges(newList);
     if (shouldSaveToServer) {
       try {
         const email = localStorage.getItem('userEmail');
-        console.log('Saving exchange filters to server for email:', email);
         const response = await fetch(`${API_BASE_URL}/preferences/table_filters`, {
           method: 'POST',
           headers: {
@@ -523,19 +510,19 @@ export default function App() {
             selected: newList
           }),
         });
-        console.log('Save filters API response status:', response.status);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
       } catch (error) {
-        console.error('Error saving exchange filters:', error);
       }
     }
   };
 
   // Refresh data handler
   const handleRefresh = async () => {
+    fetchCallCount.current += 1;
+
     setIsRefreshing(true);
     const [exchs, futs, date, latest, checked] = await fetchData(selectedDate);
     setExchanges(exchs);
@@ -561,6 +548,8 @@ export default function App() {
   }, [futuresData, exchanges]);
 
   const handleDateChange = async (newDate) => {
+    fetchCallCount.current += 1;
+
     setIsDateLoading(true);
     setSelectedDate(newDate);
     const [exchs, futs, date, latest, checked] = await fetchData(newDate);
@@ -574,18 +563,7 @@ export default function App() {
     setIsDateLoading(false);
   };
 
-  // Add logging to track displayExchanges changes
-  useEffect(() => {
-    console.log('displayExchanges updated:', displayExchanges);
-  }, [displayExchanges]);
-
-  // Add logging to track when CollapsibleTable renders
   const renderCollapsibleTable = () => {
-    console.log('Rendering CollapsibleTable with:', {
-      filteredData: filteredData.length,
-      displayExchanges,
-      favorites: favorites.length
-    });
     return (
       <CollapsibleTable
         key={`table-${favorites.length}`}

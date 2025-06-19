@@ -2,7 +2,7 @@
 import * as React from 'react';
 import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
-import { Checkbox, FormControlLabel, useTheme } from '@mui/material';
+import { Checkbox, FormControlLabel, useTheme, Box } from '@mui/material';
 import CustomSnackbar from './Snackbar';
 import { API_BASE_URL } from '../config';
 import FilterListIcon from '@mui/icons-material/FilterList';
@@ -110,67 +110,75 @@ export default function BasicMenu({
         Filter
       </Button>
       <Menu
-        id='filter-menu'
+        id="basic-menu"
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        slotProps={{
-          list: { 'aria-labelledby': 'basic-button' },
-        }}
-        sx={{
-          marginTop: "10px",
-          maxHeight: '400px',
-          '& .MuiPaper-root': {
-            maxHeight: '400px',
-            overflowY: 'auto',
-            backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#fff',
-            border: `1px solid ${theme.palette.mode === 'dark' ? '#444' : '#ddd'}`,
+        MenuListProps={{
+          'aria-labelledby': 'basic-button',
+          sx: {
+            maxHeight: '60vh',
+            width: 360,
+            padding: 0,
+            display: 'flex',
+            flexDirection: 'column'
           }
         }}
       >
-        {commodities.map(commodity => (
-          <FormControlLabel
-            key={commodity}
+        <Box sx={{ 
+          overflowY: 'auto', 
+          flex: 1,
+          borderBottom: 1,
+          borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)'
+        }}>
+          {commodities.map(commodity => (
+            <FormControlLabel
+              key={commodity}
+              sx={{ 
+                pl: 1,
+                pr: 2.5,
+                width: '100%',
+                margin: 0,
+                '&:hover': {
+                  backgroundColor: theme.palette.mode === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.05)' 
+                    : 'rgba(0, 0, 0, 0.04)'
+                }
+              }}
+              control={
+                <Checkbox
+                  checked={checkedList.includes(commodity)}
+                  onChange={() => handleToggle(commodity)}
+                  size="small"
+                />
+              }
+              label={<span style={{ fontSize: "14px", wordBreak: "normal", whiteSpace: "normal" }}>{commodity}</span>}
+            />
+          ))}
+        </Box>
+        <Box sx={{ 
+          p: 1, 
+          backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#fff',
+          borderTop: 1,
+          borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)'
+        }}>
+          <Button
+            variant="outlined"
+            fullWidth
             sx={{ 
-              pl: 1,
-              pr: 2,
+              borderColor: theme.palette.mode === 'dark' ? '#444' : '#ddd',
               '&:hover': {
+                borderColor: theme.palette.primary.main,
                 backgroundColor: theme.palette.mode === 'dark' 
                   ? 'rgba(255, 255, 255, 0.05)' 
-                  : 'rgba(0, 0, 0, 0.04)'
+                  : 'rgba(0, 0, 0, 0.04)',
               }
             }}
-            control={
-              <Checkbox
-                checked={checkedList.includes(commodity)}
-                onChange={() => handleToggle(commodity)}
-                size="small"
-              />
-            }
-            label={<span style={{ fontSize: "14px" }}>{commodity}</span>}
-          />
-        ))}
-        <Button
-          variant="outlined"
-          sx={{ 
-            alignSelf: 'center', 
-            m: 1, 
-            width: 250,
-            position: 'sticky',
-            bottom: 0,
-            backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#fff',
-            borderColor: theme.palette.mode === 'dark' ? '#444' : '#ddd',
-            '&:hover': {
-              borderColor: theme.palette.primary.main,
-              backgroundColor: theme.palette.mode === 'dark' 
-                ? 'rgba(255, 255, 255, 0.05)' 
-                : 'rgba(0, 0, 0, 0.04)',
-            }
-          }}
-          onClick={handleSavePreferences}
-        >
-          Save Preferences
-        </Button>
+            onClick={handleSavePreferences}
+          >
+            Save Preferences
+          </Button>
+        </Box>
       </Menu>
       <CustomSnackbar
         open={snackbarOpen}
