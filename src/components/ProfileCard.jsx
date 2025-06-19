@@ -71,7 +71,6 @@ export default function ProfileCard({ open, onClose, anchorEl, buttonRef }) {
         localStorage.setItem('subscriptionData', JSON.stringify(data));
       }
     } catch (error) {
-      console.error('Error fetching subscription data:', error);
     }
   };
 
@@ -111,7 +110,6 @@ export default function ProfileCard({ open, onClose, anchorEl, buttonRef }) {
         localStorage.setItem('subscriptionData', JSON.stringify(updatedData));
       }
     } catch (error) {
-      console.error('Error updating auto-renewal:', error);
     } finally {
       setLoading(false);
     }
@@ -154,7 +152,6 @@ export default function ProfileCard({ open, onClose, anchorEl, buttonRef }) {
         alert(`Error cancelling subscription: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error canceling subscription:', error);
       alert('Error cancelling subscription. Please try again.');
     } finally {
       setLoading(false);

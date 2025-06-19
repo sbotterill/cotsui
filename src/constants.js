@@ -4,10 +4,26 @@ export const ALLOWED_EXCHANGES = [
   "COMMODITY EXCHANGE INC.",
   "CBOE FUTURES EXCHANGE",
   "ICE FUTURES U.S.",
-  "NEW YORK MERCANTILE EXCHANGE"
+  "NEW YORK MERCANTILE EXCHANGE",
+  "MGEX - MINNEAPOLIS GRAIN EXCHANGE",
+  "NODAL EXCHANGE",
+  "SMALL EXCHANGE",
+  "ERIS FUTURES EXCHANGE",
+  "BITNOMIAL EXCHANGE",
+  "KALSHI EXCHANGE",
+  "LEDGERX",
+  "TRADEWEB FUTURES EXCHANGE",
+  "BAKKT FUTURES",
+  "CANTOR FUTURES EXCHANGE",
+  "CRYPTO FACILITIES LTD",
+  "ERIS EXCHANGE",
+  "EUREX",
+  "NADEX",
+  "NASDAQ FUTURES"
 ];
 
 // Helper function to validate if an exchange is allowed
 export const isValidExchange = (exchange) => {
-  return ALLOWED_EXCHANGES.includes(exchange);
+  // Allow all exchanges
+  return true;
 }; 

@@ -83,7 +83,6 @@ export default function BasicMenu({
       setSnackbarOpen(true);
       handleClose();
     } catch (error) {
-      console.error('Error saving preferences:', error);
       setSnackbarMessage(`Error saving preferences: ${error.message}`);
       setSnackbarSeverity('error');
       setSnackbarOpen(true);

@@ -258,18 +258,14 @@ export default function SlotsSignIn(props) {
             const favoritesData = await favoritesResponse.json();
             // Store initial favorites in localStorage to ensure they're available on first load
             if (favoritesData.favorites?.selected) {
-              console.log('Storing initial favorites:', favoritesData.favorites.selected);
               localStorage.setItem('initialFavorites', JSON.stringify(favoritesData.favorites.selected));
             } else {
-              console.log('No favorites found in response:', favoritesData);
               localStorage.setItem('initialFavorites', JSON.stringify([]));
             }
           } else {
-            console.log('Failed to load favorites:', await favoritesResponse.text());
             localStorage.setItem('initialFavorites', JSON.stringify([]));
           }
         } catch (prefsError) {
-          console.error('Error loading preferences:', prefsError);
           localStorage.setItem('initialFavorites', JSON.stringify([]));
         }
         

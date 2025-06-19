@@ -29,9 +29,7 @@ import CloseIcon from '@mui/icons-material/Close';
 // Initialize Stripe with error handling
 const stripePromise = (() => {
   const key = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
-  console.log('Stripe key from env:', key); // Debug log
   if (!key) {
-    console.error('Stripe publishable key is missing. Please check your .env file.');
     return null;
   }
   return loadStripe(key);
@@ -75,9 +73,7 @@ export default function SubscriptionPage() {
   const email = localStorage.getItem('userEmail');
 
   useEffect(() => {
-    console.log('SubscriptionPage mounted, email:', email);
     if (!email) {
-      console.log('No email found, redirecting to signup');
       navigate('/signup');
       return;
     }
@@ -88,7 +84,6 @@ export default function SubscriptionPage() {
     // Check URL parameters for trial_used message
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('trial_used') === 'true') {
-      console.log('Trial used parameter found in URL');
       setHasHadTrial(true);
       setError('You have already used your free trial. Please choose a subscription plan to continue.');
     }
@@ -96,30 +91,18 @@ export default function SubscriptionPage() {
 
   const checkTrialStatus = async () => {
     try {
-      console.log('Checking trial status for email:', email);
       const response = await fetch(`${API_BASE_URL}/subscription-status?email=${encodeURIComponent(email)}`);
       const data = await response.json();
       
-      console.log('Full subscription status response:', data);
 
       if (response.ok) {
-        console.log('Trial status check:', {
-          hasHadTrial: data.has_had_trial,
-          trialStatus: data.trial_status,
-          freeTrial: data.free_trial,
-          paymentStatus: data.payment_status
-        });
-        
         if (data.has_had_trial) {
-          console.log('Setting hasHadTrial to true');
           setHasHadTrial(true);
         } else {
-          console.log('User has not had trial, keeping hasHadTrial as false');
           setHasHadTrial(false);
         }
       }
     } catch (err) {
-      console.error('Error checking trial status:', err);
     }
   };
 

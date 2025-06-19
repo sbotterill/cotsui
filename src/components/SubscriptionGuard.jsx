@@ -50,7 +50,6 @@ export default function SubscriptionGuard({ children }) {
         navigate('/subscription');
       }
     } catch (err) {
-      console.error('Error checking subscription status:', err);
       setError('Failed to check subscription status');
     } finally {
       setLoading(false);

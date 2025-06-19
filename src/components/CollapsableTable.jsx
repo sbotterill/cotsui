@@ -112,8 +112,8 @@ export default function TabbedTable({
   // Filter exchanges to only include allowed ones
   const filteredExchanges = React.useMemo(() => 
     exchanges.filter(exchange => {
-      const exchangeName = exchange.split(' - ')[1]?.trim();
-      return isValidExchange(exchangeName);
+      // No need to filter anymore, we're handling consolidation in fetchData
+      return true;
     }), [exchanges]);
 
   // Handle initial load behavior
@@ -172,12 +172,12 @@ export default function TabbedTable({
       return [];
     }
     
-    const marketCode = parts[0].trim();
+    const exchangePrefix = parts[0].trim();
     
-    // Try to match the market code with the data
+    // Try to match the market code prefix with the data
     const filtered = futuresData?.filter(d => {
-      const dataMarketCode = d.market_code?.trim();
-      return dataMarketCode === marketCode;
+      const dataMarketCode = d.market_code?.trim() || '';
+      return dataMarketCode.startsWith(exchangePrefix);
     }) || [];
     
     return filtered;

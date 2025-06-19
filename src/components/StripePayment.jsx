@@ -56,13 +56,11 @@ const inputStyles = {
 const loadGoogleMapsScript = () => {
   return new Promise((resolve, reject) => {
     if (window.google && window.google.maps && window.google.maps.places) {
-      console.log('Google Maps already loaded');
       resolve();
       return;
     }
 
     if (!GOOGLE_MAPS_API_KEY) {
-      console.error('Google Maps API key is missing');
       reject(new Error('Google Maps API key is not configured'));
       return;
     }
@@ -70,7 +68,6 @@ const loadGoogleMapsScript = () => {
     // Create a global callback function
     const callbackName = 'initGoogleMaps';
     window[callbackName] = () => {
-      console.log('Google Maps callback executed');
       if (window.google && window.google.maps && window.google.maps.places) {
         resolve();
       } else {
@@ -80,7 +77,6 @@ const loadGoogleMapsScript = () => {
 
     // Add error handler for API load errors
     window.gm_authFailure = () => {
-      console.error('Google Maps authentication failed');
       reject(new Error('Google Maps API authentication failed - Please check API key and enabled services'));
     };
 
@@ -98,14 +94,11 @@ const loadGoogleMapsScript = () => {
       script.defer = true;
 
       script.onerror = () => {
-        console.error('Failed to load Google Maps script');
         reject(new Error('Failed to load Google Maps API script'));
       };
 
       document.head.appendChild(script);
-      console.log('Google Maps script added to head');
     } catch (error) {
-      console.error('Error adding Google Maps script:', error);
       reject(error);
     }
   });
@@ -171,12 +164,9 @@ export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = 
 
     const initGoogleMaps = async () => {
       try {
-        console.log('Starting Google Maps initialization');
         await loadGoogleMapsScript();
         
         if (!isMounted) return;
-
-        console.log('Google Maps Places API loaded successfully');
         
         // Verify the Places service is available
         try {
@@ -199,15 +189,12 @@ export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = 
           });
 
           if (!isMounted) return;
-          console.log('Places service verified successfully');
           setIsGoogleLoaded(true);
           setGoogleMapsError(null);
         } catch (serviceError) {
-          console.error('Places service verification failed:', serviceError);
           throw new Error('Places API service is not working properly');
         }
       } catch (error) {
-        console.error('Error during Google Maps initialization:', error);
         if (isMounted) {
           setGoogleMapsError(
             'Address autocomplete is currently unavailable. Please enter the address manually.'
@@ -272,7 +259,6 @@ export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = 
 
       setSuggestions(response);
     } catch (error) {
-      console.error('Error fetching suggestions:', error);
       setSuggestions([]);
     } finally {
       setLoadingSuggestions(false);
@@ -287,15 +273,12 @@ export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = 
 
   const handleSuggestionSelect = async (suggestion) => {
     try {
-      console.log('Selected suggestion:', suggestion);
       const geocoder = new window.google.maps.Geocoder();
       const result = await new Promise((resolve, reject) => {
         geocoder.geocode({ placeId: suggestion.place_id }, (results, status) => {
           if (status === 'OK' && results[0]) {
-            console.log('Geocoding result:', results[0]);
             resolve(results[0]);
           } else {
-            console.error('Geocoding failed with status:', status);
             reject(new Error(`Geocoding failed: ${status}`));
           }
         });
@@ -312,13 +295,6 @@ export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = 
       let state = '';
       let country = '';
       let postalCode = '';
-
-      // Log all components for debugging
-      console.log('Address components:', addressComponents.map(comp => ({
-        types: comp.types,
-        long_name: comp.long_name,
-        short_name: comp.short_name
-      })));
 
       addressComponents.forEach(component => {
         const types = component.types;
@@ -366,14 +342,6 @@ export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = 
         }
       }
 
-      console.log('Processed address components:', {
-        streetAddress,
-        city,
-        state,
-        country,
-        postalCode
-      });
-
       // Update form fields
       setBillingDetails(prev => ({
         ...prev,
@@ -389,7 +357,6 @@ export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = 
       setSuggestions([]);
       setError(null); // Clear any previous errors
     } catch (error) {
-      console.error('Error processing selected address:', error);
       setError(`Failed to process the selected address: ${error.message}. Please try entering it manually.`);
       setSuggestions([]); // Clear suggestions on error
     }
@@ -455,14 +422,7 @@ export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = 
           postalCode: billingDetails.postalCode
         }
       };
-
-      console.log('Subscription request data:', {
-        ...requestData,
-        plan: plan,
-        monthlyPriceId: process.env.REACT_APP_STRIPE_MONTHLY_PRICE_ID,
-        annualPriceId: process.env.REACT_APP_STRIPE_ANNUAL_PRICE_ID
-      });
-
+      
       const response = await fetch(`${API_BASE_URL}/create-subscription`, {
         method: 'POST',
         headers: {

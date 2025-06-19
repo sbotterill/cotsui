@@ -114,8 +114,6 @@ async function checkLatestDataAvailability() {
 async function fetchData(selectedDate = null) {
   let exchangesList = [];
   let reportDate = selectedDate || await getThisWeeksTuesday();
-  console.log('fetchData - selectedDate:', selectedDate);
-  console.log('fetchData - initial reportDate:', reportDate);
   let isLatestData = true;
   let lastChecked = null;
 
@@ -128,7 +126,6 @@ async function fetchData(selectedDate = null) {
       if (!availabilityCheck.isAvailable) {
         isLatestData = false;
         reportDate = await getLastWeeksTuesday();
-        console.log('fetchData - using last week\'s Tuesday:', reportDate);
       }
     } else {
       isLatestData = false;
@@ -211,7 +208,6 @@ async function fetchData(selectedDate = null) {
 
             return obj;
           } catch (error) {
-            console.error(`Error processing element ${element.cftc_contract_market_code}:`, error);
             return null;
           }
         })
@@ -226,17 +222,31 @@ async function fetchData(selectedDate = null) {
       // Update exchangesList
       for (const element of batch) {
         const market_exchange_full_name = element.market_and_exchange_names.split("-");
-        const words = [
-          "CHICAGO MERCANTILE EXCHANGE",
-          "CHICAGO BOARD OF TRADE",
-          "COMMODITY EXCHANGE INC",
-          "CBOE FUTURES EXCHANGE",
-          "ICE FUTURES U.S.",
-          "NEW YORK MERCANTILE EXCHANGE"
-        ];
-        if (words.some(word => market_exchange_full_name[1]?.includes(word))) {
-          const tag = `${element.cftc_market_code.trim()} - ${market_exchange_full_name[1].trim()}`;
-          exchangeSet.add(tag);
+        if (market_exchange_full_name.length >= 2) {
+          const marketCode = element.cftc_market_code.trim();
+          let exchangeTag;
+
+          // Consolidate exchanges based on their prefix
+          if (marketCode.startsWith('CME')) {
+            exchangeTag = 'CME - CHICAGO MERCANTILE EXCHANGE';
+          } else if (marketCode.startsWith('CBT')) {
+            exchangeTag = 'CBT - CHICAGO BOARD OF TRADE';
+          } else if (marketCode.startsWith('CMX')) {
+            exchangeTag = 'CMX - COMMODITY EXCHANGE INC.';
+          } else if (marketCode.startsWith('ICUS')) {
+            exchangeTag = 'ICUS - ICE FUTURES U.S.';
+          } else if (marketCode.startsWith('IFED')) {
+            exchangeTag = 'IFED - ICE FUTURES ENERGY DIV';
+          } else if (marketCode.startsWith('NODX')) {
+            exchangeTag = 'NODX - NODAL EXCHANGE';
+          } else if (marketCode.startsWith('NYME')) {
+            exchangeTag = 'NYME - NEW YORK MERCANTILE EXCHANGE';
+          } else {
+            // For any other exchanges, use their full name
+            exchangeTag = `${marketCode} - ${market_exchange_full_name[1].trim()}`;
+          }
+          
+          exchangeSet.add(exchangeTag);
         }
       }
     }
@@ -244,6 +254,15 @@ async function fetchData(selectedDate = null) {
     // Convert Map and Set to arrays
     const fullList = Array.from(dataMap.values());
     exchangesList = Array.from(exchangeSet);
+
+    // Log detailed counts and data
+    console.log('Exchange Data Summary:', {
+      totalExchanges: exchangesList.length,
+      exchanges: exchangesList,
+      totalDataPoints: fullList.length,
+      uniqueMarketCodes: new Set(fullList.map(item => item.market_code)).size,
+      allMarketCodes: [...new Set(fullList.map(item => item.market_code))].sort()
+    });
 
     return [
       exchangesList.sort((a, b) => a.localeCompare(b)),
@@ -254,7 +273,6 @@ async function fetchData(selectedDate = null) {
     ];
 
   } catch (error) {
-    console.error('Error in fetchData:', error);
     // Return empty data with error state
     return [
       [],
@@ -291,7 +309,6 @@ export default function App() {
   const [pastTuesdays] = useState(() => getPastTuesdays());
   const [favorites, setFavorites] = useState(() => {
     const initialFavorites = localStorage.getItem('initialFavorites');
-    console.log('Initializing favorites state with:', initialFavorites);
     return initialFavorites ? JSON.parse(initialFavorites) : [];
   });
   const [tableFilters, setTableFilters] = useState([]);
@@ -310,70 +327,104 @@ export default function App() {
     document.documentElement.style.backgroundColor = theme.palette.background.default;
   }, [theme.palette.background.default]);
   
-  // Load data on mount
+  // Add effect to handle authorization changes
+  useEffect(() => {
+    const email = localStorage.getItem('userEmail');
+    console.log('Authorization effect - userEmail:', email);
+    setAuthorization(!!email);
+  }, []);
+  
+  // Load data on mount or when selectedDate changes
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log('Starting loadData...');
         setIsLoading(true);
         const [exchangesList, fullList, reportDate, isLatestData, lastChecked] = await fetchData(selectedDate);
-        console.log('Initial load - reportDate:', reportDate);
-        console.log('Initial load - selectedDate:', selectedDate);
-        console.log('Initial load - pastTuesdays:', pastTuesdays.map(d => d.toISOString()));
+        console.log('Initial exchangesList:', exchangesList);
         
+        // Load table filters first
+        const email = localStorage.getItem('userEmail');
+        console.log('User email:', email);
+        let filteredExchanges = exchangesList;
+        
+        if (email) {
+          try {
+            console.log('Fetching preferences from:', `${API_BASE_URL}/preferences?email=${encodeURIComponent(email)}`);
+            const response = await fetch(`${API_BASE_URL}/preferences?email=${encodeURIComponent(email)}`);
+            console.log('Preferences API response status:', response.status);
+            if (response.ok) {
+              const data = await response.json();
+              console.log('Preferences data from API:', data);
+              
+              // Check for preferences.selected first (direct array)
+              if (data.preferences?.selected && data.preferences.selected.length > 0) {
+                console.log('Using preferences.selected:', data.preferences.selected);
+                filteredExchanges = data.preferences.selected;
+              }
+              // Fallback to table_filters.selected if direct selected array is not present
+              else if (data.preferences?.table_filters?.selected && data.preferences.table_filters.selected.length > 0) {
+                console.log('Using table_filters.selected:', data.preferences.table_filters.selected);
+                filteredExchanges = data.preferences.table_filters.selected;
+              }
+            }
+          } catch (error) {
+            console.error('Error loading table filters:', error);
+          }
+        }
+
+        console.log('Final filteredExchanges to be set:', filteredExchanges);
+        console.log('Original exchangesList:', exchangesList);
+
+        // Now set the states with the filtered exchanges
         setExchanges(exchangesList);
-        setDisplayExchanges(exchangesList);
+        setDisplayExchanges(filteredExchanges);
         setFuturesData(fullList);
         setFilteredData(fullList);
         setLastUpdated(reportDate);
         // Set selectedDate to match the report date on initial load
         if (!selectedDate) {
           const newDate = new Date(reportDate).toISOString();
-          console.log('Setting initial selectedDate to:', newDate);
           setSelectedDate(newDate);
         }
         setIsLatestData(isLatestData);
         setLastChecked(lastChecked);
 
         // Then load favorites
-        const email = localStorage.getItem('userEmail');
         if (email) {
-          console.log('Loading favorites for email:', email);
+          console.log('Loading favorites...');
           // Fetch latest favorites from server
           const response = await fetch(`${API_BASE_URL}/preferences/favorites?email=${encodeURIComponent(email)}`);
+          console.log('Favorites API response status:', response.status);
           if (response.ok) {
             const data = await response.json();
-            console.log('Favorites data received from server:', data);
+            console.log('Favorites data from API:', data);
             if (data.favorites?.selected) {
-              console.log('Setting favorites from server:', data.favorites.selected);
+              console.log('Setting favorites to:', data.favorites.selected);
               setFavorites(data.favorites.selected);
               // Update localStorage with latest favorites
               localStorage.setItem('initialFavorites', JSON.stringify(data.favorites.selected));
             }
           }
         }
-
-        // Finally load table filters
-        await loadTableFilters();
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('Error in loadData:', error);
       } finally {
         setIsLoading(false);
       }
     };
-    loadData();
-  }, [selectedDate]);
 
-  // Debug favorites state changes
-  useEffect(() => {
-    console.log('Favorites state updated:', favorites);
-  }, [favorites]);
+    // Only load data if user is authorized
+    if (authorized) {
+      loadData();
+    }
+  }, [selectedDate, authorized]); // Add authorized to dependencies
 
   // Handle favorites toggle
   const handleToggleFavorite = async (commodity) => {
     try {
       const email = localStorage.getItem('userEmail');
       if (!email) {
-        console.error('No email found in localStorage');
         return;
       }
 
@@ -381,7 +432,6 @@ export default function App() {
         ? favorites.filter(f => f !== commodity)
         : [...favorites, commodity];
 
-      console.log('Updating favorites to:', newFavorites);
       setFavorites(newFavorites);
       localStorage.setItem('initialFavorites', JSON.stringify(newFavorites));
 
@@ -402,7 +452,6 @@ export default function App() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
     } catch (error) {
-      console.error('Error updating favorites:', error);
     }
   };
 
@@ -453,56 +502,34 @@ export default function App() {
         setFavorites(data.favorites.selected);
       }
     } catch (error) {
-      console.error('Error loading favorites:', error);
-    }
-  };
-
-  const loadTableFilters = async () => {
-    try {
-      const email = localStorage.getItem('userEmail');
-      if (!email) {
-        return;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/preferences?email=${encodeURIComponent(email)}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      // Check for preferences.selected first (direct array)
-      if (data.preferences?.selected) {
-        setDisplayExchanges(data.preferences.selected);
-      }
-      // Fallback to table_filters.selected if direct selected array is not present
-      else if (data.preferences?.table_filters?.selected) {
-        setDisplayExchanges(data.preferences.table_filters.selected);
-      }
-    } catch (error) {
     }
   };
 
   // Exchange filter handler
   const handleExchangeFilterChange = async (newList, shouldSaveToServer = true) => {
+    console.log('handleExchangeFilterChange called with:', { newList, shouldSaveToServer });
     setDisplayExchanges(newList);
     if (shouldSaveToServer) {
       try {
+        const email = localStorage.getItem('userEmail');
+        console.log('Saving exchange filters to server for email:', email);
         const response = await fetch(`${API_BASE_URL}/preferences/table_filters`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            email: localStorage.getItem('userEmail'),
+            email: email,
             selected: newList
           }),
         });
+        console.log('Save filters API response status:', response.status);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
       } catch (error) {
+        console.error('Error saving exchange filters:', error);
       }
     }
   };
@@ -545,6 +572,30 @@ export default function App() {
     setIsLatestData(latest);
     setLastChecked(checked);
     setIsDateLoading(false);
+  };
+
+  // Add logging to track displayExchanges changes
+  useEffect(() => {
+    console.log('displayExchanges updated:', displayExchanges);
+  }, [displayExchanges]);
+
+  // Add logging to track when CollapsibleTable renders
+  const renderCollapsibleTable = () => {
+    console.log('Rendering CollapsibleTable with:', {
+      filteredData: filteredData.length,
+      displayExchanges,
+      favorites: favorites.length
+    });
+    return (
+      <CollapsibleTable
+        key={`table-${favorites.length}`}
+        futuresData={filteredData}
+        exchanges={displayExchanges}
+        favorites={favorites}
+        onToggleFavorite={handleToggleFavorite}
+        onCommoditySelect={handleCommoditySelect}
+      />
+    );
   };
 
   return (
@@ -594,14 +645,7 @@ export default function App() {
                           </Box>
                         ) : (
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', height: '100%' }}>
-                            <CollapsibleTable
-                              key={`table-${favorites.length}`}
-                              futuresData={filteredData}
-                              exchanges={displayExchanges}
-                              favorites={favorites}
-                              onToggleFavorite={handleToggleFavorite}
-                              onCommoditySelect={handleCommoditySelect}
-                            />
+                            {renderCollapsibleTable()}
                             <LineChartWithReferenceLines 
                               commericalChartData={commericalChartData} 
                               nonCommercialChartData={nonCommercialChartData} 
