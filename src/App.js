@@ -357,7 +357,9 @@ export default function App() {
         
         if (email) {
           try {
-            const response = await fetch(`${API_BASE_URL}/preferences?email=${encodeURIComponent(email)}`);
+            const response = await fetch(`${API_BASE_URL}/preferences?email=${encodeURIComponent(email)}`, {
+              credentials: 'include'
+            });
             if (response.ok) {
               const data = await response.json();
               if (data.preferences?.selected && data.preferences.selected.length > 0) {
@@ -505,6 +507,7 @@ export default function App() {
           headers: {
             'Content-Type': 'application/json',
           },
+          credentials: 'include',
           body: JSON.stringify({
             email: email,
             selected: newList

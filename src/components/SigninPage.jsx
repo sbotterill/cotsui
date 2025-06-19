@@ -221,7 +221,9 @@ export default function SlotsSignIn(props) {
         
         try {
           // Check subscription status first
-          const subscriptionResponse = await fetch(`${API_BASE_URL}/subscription-status?email=${encodeURIComponent(email)}`);
+          const subscriptionResponse = await fetch(`${API_BASE_URL}/subscription-status?email=${encodeURIComponent(email)}`, {
+            credentials: 'include'
+          });
           const subscriptionData = await subscriptionResponse.json();
 
           if (subscriptionResponse.ok) {
@@ -246,8 +248,12 @@ export default function SlotsSignIn(props) {
 
           // Load preferences and favorites
           const [prefsResponse, favoritesResponse] = await Promise.all([
-            fetch(`${API_BASE_URL}/preferences?email=${encodeURIComponent(email)}`),
-            fetch(`${API_BASE_URL}/preferences/favorites?email=${encodeURIComponent(email)}`)
+            fetch(`${API_BASE_URL}/preferences?email=${encodeURIComponent(email)}`, {
+              credentials: 'include'
+            }),
+            fetch(`${API_BASE_URL}/preferences/favorites?email=${encodeURIComponent(email)}`, {
+              credentials: 'include'
+            })
           ]);
 
           if (prefsResponse.ok) {

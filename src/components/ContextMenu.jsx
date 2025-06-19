@@ -60,6 +60,7 @@ export default function BasicMenu({
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           email: email,
           table_filters: {
