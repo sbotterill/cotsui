@@ -593,7 +593,7 @@ export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = 
                   '& .MuiOutlinedInput-root': {
                     height: '56px'
                   },
-                  width: '264px'
+                  width: '255px'
                 }}
               />
             </Grid>
@@ -612,7 +612,7 @@ export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = 
                   '& .MuiOutlinedInput-root': {
                     height: '56px'
                   },
-                  width: '264px'
+                  width: '255px'
                 }}
               />
             </Grid>
@@ -631,7 +631,7 @@ export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = 
                   '& .MuiOutlinedInput-root': {
                     height: '56px'
                   },
-                  width: '264px'
+                  width: '255px'
                 }}
               />
             </Grid>
@@ -650,7 +650,7 @@ export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = 
                   '& .MuiOutlinedInput-root': {
                     height: '56px'
                   },
-                  width: '264px'
+                  width: '255px'
                 }}
               />
             </Grid>
