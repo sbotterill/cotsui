@@ -15,6 +15,8 @@ export default function BasicMenu({
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = React.useState(null);
   const [snackbarOpen, setSnackbarOpen] = React.useState(false);
+  const [snackbarMessage, setSnackbarMessage] = React.useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = React.useState('success');
   const open = Boolean(anchorEl);
 
   // local copy of "what's checked"
@@ -45,22 +47,30 @@ export default function BasicMenu({
 
   const handleSavePreferences = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/preferences`, {
+      const email = localStorage.getItem('userEmail');
+      if (!email) {
+        setSnackbarOpen(true);
+        setSnackbarMessage('Error: User email not found. Please try logging in again.');
+        setSnackbarSeverity('error');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/preferences/table_filters`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: localStorage.getItem('userEmail'),
-          preferences: {
-            selected: checkedList  // Save directly in preferences.selected
+          email: email,
+          table_filters: {
+            selected: checkedList
           }
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`Failed to save preferences: ${response.status} ${response.statusText} - ${errorData.error || ''}`);
+        throw new Error(errorData.message || `Failed to save preferences: ${response.status}`);
       }
 
       const data = await response.json();
@@ -68,10 +78,15 @@ export default function BasicMenu({
         throw new Error('Server returned unsuccessful response');
       }
 
+      setSnackbarMessage('Preferences saved successfully');
+      setSnackbarSeverity('success');
       setSnackbarOpen(true);
       handleClose();
     } catch (error) {
-      // You might want to show an error message to the user here
+      console.error('Error saving preferences:', error);
+      setSnackbarMessage(`Error saving preferences: ${error.message}`);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
     }
   };
 
@@ -160,7 +175,8 @@ export default function BasicMenu({
       </Menu>
       <CustomSnackbar
         open={snackbarOpen}
-        message="Preferences saved successfully"
+        message={snackbarMessage}
+        severity={snackbarSeverity}
         onClose={() => setSnackbarOpen(false)}
         autoHideDuration={3000}
       />

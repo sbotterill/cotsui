@@ -75,7 +75,9 @@ export default function SubscriptionPage() {
   const email = localStorage.getItem('userEmail');
 
   useEffect(() => {
+    console.log('SubscriptionPage mounted, email:', email);
     if (!email) {
+      console.log('No email found, redirecting to signup');
       navigate('/signup');
       return;
     }
@@ -86,6 +88,7 @@ export default function SubscriptionPage() {
     // Check URL parameters for trial_used message
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('trial_used') === 'true') {
+      console.log('Trial used parameter found in URL');
       setHasHadTrial(true);
       setError('You have already used your free trial. Please choose a subscription plan to continue.');
     }
@@ -93,11 +96,27 @@ export default function SubscriptionPage() {
 
   const checkTrialStatus = async () => {
     try {
+      console.log('Checking trial status for email:', email);
       const response = await fetch(`${API_BASE_URL}/subscription-status?email=${encodeURIComponent(email)}`);
       const data = await response.json();
+      
+      console.log('Full subscription status response:', data);
 
-      if (response.ok && data.has_had_trial) {
-        setHasHadTrial(true);
+      if (response.ok) {
+        console.log('Trial status check:', {
+          hasHadTrial: data.has_had_trial,
+          trialStatus: data.trial_status,
+          freeTrial: data.free_trial,
+          paymentStatus: data.payment_status
+        });
+        
+        if (data.has_had_trial) {
+          console.log('Setting hasHadTrial to true');
+          setHasHadTrial(true);
+        } else {
+          console.log('User has not had trial, keeping hasHadTrial as false');
+          setHasHadTrial(false);
+        }
       }
     } catch (err) {
       console.error('Error checking trial status:', err);
@@ -170,14 +189,25 @@ export default function SubscriptionPage() {
       <Container maxWidth="lg">
         <Box sx={{ mb: 6, textAlign: 'center' }}>
           <Typography variant="h4" component="h1" gutterBottom>
-            {hasHadTrial ? 'Choose Your Plan' : 'Choose Your Plan'}
+            {hasHadTrial ? 'Choose Your Plan' : 'Start Your Free Trial'}
           </Typography>
-          <Typography variant="subtitle1" color="text.secondary">
+          <Typography variant="subtitle1" color="text.secondary" gutterBottom>
             {hasHadTrial 
               ? 'Select a subscription plan to continue accessing the app.'
-              : 'Start with a 7-day free trial. Cancel anytime.'
+              : 'Try all features free for 7 days. No credit card required.'
             }
           </Typography>
+          {!hasHadTrial && (
+            <Button
+              variant="contained"
+              size="large"
+              onClick={handleSkipTrial}
+              disabled={loading}
+              sx={{ mt: 2, mb: 4, px: 4, py: 1.5 }}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Start Free 7-Day Trial'}
+            </Button>
+          )}
         </Box>
 
         {error && (
@@ -186,16 +216,38 @@ export default function SubscriptionPage() {
           </Alert>
         )}
 
-        <Grid container spacing={3} justifyContent="center" maxWidth="md" sx={{ mx: 'auto' }}>
+        <Typography variant="h5" component="h2" textAlign="center" sx={{ mb: 4 }}>
+          {hasHadTrial ? 'Available Plans' : 'Plans after trial'}
+        </Typography>
+
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 3,
+            flexWrap: 'wrap',
+            maxWidth: '1200px',
+            mx: 'auto',
+            px: 2
+          }}
+        >
           {SUBSCRIPTION_PLANS.map((plan) => (
-            <Grid item xs={12} sm={6} key={plan.id}>
+            <Box
+              key={plan.id}
+              sx={{
+                flex: '1 1 400px',
+                maxWidth: '500px',
+                minWidth: '350px'
+              }}
+            >
               <Card
                 sx={{
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
                   position: 'relative',
-                  border: selectedPlan === plan.id ? `2px solid ${theme.palette.primary.main}` : 'none',
+                  border: selectedPlan === plan.id ? `2px solid ${theme.palette.primary.main}` : '1px solid rgba(0, 0, 0, 0.12)',
+                  borderRadius: 2,
                   transition: 'transform 0.2s, box-shadow 0.2s',
                   '&:hover': {
                     transform: 'translateY(-4px)',
@@ -204,20 +256,47 @@ export default function SubscriptionPage() {
                 }}
               >
                 <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                  <Typography variant="h5" component="h2" gutterBottom>
+                  <Typography 
+                    variant="h5" 
+                    component="h2" 
+                    gutterBottom
+                    sx={{ 
+                      fontWeight: 600,
+                      mb: 2,
+                      textAlign: 'center'
+                    }}
+                  >
                     {plan.name}
                   </Typography>
-                  <Typography variant="h4" component="div" sx={{ mb: 2 }}>
+                  <Typography 
+                    variant="h4" 
+                    component="div" 
+                    sx={{ 
+                      mb: 2,
+                      textAlign: 'center',
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      justifyContent: 'center'
+                    }}
+                  >
                     {plan.price}
                     <Typography
                       component="span"
                       variant="subtitle1"
                       color="text.secondary"
+                      sx={{ ml: 1 }}
                     >
                       /{plan.interval}
                     </Typography>
                   </Typography>
-                  <Box component="ul" sx={{ pl: 0, listStyle: 'none' }}>
+                  <Box 
+                    component="ul" 
+                    sx={{ 
+                      pl: 0, 
+                      listStyle: 'none',
+                      mt: 2
+                    }}
+                  >
                     {plan.features.map((feature, index) => (
                       <Box
                         component="li"
@@ -230,9 +309,15 @@ export default function SubscriptionPage() {
                         }}
                       >
                         <CheckCircleIcon
-                          sx={{ color: 'success.main', mr: 1, fontSize: '1.2rem' }}
+                          sx={{ 
+                            color: 'success.main', 
+                            mr: 1, 
+                            fontSize: '1.2rem' 
+                          }}
                         />
-                        <Typography variant="body2">{feature}</Typography>
+                        <Typography variant="body2">
+                          {feature}
+                        </Typography>
                       </Box>
                     ))}
                   </Box>
@@ -244,35 +329,26 @@ export default function SubscriptionPage() {
                     onClick={() => handlePlanSelect(plan.id)}
                     disabled={loading}
                     size="large"
+                    color="primary"
+                    sx={{
+                      py: 1.5,
+                      fontSize: '1rem',
+                      fontWeight: 500,
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: theme.shadows[4],
+                      }
+                    }}
                   >
                     {loading ? <CircularProgress size={24} /> : 
-                      hasHadTrial ? `Subscribe to ${plan.name}` : 'Start Free Trial'
+                      `Subscribe to ${plan.name} - ${plan.price}/${plan.interval}`
                     }
                   </Button>
                 </CardActions>
               </Card>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
-
-        {/* Skip for now option - only show for users who haven't had a trial */}
-        {!hasHadTrial && (
-          <Box sx={{ textAlign: 'center', mt: 4 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Want to try the app first?
-            </Typography>
-            <Button
-              variant="outlined"
-              onClick={() => {
-                // Create a free trial subscription without payment
-                handleSkipTrial();
-              }}
-              disabled={loading}
-            >
-              Start 7-Day Free Trial (No Payment Required)
-            </Button>
-          </Box>
-        )}
+        </Box>
 
         {showPaymentDialog && (
           <>

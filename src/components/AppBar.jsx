@@ -166,9 +166,13 @@ export default function DrawerAppBar(props) {
               <Select
                 labelId="date-select-label"
                 id="date-select"
-                value={props.selectedDate ? props.pastTuesdays.find(date => 
-                  date.toISOString().split('T')[0] === new Date(props.selectedDate).toISOString().split('T')[0]
-                )?.toISOString() || '' : ''}
+                value={props.selectedDate ? props.pastTuesdays.find(date => {
+                  const tuesdayDate = new Date(date);
+                  const selectedDate = new Date(props.selectedDate);
+                  return tuesdayDate.getFullYear() === selectedDate.getFullYear() &&
+                         tuesdayDate.getMonth() === selectedDate.getMonth() &&
+                         tuesdayDate.getDate() === selectedDate.getDate();
+                })?.toISOString() || '' : ''}
                 label="Report Date"
                 onChange={(e) => props.onDateChange(e.target.value)}
                 disabled={props.isDateLoading}
