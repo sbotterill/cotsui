@@ -7,7 +7,7 @@ import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import DrawerAppBar from './components/AppBar';
-import CollapsibleTable from './components/CollapsableTable';
+import CollapsibleTable, { CollapsableTableSkeleton } from './components/CollapsableTable';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import SlotsSignIn from './components/SigninPage';
 import SignUpPage from './components/SignUpPage';
@@ -621,9 +621,7 @@ export default function App() {
                         }}
                       >
                         {isLoading ? (
-                          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 64px)' }}>
-                            <CircularProgress />
-                          </Box>
+                          <CollapsableTableSkeleton />
                         ) : (
                           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', height: '100%' }}>
                             {renderCollapsibleTable()}

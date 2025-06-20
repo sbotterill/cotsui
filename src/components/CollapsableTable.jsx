@@ -15,6 +15,7 @@ import Tab from '@mui/material/Tab';
 import FavoriteButton from './FavoriteButton';
 import Typography from '@mui/material/Typography';
 import { ALLOWED_EXCHANGES, isValidExchange } from '../constants';
+import Skeleton from '@mui/material/Skeleton';
 
 function formatPercentage(value) {
   if (value == null) return '-';
@@ -212,7 +213,9 @@ export default function TabbedTable({
         minWidth: '100%',
         border: `1px solid ${theme.palette.divider}`,
         '& .MuiTableCell-root': {
+          textAlign: 'center',
           paddingLeft: '2px',
+          paddingRight: '2px'
         },
         '& thead': {
           position: 'sticky',
@@ -221,7 +224,14 @@ export default function TabbedTable({
         },
         '& .MuiTableSortLabel-root': {
           width: '100%',
-          justifyContent: 'flex-start'
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingRight: '16px',  // Add padding to account for the sort icon
+          '& .MuiTableSortLabel-icon': {
+            position: 'absolute',
+            right: 0
+          }
         }
       }}>
         <TableHead>
@@ -258,9 +268,15 @@ export default function TabbedTable({
                 direction={orderBy === 'commodity' ? order : 'asc'}
                 onClick={() => handleRequestSort('commodity')}
                 sx={{
+                  width: '100%',
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
+                  paddingRight: '16px',
+                  '& .MuiTableSortLabel-icon': {
+                    position: 'absolute',
+                    right: 0
+                  }
                 }}
               >
                 Commodity
@@ -293,6 +309,7 @@ export default function TabbedTable({
             {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
               <TableCell
                 key={`h1-${i}`}
+                align="center"
                 sx={{
                   color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                   minWidth: lbl === 'Change' ? '60px' : '70px',
@@ -309,6 +326,17 @@ export default function TabbedTable({
                   active={orderBy === `non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}`}
                   direction={orderBy === `non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}` ? order : 'asc'}
                   onClick={() => handleRequestSort(`non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}`)}
+                  sx={{
+                    width: '100%',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    paddingRight: '16px',
+                    '& .MuiTableSortLabel-icon': {
+                      position: 'absolute',
+                      right: 0
+                    }
+                  }}
                 >
                   {lbl}
                 </TableSortLabel>
@@ -317,6 +345,7 @@ export default function TabbedTable({
             {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
               <TableCell
                 key={`h2-${i}`}
+                align="center"
                 sx={{
                   color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                   minWidth: lbl === 'Change' ? '60px' : '70px',
@@ -333,6 +362,7 @@ export default function TabbedTable({
                   active={orderBy === `commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}`}
                   direction={orderBy === `commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}` ? order : 'asc'}
                   onClick={() => handleRequestSort(`commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}`)}
+                  sx={{ justifyContent: 'center' }}
                 >
                   {lbl}
                 </TableSortLabel>
@@ -341,6 +371,7 @@ export default function TabbedTable({
             {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
               <TableCell 
                 key={`h3-${i}`} 
+                align="center"
                 sx={{ 
                   color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                   minWidth: lbl === 'Change' ? '60px' : '70px',
@@ -357,6 +388,7 @@ export default function TabbedTable({
                   active={orderBy === `non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}`}
                   direction={orderBy === `non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}` ? order : 'asc'}
                   onClick={() => handleRequestSort(`non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}`)}
+                  sx={{ justifyContent: 'center' }}
                 >
                   {lbl}
                 </TableSortLabel>
@@ -431,7 +463,7 @@ export default function TabbedTable({
             </TableCell>
 
               {/* Non-commercial */}
-              <TableCell align="left" sx={{ 
+              <TableCell align="center" sx={{ 
                 padding: '8px 4px 8px 10px', 
                 fontSize: '0.75rem',
                 borderLeft: `2px solid ${theme.palette.divider}`,
@@ -446,16 +478,16 @@ export default function TabbedTable({
                   backgroundColor: theme.palette.divider
                 }
               }}>{fmt.format(r.non_commercial_long)}</TableCell>
-              <TableCell align="left" sx={{ color: r.non_commercial_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
+              <TableCell align="center" sx={{ color: r.non_commercial_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
                 {fmt.format(r.non_commercial_long_change)}
               </TableCell>
-              <TableCell align="left" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_commercial_short)}</TableCell>
-              <TableCell align="left" sx={{ color: r.non_commercial_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
+              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_commercial_short)}</TableCell>
+              <TableCell align="center" sx={{ color: r.non_commercial_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
                 {fmt.format(r.non_commercial_short_change)}
               </TableCell>
-              <TableCell align="left" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_commercial_total)}</TableCell>
+              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_commercial_total)}</TableCell>
               <TableCell
-                align="left"
+                align="center"
                 sx={{
                   color: getPercentageColor(r.non_commercial_percentage_long),
                   position: 'relative',
@@ -476,17 +508,17 @@ export default function TabbedTable({
               </TableCell>
 
               {/* Commercial */}
-              <TableCell align="left" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_long)}</TableCell>
-              <TableCell align="left" sx={{ color: r.commerical_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
+              <TableCell align="center" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_long)}</TableCell>
+              <TableCell align="center" sx={{ color: r.commerical_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
                 {fmt.format(r.commerical_long_change)}
               </TableCell>
-              <TableCell align="left" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_short)}</TableCell>
-              <TableCell align="left" sx={{ color: r.commerical_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
+              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_short)}</TableCell>
+              <TableCell align="center" sx={{ color: r.commerical_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
                 {fmt.format(r.commerical_short_change)}
               </TableCell>
-              <TableCell align="left" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_total)}</TableCell>
+              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_total)}</TableCell>
               <TableCell
-                align="left"
+                align="center"
                 sx={{
                   color: getPercentageColor(r.commerical_percentage_long),
                   position: 'relative',
@@ -507,16 +539,16 @@ export default function TabbedTable({
               </TableCell>
 
               {/* Non-reportable */}
-              <TableCell align="left" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_long)}</TableCell>
-              <TableCell align="left" sx={{ color: r.non_reportable_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
+              <TableCell align="center" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_long)}</TableCell>
+              <TableCell align="center" sx={{ color: r.non_reportable_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
                 {fmt.format(r.non_reportable_long_change)}
               </TableCell>
-              <TableCell align="left" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_short)}</TableCell>
-              <TableCell align="left" sx={{ color: r.non_reportable_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
+              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_short)}</TableCell>
+              <TableCell align="center" sx={{ color: r.non_reportable_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
                 {fmt.format(r.non_reportable_short_change)}
               </TableCell>
-              <TableCell align="left" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_total)}</TableCell>
-              <TableCell align="left" sx={{ color: getPercentageColor(r.non_reportable_percentage_long), padding: '8px 4px', fontSize: '0.75rem' }}>
+              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_total)}</TableCell>
+              <TableCell align="center" sx={{ color: getPercentageColor(r.non_reportable_percentage_long), padding: '8px 4px', fontSize: '0.75rem' }}>
                 {formatPercentage(r.non_reportable_percentage_long)}
               </TableCell>
             </TableRow>
@@ -599,6 +631,45 @@ export default function TabbedTable({
         {filteredExchanges.map((exchange, index) => (
           selectedTab === index + 1 && <div key={`table-${exchange}`}>{renderTable()}</div>
         ))}
+      </TableContainer>
+    </Box>
+  );
+}
+
+// Skeleton loader for the CollapsableTable
+export function CollapsableTableSkeleton() {
+  // Simulate 8 rows and the same tab structure
+  return (
+    <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', height: '45vh', borderRadius: 1, overflow: 'hidden' }}>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
+        <Tabs value={0} variant="scrollable" scrollButtons="auto">
+          <Tab key="favorites" label={<Skeleton width={80} height={24} />} id="tab-0" />
+          {[...Array(3)].map((_, i) => (
+            <Tab key={`skeleton-tab-${i}`} label={<Skeleton width={100} height={24} />} id={`tab-${i+1}`} />
+          ))}
+        </Tabs>
+      </Box>
+      <TableContainer component={Paper}>
+        <Table size="small" aria-label="skeleton-table">
+          <TableHead>
+            <TableRow>
+              <TableCell><Skeleton width={120} /></TableCell>
+              {[...Array(18)].map((_, i) => (
+                <TableCell key={`sk-head-${i}`}><Skeleton width={60} /></TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {[...Array(8)].map((_, rowIdx) => (
+              <TableRow key={`sk-row-${rowIdx}`}> 
+                <TableCell><Skeleton width={180} /></TableCell>
+                {[...Array(18)].map((_, i) => (
+                  <TableCell key={`sk-cell-${rowIdx}-${i}`}><Skeleton width={50} /></TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </TableContainer>
     </Box>
   );
