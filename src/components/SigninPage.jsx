@@ -197,7 +197,17 @@ export default function SlotsSignIn(props) {
       }
 
       const response = await fetch(
-        `${API_BASE_URL}/permissions?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+        `${API_BASE_URL}/permissions`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            password
+          })
+        }
       );
 
       const data = await response.json();
