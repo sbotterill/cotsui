@@ -225,10 +225,7 @@ export default function App() {
   const [chartDates, setChartDates] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [availableDates, setAvailableDates] = useState([]);
-  const [favorites, setFavorites] = useState(() => {
-    const initialFavorites = localStorage.getItem('initialFavorites');
-    return initialFavorites ? JSON.parse(initialFavorites) : [];
-  });
+  const [favorites, setFavorites] = useState([]);  // Start with empty array, will load from backend
   const [tableFilters, setTableFilters] = useState([]);
   const [isDateLoading, setIsDateLoading] = React.useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -270,7 +267,7 @@ export default function App() {
   const initialLoadComplete = React.useRef(false);
   const isInitialDateSet = React.useRef(false);
 
-  // Load data on mount or when selectedDate changes
+  // Load initial data
   useEffect(() => {
     const loadData = async () => {
       if (!authorized) {
@@ -297,6 +294,7 @@ export default function App() {
               // Normalize the loaded filters
               filteredExchanges = response.data.table_filters.selected.map(code => code.trim());
             } else {
+              console.log('App - No saved filters, using all exchanges');
             }
           } catch (error) {
             console.error('Error loading table filters:', error);
@@ -324,6 +322,9 @@ export default function App() {
           isInitialDateSet.current = true;
           setSelectedDate(result.reportDate);
         }
+
+        // Load favorites after data is loaded
+        await loadFavorites();
       } catch (error) {
         console.error('Error in loadData:', error);
         setError(error.message);
@@ -333,6 +334,24 @@ export default function App() {
     };
 
     loadData();
+  }, [authorized]);
+
+  // Add a separate effect to load favorites when authorization changes
+  useEffect(() => {
+    if (authorized) {
+      loadFavorites();
+    }
+  }, [authorized]);
+
+  // Add effect to reload favorites periodically
+  useEffect(() => {
+    if (!authorized) return;
+
+    const intervalId = setInterval(() => {
+      loadFavorites();
+    }, 60000); // Refresh every minute
+
+    return () => clearInterval(intervalId);
   }, [authorized]);
 
   // Handle date changes in a separate effect
@@ -348,10 +367,44 @@ export default function App() {
     }
   }, [selectedDate]);
 
+  // Load favorites from backend
+  const loadFavorites = async () => {
+    try {
+      const email = localStorage.getItem('userEmail');
+      if (!email) {
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/preferences/favorites?email=${encodeURIComponent(email)}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to load favorites');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.favorites && data.favorites.selected) {
+        setFavorites(data.favorites.selected);
+        // Update localStorage to match backend
+        localStorage.setItem('initialFavorites', JSON.stringify(data.favorites.selected));
+      } else {
+        console.log('No favorites found in backend response');
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+      // On error, try to load from localStorage as fallback
+      const initialFavorites = localStorage.getItem('initialFavorites');
+      if (initialFavorites) {
+        setFavorites(JSON.parse(initialFavorites));
+      }
+    }
+  };
+
   // Handle favorites toggle
   const handleToggleFavorite = async (commodity) => {
     try {
       const email = localStorage.getItem('userEmail');
+      
       if (!email) {
         return;
       }
@@ -359,27 +412,42 @@ export default function App() {
       const newFavorites = favorites.includes(commodity)
         ? favorites.filter(f => f !== commodity)
         : [...favorites, commodity];
+      
 
+      // Update state and localStorage immediately for responsive UI
       setFavorites(newFavorites);
       localStorage.setItem('initialFavorites', JSON.stringify(newFavorites));
+
+      const requestBody = {
+        email: email,
+        favorites: {
+          selected: newFavorites
+        }
+      };
 
       const response = await fetch(`${API_BASE_URL}/preferences/favorites`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email: email,
-          favorites: {
-            selected: newFavorites
-          }
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const responseData = await response.json();
+
+      // Reload favorites from backend to ensure consistency
+      await loadFavorites();
     } catch (error) {
+      console.error('Error toggling favorite:', error);
+      // On error, revert to previous state
+      const savedFavorites = localStorage.getItem('initialFavorites');
+      if (savedFavorites) {
+        setFavorites(JSON.parse(savedFavorites));
+      }
     }
   };
 
@@ -402,35 +470,6 @@ export default function App() {
     setCommericalChartData(formattedData.map(item => item.comm_positions_long_all - item.comm_positions_short_all));
     setNonCommercialChartData(formattedData.map(item => item.noncomm_positions_long_all - item.noncomm_positions_short_all));
     setNonReportableChartData(formattedData.map(item => item.nonrept_positions_long_all - item.nonrept_positions_short_all));
-  };
-
-  const loadFavorites = async () => {
-    try {
-      const email = localStorage.getItem('userEmail');
-      if (!email) {
-        return;
-      }
-
-      // Check for initial favorites first
-      const initialFavorites = localStorage.getItem('initialFavorites');
-      if (initialFavorites) {
-        setFavorites(JSON.parse(initialFavorites));
-        // Clear initial favorites after using them
-        localStorage.removeItem('initialFavorites');
-      }
-
-      const response = await fetch(`${API_BASE_URL}/preferences/favorites?email=${encodeURIComponent(email)}`);
-      if (!response.ok) {
-        throw new Error('Failed to load favorites');
-      }
-      const data = await response.json();
-      
-      // Load favorites
-      if (data.favorites && data.favorites.selected) {
-        setFavorites(data.favorites.selected);
-      }
-    } catch (error) {
-    }
   };
 
   // Exchange filter handler
