@@ -22,6 +22,21 @@ export const ALLOWED_EXCHANGES = [
   "NASDAQ FUTURES"
 ];
 
+// Mapping of short codes to full exchange names
+export const EXCHANGE_CODE_MAP = {
+  "CBT": "CHICAGO BOARD OF TRADE",
+  "CME": "CHICAGO MERCANTILE EXCHANGE",
+  "CMX": "COMMODITY EXCHANGE INC.",
+  "E": "CBOE FUTURES EXCHANGE",
+  "FREX": "ERIS FUTURES EXCHANGE",
+  "ICEU": "ICE FUTURES EUROPE",
+  "ICUS": "ICE FUTURES U.S.",
+  "IFED": "ICE FUTURES U.S. ENERGY DIVISION",
+  "MGE": "MINNEAPOLIS GRAIN EXCHANGE",
+  "NODX": "NODAL EXCHANGE",
+  "NYME": "NEW YORK MERCANTILE EXCHANGE"
+};
+
 // Helper function to validate if an exchange is allowed
 export const isValidExchange = (exchange) => {
   // Allow all exchanges

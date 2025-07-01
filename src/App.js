@@ -20,66 +20,10 @@ import { API_BASE_URL } from './config';
 import TradingViewIndicator from './components/TradingView';
 import LineChartWithReferenceLines from './components/LineGraph';
 import { CssBaseline } from '@mui/material';
+import { EXCHANGE_CODE_MAP } from './constants';
 
 // Context to expose toggle function for theme switch
 export const ColorModeContext = createContext({ toggleColorMode: () => {} });
-
-// Utility functions for report dates
-function getPastTuesdays(weeks = 36) {
-  const tuesdays = [];
-  const today = new Date();
-  let currentDate = new Date(today);
-  
-  // Go back to the most recent Tuesday
-  const daysSinceTuesday = (currentDate.getDay() - 2 + 7) % 7;
-  currentDate.setDate(currentDate.getDate() - daysSinceTuesday);
-  
-  // Check if it's after Friday 3:31 PM EST
-  const fridayCheck = new Date(today);
-  // Convert current time to EST
-  const estOptions = { timeZone: 'America/New_York' };
-  const estTime = new Date(fridayCheck.toLocaleString('en-US', estOptions));
-  const isAfterFridayDataRelease = estTime.getDay() === 5 && 
-    (estTime.getHours() > 15 || (estTime.getHours() === 15 && estTime.getMinutes() >= 31)) || 
-    estTime.getDay() === 6 || 
-    estTime.getDay() === 0;
-
-  // If it's not after Friday 3:31 PM EST, skip the current week's Tuesday
-  if (!isAfterFridayDataRelease) {
-    currentDate.setDate(currentDate.getDate() - 7);
-  }
-  
-  // Generate the past Tuesdays
-  for (let i = 0; i < weeks; i++) {
-    tuesdays.push(new Date(currentDate));
-    currentDate.setDate(currentDate.getDate() - 7);
-  }
-  
-  return tuesdays;
-}
-
-async function getThisWeeksTuesday() {
-  const date = new Date();
-  const day = date.getDay();
-  // Calculate days since last Tuesday (2 is Tuesday)
-  const daysSinceTuesday = (day - 2 + 7) % 7;
-  const tuesday = new Date(date);
-  tuesday.setDate(date.getDate() - daysSinceTuesday);
-  return formatDate(tuesday);
-}
-
-async function getLastWeeksTuesday() {
-  const date = new Date();
-  const day = date.getDay();
-  // Calculate days since last Tuesday (2 is Tuesday)
-  const daysSinceTuesday = (day - 2 + 7) % 7;
-  const thisWeekTuesday = new Date(date);
-  thisWeekTuesday.setDate(date.getDate() - daysSinceTuesday);
-  // Subtract 7 days to get last week's Tuesday
-  const lastWeekTuesday = new Date(thisWeekTuesday);
-  lastWeekTuesday.setDate(thisWeekTuesday.getDate() - 7);
-  return formatDate(lastWeekTuesday);
-}
 
 // Format date for API
 function formatDate(date) {
@@ -87,22 +31,37 @@ function formatDate(date) {
     date = new Date(date);
   }
   const pad = n => n.toString().padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T00:00:00.000`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} 00:00:00.000`;
 }
 
-// Add this new function to check data availability
+// Check data availability for a specific date
 async function checkLatestDataAvailability() {
   try {
-    const thisWeekTuesday = await getThisWeeksTuesday();
-    const response = await axios.get(
-      `https://publicreporting.cftc.gov/resource/6dca-aqww.json?$where=report_date_as_yyyy_mm_dd>='${thisWeekTuesday}'&$order=report_date_as_yyyy_mm_dd DESC&$limit=1`
-    );
-    const isAvailable = response.data.length > 0;
+    // Get the most recent date from availableDates
+    const response = await axios.get(`${API_BASE_URL}/api/cftc/dates`);
+    if (!response.data.success || !response.data.dates || response.data.dates.length === 0) {
+      return {
+        isAvailable: false,
+        checkedAt: new Date().toISOString()
+      };
+    }
+
+    const latestDate = response.data.dates[0]; // Dates are sorted in descending order
+    
+    // Try to get data for the latest date
+    const dataResponse = await axios.get(`${API_BASE_URL}/api/cftc/data`, {
+      params: {
+        report_date: latestDate
+      }
+    });
+    
+    const isAvailable = dataResponse.data.data.length > 0;
     return {
       isAvailable,
       checkedAt: new Date().toISOString()
     };
   } catch (error) {
+    console.error('Error checking data availability:', error);
     return {
       isAvailable: false,
       checkedAt: new Date().toISOString()
@@ -110,174 +69,137 @@ async function checkLatestDataAvailability() {
   }
 }
 
+// Get all available report dates for dropdown
+async function getAvailableReportDates() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/cftc/dates`);
+    if (response.data.success && response.data.dates) {
+      // Remove duplicates and sort in descending order
+      const uniqueDates = [...new Set(response.data.dates)]
+        .sort((a, b) => new Date(b) - new Date(a));
+      return uniqueDates;
+    }
+    return [];
+  } catch (error) {
+    console.error('Error fetching available dates:', error);
+    return [];
+  }
+}
+
 // Fetching and processing CFTC data
 async function fetchData(selectedDate = null) {
   let exchangesList = [];
-  let reportDate = selectedDate || await getThisWeeksTuesday();
+  let reportDate = null;
   let isLatestData = true;
   let lastChecked = null;
 
   try {
-    // First check if this week's data is available
-    const availabilityCheck = await checkLatestDataAvailability();
-    lastChecked = availabilityCheck.checkedAt;
-    
     if (!selectedDate) {
-      if (!availabilityCheck.isAvailable) {
-        isLatestData = false;
-        reportDate = await getLastWeeksTuesday();
+      // First try to get the latest available date
+      const availabilityCheck = await checkLatestDataAvailability();
+      lastChecked = availabilityCheck.checkedAt;
+      
+      if (availabilityCheck.isAvailable) {
+        const dates = await getAvailableReportDates();
+        reportDate = dates[0]; // Get the most recent date
+      } else {
+        // If no data available, return error
+        throw new Error('No data available');
       }
     } else {
+      reportDate = selectedDate;
       isLatestData = false;
     }
 
-    // Get only the necessary fields from the initial request
-    const firstResponse = await axios.get(
-      "https://publicreporting.cftc.gov/resource/6dca-aqww.json?$select=cftc_contract_market_code,contract_market_name,market_and_exchange_names,cftc_market_code"
-    );
+    // Get data for the specific report date
+    const response = await axios.get(`${API_BASE_URL}/api/cftc/data`, {
+      params: {
+        report_date: reportDate
+      }
+    });
 
-    // Use a Map to ensure uniqueness by contract_code
-    const dataMap = new Map();
+    const dataMap = [];
     const exchangeSet = new Set();
     
-    // Process requests in batches
-    const batchSize = 500;
-    
-    for (let i = 0; i < firstResponse.data.length; i += batchSize) {
-      const batch = firstResponse.data.slice(i, i + batchSize);
-      
-      // Add a smaller delay between batches
-      if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      
-      // Process each batch
-      const batchResults = await Promise.all(
-        batch.map(async (element) => {
-          try {
-            const response = await axios.get(
-              `https://publicreporting.cftc.gov/resource/6dca-aqww.json?cftc_contract_market_code=${element.cftc_contract_market_code}&report_date_as_yyyy_mm_dd=${formatDate(reportDate)}`
-            );
+    for (const data of response.data.data) {
+      // Ensure all required fields have at least a 0 value
+      const processedData = {
+        ...data,
+        noncomm_positions_long_all: parseInt(data.noncomm_positions_long_all || 0),
+        noncomm_positions_short_all: parseInt(data.noncomm_positions_short_all || 0),
+        comm_positions_long_all: parseInt(data.comm_positions_long_all || 0),
+        comm_positions_short_all: parseInt(data.comm_positions_short_all || 0),
+        nonrept_positions_long_all: parseInt(data.nonrept_positions_long_all || 0),
+        nonrept_positions_short_all: parseInt(data.nonrept_positions_short_all || 0),
+        change_in_noncomm_long_all: parseInt(data.change_in_noncomm_long_all || 0),
+        change_in_noncomm_short_all: parseInt(data.change_in_noncomm_short_all || 0),
+        change_in_comm_long_all: parseInt(data.change_in_comm_long_all || 0),
+        change_in_comm_short_all: parseInt(data.change_in_comm_short_all || 0),
+        change_in_nonrept_long_all: parseInt(data.change_in_nonrept_long_all || 0),
+        change_in_nonrept_short_all: parseInt(data.change_in_nonrept_short_all || 0)
+      };
 
-            if (!response.data.length) return null;
+      // Calculate totals and percentages
+      const commercialTotalPositions = processedData.comm_positions_long_all + processedData.comm_positions_short_all;
+      const commercialPercentageLong = commercialTotalPositions ? processedData.comm_positions_long_all / commercialTotalPositions : 0;
+      const commercialPercentageShort = commercialTotalPositions ? processedData.comm_positions_short_all / commercialTotalPositions : 0;
+      const nonCommercialTotalPositions = processedData.noncomm_positions_long_all + processedData.noncomm_positions_short_all;
+      const nonCommercialPercentageLong = nonCommercialTotalPositions ? processedData.noncomm_positions_long_all / nonCommercialTotalPositions : 0;
+      const nonCommercialPercentageShort = nonCommercialTotalPositions ? processedData.noncomm_positions_short_all / nonCommercialTotalPositions : 0;
+      const nonReptTotalPositions = processedData.nonrept_positions_long_all + processedData.nonrept_positions_short_all;
+      const nonReptPercentageLong = nonReptTotalPositions ? processedData.nonrept_positions_long_all / nonReptTotalPositions : 0;
+      const nonReptPercentageShort = nonReptTotalPositions ? processedData.nonrept_positions_short_all / nonReptTotalPositions : 0;
 
-            const data = response.data[0];
-            if (!data || !data.noncomm_positions_long_all || !data.noncomm_positions_short_all || data.noncomm_positions_long_all === "undefined") {
-              return null;
-            }
+      const obj = {
+        commodity: processedData.contract_market_name,
+        contract_code: processedData.cftc_contract_market_code,
+        market_code: processedData.cftc_market_code,
+        report_date: reportDate,
+        commerical_long: processedData.comm_positions_long_all,
+        commerical_long_change: processedData.change_in_comm_long_all || 0,
+        commerical_short: processedData.comm_positions_short_all,
+        commerical_short_change: processedData.change_in_comm_short_all || 0,
+        commerical_total: commercialTotalPositions,
+        commerical_percentage_long: commercialPercentageLong,
+        commerical_percentage_short: commercialPercentageShort,
+        non_commercial_long: processedData.noncomm_positions_long_all,
+        non_commercial_long_change: processedData.change_in_noncomm_long_all || 0,
+        non_commercial_short: processedData.noncomm_positions_short_all,
+        non_commercial_short_change: processedData.change_in_noncomm_short_all || 0,
+        non_commercial_total: nonCommercialTotalPositions,
+        non_commercial_percentage_long: nonCommercialPercentageLong,
+        non_commercial_percentage_short: nonCommercialPercentageShort,
+        non_reportable_long: processedData.nonrept_positions_long_all,
+        non_reportable_long_change: processedData.change_in_nonrept_long_all || 0,
+        non_reportable_short: processedData.nonrept_positions_short_all,
+        non_reportable_short_change: processedData.change_in_nonrept_short_all || 0,
+        non_reportable_total: nonReptTotalPositions,
+        non_reportable_percentage_long: nonReptPercentageLong,
+        non_reportable_percentage_short: nonReptPercentageShort,
+        total_reportable_long: processedData.tot_rept_positions_long_all || 0,
+        total_reportable_short: processedData.tot_rept_positions_short || 0,
+        total_long: (processedData.nonrept_positions_long_all || 0) + (processedData.tot_rept_positions_long_all || 0),
+        total_short: (processedData.nonrept_positions_short_all || 0) + (processedData.tot_rept_positions_short || 0)
+      };
 
-            // Calculate totals and percentages
-            const commercialTotalPostitions = +data.comm_positions_long_all + +data.comm_positions_short_all;
-            const commercialPercentageLong = +data.comm_positions_long_all / commercialTotalPostitions;
-            const commercialPercentageShort = +data.comm_positions_short_all / commercialTotalPostitions;
-            const nonCommercialTotalPostitions = +data.noncomm_positions_long_all + +data.noncomm_positions_short_all;
-            const nonCommercialPercentageLong = +data.noncomm_positions_long_all / nonCommercialTotalPostitions;
-            const nonCommercialPercentageShort = +data.noncomm_positions_short_all / nonCommercialTotalPostitions;
-            const nonReptTotalPostitions = +data.nonrept_positions_long_all + +data.nonrept_positions_short_all;
-            const nonReptPercentageLong = +data.nonrept_positions_long_all / nonReptTotalPostitions;
-            const nonReptPercentageShort = +data.nonrept_positions_short_all / nonReptTotalPostitions;
-
-            const obj = {
-              commodity: element.contract_market_name,
-              contract_code: element.cftc_contract_market_code,
-              market_and_exchange_name: element.market_and_exchange_names,
-              market_code: element.cftc_market_code,
-              report_date: reportDate,
-              commerical_long: +data.comm_positions_long_all,
-              commerical_long_change: +data.change_in_comm_long_all,
-              commerical_short: +data.comm_positions_short_all,
-              commerical_short_change: +data.change_in_comm_short_all,
-              commerical_total: commercialTotalPostitions,
-              commerical_percentage_long: commercialPercentageLong,
-              commerical_percentage_short: commercialPercentageShort,
-              non_commercial_long: +data.noncomm_positions_long_all,
-              non_commercial_long_change: +data.change_in_noncomm_long_all,
-              non_commercial_short: +data.noncomm_positions_short_all,
-              non_commercial_short_change: +data.change_in_noncomm_short_all,
-              non_commercial_total: nonCommercialTotalPostitions,
-              non_commercial_percentage_long: nonCommercialPercentageLong,
-              non_commercial_percentage_short: nonCommercialPercentageShort,
-              non_reportable_long: +data.nonrept_positions_long_all,
-              non_reportable_long_change: +data.change_in_nonrept_long_all,
-              non_reportable_short: +data.nonrept_positions_short_all,
-              non_reportable_short_change: +data.change_in_nonrept_short_all,
-              non_reportable_total: nonReptTotalPostitions,
-              non_reportable_percentage_long: nonReptPercentageLong,
-              non_reportable_percentage_short: nonReptPercentageShort,
-            };
-
-            return obj;
-          } catch (error) {
-            return null;
-          }
-        })
-      );
-
-      // Filter out null results and add to dataMap
-      const validResults = batchResults.filter(result => result !== null);
-      for (const result of validResults) {
-        dataMap.set(result.contract_code, result);
-      }
-
-      // Update exchangesList
-      for (const element of batch) {
-        // Split on the last hyphen to handle cases where commodity names contain hyphens
-        const lastHyphenIndex = element.market_and_exchange_names.lastIndexOf('-');
-        if (lastHyphenIndex !== -1) {
-          const exchangeName = element.market_and_exchange_names.substring(lastHyphenIndex + 1).trim();
-          const marketCode = element.cftc_market_code?.trim() || '';
-          
-          let exchangeTag;
-
-          // Consolidate exchanges based on their prefix
-          if (marketCode.startsWith('CME')) {
-            exchangeTag = 'CME - CHICAGO MERCANTILE EXCHANGE';
-          } else if (marketCode.startsWith('CBT')) {
-            exchangeTag = 'CBT - CHICAGO BOARD OF TRADE';
-          } else if (marketCode.startsWith('CMX')) {
-            exchangeTag = 'CMX - COMMODITY EXCHANGE INC.';
-          } else if (marketCode.startsWith('NYME')) {
-            exchangeTag = 'NYME - NEW YORK MERCANTILE EXCHANGE';
-          } else if (marketCode.startsWith('MGE')) {
-            exchangeTag = 'MGE - MINNEAPOLIS GRAIN EXCHANGE';
-          } else if (marketCode.startsWith('ICEU')) {
-            exchangeTag = 'ICE - FUTURES EUROPE';
-          } else if (marketCode.startsWith('ICUS')) {
-            exchangeTag = 'ICUS - ICE FUTURES U.S.';
-          } else if (marketCode.startsWith('IFED')) {
-            exchangeTag = 'IFED - ICE FUTURES ENERGY DIV';
-          } else if (marketCode.startsWith('NODX')) {
-            exchangeTag = 'NODX - NODAL EXCHANGE';
-          } else {
-            exchangeTag = `${marketCode} - ${exchangeName}`;
-          }
-          
-          exchangeSet.add(exchangeTag);
-        }
-      }
+      dataMap.push(obj);
+      exchangeSet.add(obj.market_code);
     }
 
-    // Convert Map and Set to arrays
-    const fullList = Array.from(dataMap.values());
-    exchangesList = Array.from(exchangeSet);
-
-    return [
-      exchangesList.sort((a, b) => a.localeCompare(b)),
-      fullList.sort((a, b) => a.commodity.localeCompare(b.commodity)),
+    exchangesList = Array.from(exchangeSet).sort();  // Sort alphabetically
+    
+    const result = {
+      data: dataMap,
+      exchanges: exchangesList,
       reportDate,
       isLatestData,
       lastChecked
-    ];
-
+    };
+    
+    return result;
   } catch (error) {
-    // Return empty data with error state
-    return [
-      [],
-      [],
-      reportDate,
-      false,
-      lastChecked
-    ];
+    console.error('Error in fetchData:', error);
+    throw error;
   }
 }
 
@@ -285,7 +207,6 @@ async function fetchData(selectedDate = null) {
 export default function App() {
   const [mode, setMode] = useState('dark');
   const [authorized, setAuthorization] = useState(() => {
-    // On initial load, check if userEmail exists in localStorage
     return !!localStorage.getItem('userEmail');
   });
   const [error, setError] = useState(null);
@@ -303,7 +224,7 @@ export default function App() {
   const [nonReportableChartData, setNonReportableChartData] = useState([]);
   const [chartDates, setChartDates] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [pastTuesdays] = useState(() => getPastTuesdays());
+  const [availableDates, setAvailableDates] = useState([]);
   const [favorites, setFavorites] = useState(() => {
     const initialFavorites = localStorage.getItem('initialFavorites');
     return initialFavorites ? JSON.parse(initialFavorites) : [];
@@ -329,6 +250,20 @@ export default function App() {
     const email = localStorage.getItem('userEmail');
     setAuthorization(!!email);
   }, []);
+
+  // Load available dates on mount
+  useEffect(() => {
+    const loadAvailableDates = async () => {
+      if (!authorized) return;
+      try {
+        const dates = await getAvailableReportDates();
+        setAvailableDates(dates);
+      } catch (error) {
+        console.error('Error loading available dates:', error);
+      }
+    };
+    loadAvailableDates();
+  }, [authorized]);
   
   // Add a call counter and initial load flag
   const fetchCallCount = React.useRef(0);
@@ -349,46 +284,55 @@ export default function App() {
       
       try {
         setIsLoading(true);
-        const [exchangesList, fullList, reportDate, isLatestData, lastChecked] = await fetchData(selectedDate);
-        
+        const result = await fetchData(selectedDate);
+
         // Load table filters first
         const email = localStorage.getItem('userEmail');
-        let filteredExchanges = exchangesList;
+        let filteredExchanges = result.exchanges;
+        console.log('App - Initial exchanges from result:', result.exchanges);
         
         if (email) {
           try {
-            const response = await fetch(`${API_BASE_URL}/preferences?email=${encodeURIComponent(email)}`, {
-              credentials: 'include'
-            });
-            if (response.ok) {
-              const data = await response.json();
-              if (data.preferences?.selected && data.preferences.selected.length > 0) {
-                filteredExchanges = data.preferences.selected;
-              } else if (data.preferences?.table_filters?.selected && data.preferences.table_filters.selected.length > 0) {
-                filteredExchanges = data.preferences.table_filters.selected;
-              }
+            const response = await axios.get(`${API_BASE_URL}/preferences/table_filters?email=${email}`);
+            console.log('App - Loaded table filters response:', response.data);
+            if (response.data.success && response.data.table_filters && response.data.table_filters.selected) {
+              // Normalize the loaded filters
+              filteredExchanges = response.data.table_filters.selected.map(code => code.trim());
+              console.log('App - Using saved filters:', filteredExchanges);
+            } else {
+              console.log('App - No saved filters, using all exchanges');
             }
           } catch (error) {
+            console.error('Error loading table filters:', error);
           }
         }
 
+        console.log('App - Final filtered exchanges:', filteredExchanges);
+
+        // Filter data based on selected exchanges
+        const filteredData = result.data.filter(item => {
+          const included = filteredExchanges.includes(item.market_code?.trim());
+          console.log(`App - Checking if ${item.market_code} is in filtered exchanges:`, included);
+          return included;
+        });
+
         // Set all states at once to minimize re-renders
-        setExchanges(exchangesList);
+        setExchanges(result.exchanges);
         setDisplayExchanges(filteredExchanges);
-        setFuturesData(fullList);
-        setFilteredData(fullList);
-        setLastUpdated(reportDate);
-        setIsLatestData(isLatestData);
-        setLastChecked(lastChecked);
+        setFuturesData(result.data);
+        setFilteredData(filteredData);
+        setLastUpdated(result.reportDate);
+        setIsLatestData(result.isLatestData);
+        setLastChecked(result.lastChecked);
         
         // Set selectedDate to match the report date on initial load only
         if (!selectedDate && !initialLoadComplete.current) {
           initialLoadComplete.current = true;
-          isInitialDateSet.current = true; // Mark that we're doing the initial date set
-          const newDate = new Date(reportDate).toISOString();
-          setSelectedDate(newDate);
+          isInitialDateSet.current = true;
+          setSelectedDate(result.reportDate);
         }
       } catch (error) {
+        console.error('Error in loadData:', error);
         setError(error.message);
       } finally {
         setIsLoading(false);
@@ -396,7 +340,7 @@ export default function App() {
     };
 
     loadData();
-  }, [authorized]); // Only depend on authorization changes
+  }, [authorized]);
 
   // Handle date changes in a separate effect
   useEffect(() => {
@@ -510,7 +454,9 @@ export default function App() {
           credentials: 'include',
           body: JSON.stringify({
             email: email,
-            selected: newList
+            table_filters: {
+              selected: newList
+            }
           }),
         });
 
@@ -525,17 +471,23 @@ export default function App() {
   // Refresh data handler
   const handleRefresh = async () => {
     fetchCallCount.current += 1;
-
     setIsRefreshing(true);
-    const [exchs, futs, date, latest, checked] = await fetchData(selectedDate);
-    setExchanges(exchs);
-    setDisplayExchanges(exchs);
-    setFuturesData(futs);
-    setFilteredData(futs);
-    setLastUpdated(date);
-    setIsLatestData(latest);
-    setLastChecked(checked);
-    setIsRefreshing(false);
+    
+    try {
+      const result = await fetchData(selectedDate);
+      setExchanges(result.exchanges);
+      setDisplayExchanges(result.exchanges);
+      setFuturesData(result.data);
+      setFilteredData(result.data);
+      setLastUpdated(result.reportDate);
+      setIsLatestData(result.isLatestData);
+      setLastChecked(result.lastChecked);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      setError(error.message);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const handleCommoditySelect = async (marketCode, commodityName) => {
@@ -552,29 +504,61 @@ export default function App() {
 
   const handleDateChange = async (newDate) => {
     fetchCallCount.current += 1;
-
     setIsDateLoading(true);
     setSelectedDate(newDate);
-    const [exchs, futs, date, latest, checked] = await fetchData(newDate);
-    setExchanges(exchs);
-    setDisplayExchanges(exchs);
-    setFuturesData(futs);
-    setFilteredData(futs);
-    setLastUpdated(date);
-    setIsLatestData(latest);
-    setLastChecked(checked);
-    setIsDateLoading(false);
+    
+    try {
+      const result = await fetchData(newDate);
+      setExchanges(result.exchanges);
+      setDisplayExchanges(result.exchanges);
+      setFuturesData(result.data);
+      setFilteredData(result.data);
+      setLastUpdated(result.reportDate);
+      setIsLatestData(result.isLatestData);
+      setLastChecked(result.lastChecked);
+    } catch (error) {
+      console.error('Error changing date:', error);
+      setError(error.message);
+    } finally {
+      setIsDateLoading(false);
+    }
   };
 
   const renderCollapsibleTable = () => {
+
+    // Group data by exchange code and get a sample commodity for each
+    const exchangeGroups = {};
+    filteredData.forEach(item => {
+      if (!item.market_code) return;
+      const code = item.market_code.trim();
+      if (!exchangeGroups[code]) {
+        exchangeGroups[code] = {
+          code,
+          fullName: EXCHANGE_CODE_MAP[code] || code,
+          sampleCommodity: item.commodity
+        };
+      }
+    });
+
+    // Format exchanges with proper names and sort them
+    const formattedExchanges = Object.values(exchangeGroups)
+      .map(({ code, fullName }) => `${code} - ${fullName}`)
+      .sort((a, b) => {
+        // Sort by the full name part after the " - "
+        const aName = a.split(' - ')[1];
+        const bName = b.split(' - ')[1];
+        return aName.localeCompare(bName);
+      });
+
     return (
       <CollapsibleTable
-        key={`table-${favorites.length}`}
+        key={`table-${favorites.length}-${formattedExchanges.length}`}
         futuresData={filteredData}
-        exchanges={displayExchanges}
+        exchanges={formattedExchanges}
         favorites={favorites}
         onToggleFavorite={handleToggleFavorite}
         onCommoditySelect={handleCommoditySelect}
+        displayExchanges={displayExchanges}
       />
     );
   };
@@ -606,7 +590,7 @@ export default function App() {
                         selectedDate={selectedDate}
                         onDateChange={handleDateChange}
                         isDateLoading={isDateLoading}
-                        pastTuesdays={pastTuesdays}
+                        availableDates={availableDates}
                         isLatestData={isLatestData}
                         lastChecked={lastChecked}
                       />

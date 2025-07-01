@@ -138,7 +138,7 @@ const suggestionItemStyles = {
   }
 };
 
-export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = false }) {
+export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = false, isUpdatingPaymentMethod = false }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -409,42 +409,65 @@ export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = 
         throw new Error(paymentMethodError.message);
       }
 
-      const requestData = {
-        email: localStorage.getItem('userEmail'),
-        name: billingDetails.firstName + ' ' + billingDetails.lastName,
-        priceId: plan === 'monthly' ? process.env.REACT_APP_STRIPE_MONTHLY_PRICE_ID : process.env.REACT_APP_STRIPE_ANNUAL_PRICE_ID,
-        paymentMethodId: paymentMethod.id,
-        billingDetails: {
-          address: billingDetails.address,
-          city: billingDetails.city,
-          state: billingDetails.state,
-          country: billingDetails.country,
-          postalCode: billingDetails.postalCode
+      if (isUpdatingPaymentMethod) {
+        // Update payment method only
+        const response = await fetch(`${API_BASE_URL}/update-payment-method`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: localStorage.getItem('userEmail'),
+            paymentMethodId: paymentMethod.id
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to update payment method');
         }
-      };
-      
-      const response = await fetch(`${API_BASE_URL}/create-subscription`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-      });
 
-      const data = await response.json();
+        onSuccess(data);
+      } else {
+        // Create new subscription
+        const requestData = {
+          email: localStorage.getItem('userEmail'),
+          name: billingDetails.firstName + ' ' + billingDetails.lastName,
+          priceId: plan === 'monthly' ? process.env.REACT_APP_STRIPE_MONTHLY_PRICE_ID : process.env.REACT_APP_STRIPE_ANNUAL_PRICE_ID,
+          paymentMethodId: paymentMethod.id,
+          billingDetails: {
+            address: billingDetails.address,
+            city: billingDetails.city,
+            state: billingDetails.state,
+            country: billingDetails.country,
+            postalCode: billingDetails.postalCode
+          }
+        };
+        
+        const response = await fetch(`${API_BASE_URL}/create-subscription`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+        });
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create subscription');
-      }
+        const data = await response.json();
 
-      if (data.requiresAction && data.clientSecret) {
-        const { error: confirmError } = await stripe.confirmCardPayment(data.clientSecret);
-        if (confirmError) {
-          throw new Error(confirmError.message);
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create subscription');
         }
-      }
 
-      onSuccess(data);
+        if (data.requiresAction && data.clientSecret) {
+          const { error: confirmError } = await stripe.confirmCardPayment(data.clientSecret);
+          if (confirmError) {
+            throw new Error(confirmError.message);
+          }
+        }
+
+        onSuccess(data);
+      }
     } catch (err) {
       setError(err.message);
       onError(err.message);
@@ -667,49 +690,53 @@ export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = 
         </Box>
       </Box>
 
-      <Divider sx={{ my: 3 }} />
+      {!isUpdatingPaymentMethod && (
+        <>
+          <Divider sx={{ my: 3 }} />
 
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="subtitle2" gutterBottom>
-          Order Summary
-        </Typography>
-        <Box sx={{ 
-          p: 2, 
-          backgroundColor: '#f8f9fa', 
-          borderRadius: 2,
-          border: '1px solid #e9ecef'
-        }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-            <Typography variant="body2">
-              {plan === 'monthly' ? 'Monthly Plan' : 'Annual Plan'}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Order Summary
             </Typography>
-            <Typography variant="body2" fontWeight={600}>
-              {plan === 'monthly' ? '$4.99' : '$49.99'}
-            </Typography>
-          </Box>
-          {!hasHadTrial && (
-            <>
+            <Box sx={{ 
+              p: 2, 
+              backgroundColor: '#f8f9fa', 
+              borderRadius: 2,
+              border: '1px solid #e9ecef'
+            }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body2" color="success.main">
-                  Free Trial (7 days)
+                <Typography variant="body2">
+                  {plan === 'monthly' ? 'Monthly Plan' : 'Annual Plan'}
                 </Typography>
-                <Typography variant="body2" color="success.main" fontWeight={600}>
-                  -{plan === 'monthly' ? '$4.99' : '$49.99'}
+                <Typography variant="body2" fontWeight={600}>
+                  {plan === 'monthly' ? '$4.99' : '$49.99'}
                 </Typography>
               </Box>
-              <Divider sx={{ my: 1 }} />
-            </>
-          )}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Typography variant="body2" fontWeight={600}>
-              {hasHadTrial ? 'Total Charge' : "Today's Charge"}
-            </Typography>
-            <Typography variant="body2" fontWeight={600} color={hasHadTrial ? "text.primary" : "success.main"}>
-              {hasHadTrial ? (plan === 'monthly' ? '$4.99' : '$49.99') : '$0.00'}
-            </Typography>
+              {!hasHadTrial && (
+                <>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="body2" color="success.main">
+                      Free Trial (7 days)
+                    </Typography>
+                    <Typography variant="body2" color="success.main" fontWeight={600}>
+                      -{plan === 'monthly' ? '$4.99' : '$49.99'}
+                    </Typography>
+                  </Box>
+                  <Divider sx={{ my: 1 }} />
+                </>
+              )}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="body2" fontWeight={600}>
+                  {hasHadTrial ? 'Total Charge' : "Today's Charge"}
+                </Typography>
+                <Typography variant="body2" fontWeight={600} color={hasHadTrial ? "text.primary" : "success.main"}>
+                  {hasHadTrial ? (plan === 'monthly' ? '$4.99' : '$49.99') : '$0.00'}
+                </Typography>
+              </Box>
+            </Box>
           </Box>
-        </Box>
-      </Box>
+        </>
+      )}
 
       <Button
         type="submit"
@@ -733,9 +760,11 @@ export default function StripePayment({ plan, onSuccess, onError, hasHadTrial = 
         ) : (
           <>
             <LockIcon sx={{ mr: 1, fontSize: '1.2rem' }} />
-            {hasHadTrial 
-              ? `Subscribe to ${plan === 'annual' ? 'Annual' : 'Monthly'} Plan`
-              : `Start ${plan === 'annual' ? 'Annual' : 'Monthly'} Plan Trial`}
+            {isUpdatingPaymentMethod 
+              ? 'Update Payment Method'
+              : hasHadTrial 
+                ? `Subscribe to ${plan === 'annual' ? 'Annual' : 'Monthly'} Plan`
+                : `Start ${plan === 'annual' ? 'Annual' : 'Monthly'} Plan Trial`}
           </>
         )}
       </Button>

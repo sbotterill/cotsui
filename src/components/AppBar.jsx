@@ -22,7 +22,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import Profile from './Profile';
-import { ALLOWED_EXCHANGES, isValidExchange } from '../constants';
+import { ALLOWED_EXCHANGES, isValidExchange, EXCHANGE_CODE_MAP } from '../constants';
 
 export default function DrawerAppBar(props) {
   const theme = useTheme();
@@ -54,62 +54,67 @@ export default function DrawerAppBar(props) {
     });
   };
 
+  // Normalize exchange code by trimming and ensuring consistent format
+  const normalizeCode = (code) => {
+    if (!code) return '';
+    return code.trim();
+  };
+
   const handleFuturesFilter = (event) => {
     try {
       const searchValue = event.target.value.trim().toLowerCase();
       setSearchTerm(searchValue);
+      
+      if (!searchValue) {
+        handleClearSearch();
+        return;
+      }
       
       // Filter data based on search term
       const filtered = props.futuresData.filter(row =>
         row.commodity.toLowerCase().includes(searchValue)
       );
 
-      // Get unique exchanges that have matching data
-      const matchingExchanges = new Set(
-        filtered.map(row => {
-          if (!row.market_and_exchange_name) {
-            return null;
-          }
-          const parts = row.market_and_exchange_name.split("-");
-          if (parts.length < 2) {
-            return null;
-          }
-          const exchangeName = parts[1].trim();
-          // Only include if it's one of our allowed exchanges
-          return isValidExchange(exchangeName) ? `${row.market_code?.trim() || ''} - ${exchangeName}` : null;
-        }).filter(Boolean) // Remove null values
-      );
+      // Get unique exchanges from filtered data
+      const matchingExchanges = new Set();
+      filtered.forEach(row => {
+        if (!row.market_code) return;
+        const code = normalizeCode(row.market_code);
+        matchingExchanges.add(code);
+      });
+
+      const matchingExchangesList = Array.from(matchingExchanges);
 
       // Update filtered data
-      props.setFilteredData(filtered.length > 0 ? filtered : props.futuresData);
+      props.setFilteredData(filtered);
       
-      // Update visible exchanges based on search results
-      if (searchValue) {
-        props.onExchangeFilterChange(Array.from(matchingExchanges), false);
-      } else {
-        props.onExchangeFilterChange(props.exchanges, false);
-      }
+      // During search, we want to show matching exchanges but not update the saved preferences
+      // Pass false to prevent saving to server and maintain context menu state
+      props.onExchangeFilterChange(matchingExchangesList, false);
 
       // Show no results message if needed
-      if (searchValue && filtered.length === 0) {
-        setShowNoResults(true);
-        // Hide the message after 3 seconds
-        setTimeout(() => setShowNoResults(false), 3000);
-      } else {
-        setShowNoResults(false);
-      }
+      setShowNoResults(filtered.length === 0);
     } catch (error) {
-      // On error, show all data and exchanges
-      props.setFilteredData(props.futuresData);
-      props.onExchangeFilterChange(props.exchanges, false);
-      setShowNoResults(false);
+      console.error('Error in handleFuturesFilter:', error);
+      // On error, restore all exchanges
+      handleClearSearch();
     }
-  }
+  };
 
   const handleClearSearch = () => {
     setSearchTerm('');
     props.setFilteredData(props.futuresData);
-    props.onExchangeFilterChange(props.exchanges, false);
+    
+    // When clearing search, restore all exchanges from the original list
+    const allExchanges = props.exchanges.map(exchange => {
+      // Handle both formats: either "CODE - NAME" or just "CODE"
+      const parts = exchange.includes(' - ') ? exchange.split(' - ') : [exchange];
+      const code = normalizeCode(parts[0]);
+      return code;
+    });
+    
+    // Pass false to prevent saving to server - only UI state update
+    props.onExchangeFilterChange(allExchanges, false);
     setShowNoResults(false);
   };
 
@@ -166,13 +171,7 @@ export default function DrawerAppBar(props) {
               <Select
                 labelId="date-select-label"
                 id="date-select"
-                value={props.selectedDate ? props.pastTuesdays.find(date => {
-                  const tuesdayDate = new Date(date);
-                  const selectedDate = new Date(props.selectedDate);
-                  return tuesdayDate.getFullYear() === selectedDate.getFullYear() &&
-                         tuesdayDate.getMonth() === selectedDate.getMonth() &&
-                         tuesdayDate.getDate() === selectedDate.getDate();
-                })?.toISOString() || '' : ''}
+                value={props.selectedDate || ''}
                 label="Report Date"
                 onChange={(e) => props.onDateChange(e.target.value)}
                 disabled={props.isDateLoading}
@@ -213,9 +212,9 @@ export default function DrawerAppBar(props) {
                   }
                 }}
               >
-                {props.pastTuesdays.map((tuesday, index) => (
-                  <MenuItem key={index} value={tuesday.toISOString()}>
-                    {formatDateOption(tuesday)}
+                {props.availableDates.map((date, index) => (
+                  <MenuItem key={index} value={date}>
+                    {formatDateOption(new Date(date))}
                   </MenuItem>
                 ))}
               </Select>

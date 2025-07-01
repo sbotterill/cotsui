@@ -14,7 +14,7 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import FavoriteButton from './FavoriteButton';
 import Typography from '@mui/material/Typography';
-import { ALLOWED_EXCHANGES, isValidExchange } from '../constants';
+import { ALLOWED_EXCHANGES, isValidExchange, EXCHANGE_CODE_MAP } from '../constants';
 import Skeleton from '@mui/material/Skeleton';
 
 function formatPercentage(value) {
@@ -95,57 +95,91 @@ function TabPanel({ children, value, index }) {
   );
 }
 
-export default function TabbedTable({
+export default function CollapsibleTable({
   futuresData,
   exchanges,
   favorites,
   onToggleFavorite,
   onCommoditySelect,
+  displayExchanges = [],
 }) {
   const theme = useTheme();
+  const [selectedTab, setSelectedTab] = React.useState(0);
   const [order, setOrder] = React.useState('asc');
   const [orderBy, setOrderBy] = React.useState('commodity');
-  const [selectedTab, setSelectedTab] = React.useState(0);
-  const [selectedCommodity, setSelectedCommodity] = React.useState(null);
-  const [initialLoadDone, setInitialLoadDone] = React.useState(false);
+  const initialLoadDone = React.useRef(false);
   const fmt = new Intl.NumberFormat('en-US');
 
+  // Normalize exchange code by trimming and ensuring consistent format
+  const normalizeCode = (code) => {
+    if (!code) return '';
+    return code.trim();
+  };
+
   // Filter exchanges to only include allowed ones
-  const filteredExchanges = React.useMemo(() => 
-    exchanges.filter(exchange => {
-      // No need to filter anymore, we're handling consolidation in fetchData
-      return true;
-    }), [exchanges]);
+  const filteredExchanges = React.useMemo(() => {
+    console.log('CollapsibleTable - All exchanges:', exchanges);
+    console.log('CollapsibleTable - Display exchanges:', displayExchanges);
 
-  // Handle initial load behavior
+    // First format all exchanges with their full names
+    const formatted = exchanges.map(exchange => {
+      // If the exchange is already formatted (contains " - "), just use it as is
+      if (exchange.includes(" - ")) {
+        return exchange;
+      }
+      const code = normalizeCode(exchange);
+      const fullName = EXCHANGE_CODE_MAP[code] || code;
+      return `${code} - ${fullName}`;
+    });
+
+    console.log('CollapsibleTable - Formatted exchanges:', formatted);
+
+    // Filter to only show exchanges that are in displayExchanges
+    const filtered = formatted.filter(exchange => {
+      const code = normalizeCode(exchange.split(' - ')[0]);
+      const isIncluded = displayExchanges.some(d => normalizeCode(d) === code);
+      console.log(`CollapsibleTable - Comparing exchange ${code} with displayExchanges:`, isIncluded);
+      return isIncluded;
+    });
+
+    console.log('CollapsibleTable - Final filtered exchanges:', filtered);
+
+    // Sort by the exchange code
+    return filtered.sort((a, b) => {
+      const aCode = normalizeCode(a.split(' - ')[0]);
+      const bCode = normalizeCode(b.split(' - ')[0]);
+      return aCode.localeCompare(bCode);
+    });
+  }, [exchanges, displayExchanges]);
+
+  // Initialize selected tab
   React.useEffect(() => {
-    const shouldInitialize = !initialLoadDone && futuresData.length > 0 && filteredExchanges.length > 0;
-    
-    if (shouldInitialize) {
-      const initializeSelection = () => {
-        if (favorites.length > 0) {
-          // If user has favorites, select favorites tab and first favorite item
-          setSelectedTab(0);
-          const firstFavorite = futuresData.find(d => favorites.includes(d.commodity));
-          if (firstFavorite && onCommoditySelect) {
-            onCommoditySelect(firstFavorite.contract_code, firstFavorite.commodity);
-          }
-        } else {
-          // If no favorites, select first exchange tab and first item
-          setSelectedTab(1);
-          const firstExchange = filteredExchanges[0];
-          const firstExchangeData = getFilteredData(firstExchange);
-          if (firstExchangeData.length > 0 && onCommoditySelect) {
-            const firstItem = firstExchangeData[0];
-            onCommoditySelect(firstItem.contract_code, firstItem.commodity);
-          }
-        }
-        setInitialLoadDone(true);
-      };
+    if (!initialLoadDone.current && futuresData?.length > 0 && filteredExchanges.length > 0) {
 
-      initializeSelection();
+      // If no favorites, select first exchange tab
+      const initialTab = favorites.length > 0 ? 0 : 1;
+      setSelectedTab(initialTab);
+      
+      // Select first commodity in the current tab
+      const currentExchange = initialTab === 0 ? 'Favorites' : filteredExchanges[0];
+      const filteredData = getFilteredData(currentExchange);
+      
+      if (filteredData.length > 0) {
+        // Sort the data the same way as in the table
+        const sortedData = [...filteredData].sort((a, b) => {
+          if (b.commodity < a.commodity) return 1;
+          if (b.commodity > a.commodity) return -1;
+          return 0;
+        });
+        
+        // Select the first item after sorting
+        const firstCommodity = sortedData[0];
+        handleRowClick(firstCommodity.commodity);
+      }
+
+      initialLoadDone.current = true;
     }
-  }, [favorites, filteredExchanges, futuresData, onCommoditySelect, initialLoadDone]);
+  }, [futuresData, filteredExchanges, favorites]);
 
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -157,7 +191,7 @@ export default function TabbedTable({
     setSelectedTab(newValue);
   };
 
-  const getFilteredData = (exchange) => {
+  const getFilteredData = (exchange) => {    
     if (!exchange) {
       return [];
     }
@@ -167,21 +201,15 @@ export default function TabbedTable({
       return filtered;
     }
     
-    // Extract the market code from the exchange name (format: "CODE - EXCHANGE NAME")
-    const parts = exchange.split(' - ');
-    if (parts.length < 2) {
-      return [];
-    }
-    
-    const exchangePrefix = parts[0].trim();
-    
-    // Try to match the market code prefix with the data
-    const filtered = futuresData?.filter(d => {
-      const dataMarketCode = d.market_code?.trim() || '';
-      return dataMarketCode.startsWith(exchangePrefix);
+    // Extract the market code from the exchange name (format: "CODE - FULL NAME")
+    const exchangeCode = normalizeCode(exchange.split(' - ')[0]);
+
+    return futuresData?.filter(row => {
+      const rowMarketCode = normalizeCode(row.market_code || '');
+      const matches = rowMarketCode === exchangeCode;
+      
+      return matches;
     }) || [];
-    
-    return filtered;
   };
 
   // Get the current exchange's data
@@ -205,7 +233,22 @@ export default function TabbedTable({
     }
   };
 
-  const renderTable = () => {
+  // Update tab selection when displayExchanges changes
+  React.useEffect(() => {
+    if (selectedTab > 0) {
+      const currentExchange = filteredExchanges[selectedTab - 1];
+      const currentCode = normalizeCode(currentExchange?.split(' - ')[0]);
+      
+      // Check if current tab's exchange is still in displayExchanges
+      const isCurrentExchangeVisible = displayExchanges.some(e => normalizeCode(e) === currentCode);
+      
+      if (!isCurrentExchangeVisible && displayExchanges.length > 0) {
+        setSelectedTab(1);
+      }
+    }
+  }, [displayExchanges, filteredExchanges, selectedTab]);
+
+  const renderTable = () => {    
     return (
       <Table size="small" aria-label="futures data" sx={{ 
         borderCollapse: 'collapse',
@@ -558,6 +601,97 @@ export default function TabbedTable({
     );
   };
 
+  // Render the tabs with cleaner formatting
+  const renderTabs = () => {
+    return (
+      <Tabs 
+        value={selectedTab} 
+        onChange={handleTabChange}
+        variant="scrollable"
+        scrollButtons="auto"
+        sx={{
+          minHeight: '48px',
+          borderBottom: 1,
+          borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
+          '& .MuiTabs-flexContainer': {
+            height: '48px'
+          },
+          '& .MuiTab-root': {
+            color: theme.palette.text.secondary,
+            textTransform: 'none',
+            minWidth: 'auto',
+            minHeight: '48px',
+            padding: '12px 24px',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            '& .market-code': {
+              fontWeight: 600
+            },
+            '&:hover': {
+              color: theme.palette.text.primary,
+              opacity: 1
+            }
+          },
+          '& .Mui-selected': {
+            color: theme.palette.primary.main
+          },
+          '& .MuiTabs-indicator': {
+            backgroundColor: theme.palette.primary.main,
+            height: 2
+          }
+        }}
+      >
+        <Tab 
+          key="favorites" 
+          label={
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1
+            }}>
+              <span>Favorites</span>
+              {favorites.length > 0 && (
+                <Box
+                  sx={{
+                    backgroundColor: theme.palette.mode === 'dark' 
+                      ? 'rgba(255, 255, 255, 0.12)' 
+                      : 'rgba(0, 0, 0, 0.08)',
+                    color: theme.palette.text.primary,
+                    borderRadius: '12px',
+                    padding: '2px 8px',
+                    fontSize: '0.75rem',
+                    lineHeight: 1,
+                    fontWeight: 500
+                  }}
+                >
+                  {favorites.length}
+                </Box>
+              )}
+            </Box>
+          } 
+          id="tab-0" 
+        />
+        {filteredExchanges.map((exchange, index) => {
+          const code = normalizeCode(exchange.split(' - ')[0]);
+          return (
+            <Tab 
+              key={exchange} 
+              label={
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center'
+                }}>
+                  <span className="market-code">{code}</span>
+                </Box>
+              } 
+              id={`tab-${index + 1}`}
+            />
+          );
+        })}
+      </Tabs>
+    );
+  };
+
   return (
     <Box sx={{ 
       width: '100%', 
@@ -565,61 +699,14 @@ export default function TabbedTable({
       flexDirection: 'column',
       height: '45vh',
       borderRadius: 1,
-      overflow: 'hidden' // Prevent content from spilling out
+      overflow: 'hidden'
     }}>
       <Box sx={{ 
         borderBottom: 1, 
         borderColor: 'divider',
         bgcolor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
       }}>
-        <Tabs 
-          value={selectedTab} 
-          onChange={handleTabChange}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            '& .MuiTab-root': {
-              color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-              textTransform: 'none',
-              minWidth: 100,
-              fontSize: '0.875rem',
-            },
-            '& .Mui-selected': {
-              color: theme.palette.primary.main,
-            },
-          }}
-        >
-          <Tab 
-            key="favorites" 
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <span>Favorites</span>
-                {favorites.length > 0 && (
-                  <Box
-                    sx={{
-                      backgroundColor: theme.palette.primary.main,
-                      color: theme.palette.primary.contrastText,
-                      borderRadius: '12px',
-                      padding: '0 8px',
-                      fontSize: '0.75rem',
-                      minWidth: '20px',
-                      height: '20px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {favorites.length}
-                  </Box>
-                )}
-              </Box>
-            } 
-            id="tab-0" 
-          />
-          {filteredExchanges.map((exchange, index) => (
-            <Tab key={exchange} label={exchange} id={`tab-${index + 1}`} />
-          ))}
-        </Tabs>
+        {renderTabs()}
       </Box>
       <TableContainer component={Paper} sx={{ 
         border: 'none',

@@ -2,10 +2,18 @@
 import * as React from 'react';
 import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
-import { Checkbox, FormControlLabel, useTheme, Box } from '@mui/material';
+import MenuItem from '@mui/material/MenuItem';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import { useTheme } from '@mui/material/styles';
+import { Typography, Box, Checkbox, FormControlLabel } from '@mui/material';
 import CustomSnackbar from './Snackbar';
 import { API_BASE_URL } from '../config';
-import FilterListIcon from '@mui/icons-material/FilterList';
+import { EXCHANGE_CODE_MAP } from '../constants';
+import { ListItemIcon } from '@mui/material';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import { Divider } from '@mui/material';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
 export default function BasicMenu({
   commodities,    // full list of sections
@@ -14,101 +22,226 @@ export default function BasicMenu({
 }) {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = React.useState(null);
-  const [snackbarOpen, setSnackbarOpen] = React.useState(false);
-  const [snackbarMessage, setSnackbarMessage] = React.useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = React.useState('success');
+  const [checkedList, setCheckedList] = React.useState(selected);
+  const [showSnackbar, setShowSnackbar] = React.useState(false);
   const open = Boolean(anchorEl);
 
-  // local copy of "what's checked"
-  const [checkedList, setCheckedList] = React.useState(selected);
+  // Normalize exchange code by trimming and ensuring consistent format
+  const normalizeCode = (code) => {
+    if (!code) return '';
+    return code.trim();
+  };
 
-  // if parent ever resets `selected`, copy it in
+  // Format exchange code to include full name
+  const formatExchange = (code) => {
+    if (!code) return '';
+    const cleanCode = normalizeCode(code);
+    const fullName = EXCHANGE_CODE_MAP[cleanCode] || cleanCode;
+    return `${cleanCode} - ${fullName}`;
+  };
+
+  // Convert raw code to formatted string
+  const getFormattedExchange = (code) => {
+    const cleanCode = normalizeCode(code);
+    return formatExchange(cleanCode);
+  };
+
+  // Convert formatted string back to raw code
+  const getRawCode = (formatted) => {
+    if (!formatted) return '';
+    const cleanCode = formatted.split(' - ')[0];
+    return normalizeCode(cleanCode);
+  };
+
+  // Update local state when parent state changes
   React.useEffect(() => {
-    setCheckedList(selected);
+    const normalizedSelected = selected.map(code => normalizeCode(code));
+    setCheckedList(normalizedSelected);  // Store raw codes in state
   }, [selected]);
+  
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+  
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
 
-  const handleClick = (e) => setAnchorEl(e.currentTarget);
-  const handleClose = () => setAnchorEl(null);
+  const handleToggle = (formattedExchange) => {
+    const rawCode = getRawCode(formattedExchange);
+    const normalizedSelected = selected.map(code => normalizeCode(code));
+    const isCurrentlySelected = normalizedSelected.includes(rawCode);
 
-  // toggle one commodity on/off
-  const handleToggle = (commodity) => {
-    // build the new list
-    const next = checkedList.includes(commodity)
-      ? checkedList.filter(c => c !== commodity)
-      : [...checkedList, commodity];
+    // Create new list based on selection
+    const newSelected = isCurrentlySelected
+      ? normalizedSelected.filter(code => code !== rawCode)
+      : [...normalizedSelected, rawCode];
 
-    // sort alphabetically
-    const sorted = [...next].sort((a, b) => a.localeCompare(b));
+    // Sort the new list by full names
+    const sorted = [...newSelected].sort((a, b) => {
+      const aFormatted = getFormattedExchange(a);
+      const bFormatted = getFormattedExchange(b);
+      const aName = aFormatted.split(' - ')[1] || aFormatted;
+      const bName = bFormatted.split(' - ')[1] || bFormatted;
+      return aName.localeCompare(bName);
+    });
 
-    // update both local and parent state, but don't save to server
-    setCheckedList(sorted);
+    // Pass false to prevent saving to server - only UI state update
     onFilterChange(sorted, false);
+  };
+
+  const handleSelectAll = () => {    
+    // Normalize all codes before passing them
+    const normalizedCommodities = commodities.map(code => normalizeCode(code));
+    // Pass false to prevent saving to server - only UI state update
+    onFilterChange(normalizedCommodities, false);
+  };
+
+  const handleClearAll = () => {
+    // Pass false to prevent saving to server - only UI state update
+    onFilterChange([], false);
   };
 
   const handleSavePreferences = async () => {
     try {
       const email = localStorage.getItem('userEmail');
-      if (!email) {
-        setSnackbarOpen(true);
-        setSnackbarMessage('Error: User email not found. Please try logging in again.');
-        setSnackbarSeverity('error');
-        return;
-      }
+      console.log('ContextMenu - Saving preferences, checkedList:', checkedList);
+      
+      const requestBody = {
+        email: email,
+        table_filters: {
+          selected: checkedList
+        }
+      };
+      console.log('ContextMenu - Request body:', requestBody);
 
       const response = await fetch(`${API_BASE_URL}/preferences/table_filters`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
-        body: JSON.stringify({
-          email: email,
-          table_filters: {
-            selected: checkedList
-          }
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to save preferences: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error('Server returned unsuccessful response');
-      }
+      const responseData = await response.json();
+      console.log('ContextMenu - Save response:', responseData);
 
-      setSnackbarMessage('Preferences saved successfully');
-      setSnackbarSeverity('success');
-      setSnackbarOpen(true);
-      handleClose();
+      setShowSnackbar(true);
     } catch (error) {
-      setSnackbarMessage(`Error saving preferences: ${error.message}`);
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
+      console.error('Error saving preferences:', error);
     }
+  };
+
+  // Format and sort commodities list for display
+  const formattedCommodities = React.useMemo(() => {
+    return selected.map(code => getFormattedExchange(normalizeCode(code))).sort((a, b) => {
+      const aName = a.split(' - ')[1];
+      const bName = b.split(' - ')[1];
+      return aName.localeCompare(bName);
+    });
+  }, [selected]);
+
+  // Render menu items
+  const renderItems = () => {
+    return commodities.map((code) => {
+      const cleanCode = normalizeCode(code);
+      const name = EXCHANGE_CODE_MAP[cleanCode] || cleanCode;
+      const formattedExchange = `${cleanCode} - ${name}`;
+      const normalizedSelected = selected.map(s => normalizeCode(s));
+      const isChecked = normalizedSelected.includes(cleanCode);
+
+      return (
+        <Box
+          key={formattedExchange}
+          sx={{
+            borderBottom: 1,
+            borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+            '&:hover': {
+              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)'
+            }
+          }}
+        >
+          <FormControlLabel
+            sx={{
+              pl: 1,
+              pr: 2.5,
+              py: 0.75,
+              width: '100%',
+              margin: 0,
+              '& .MuiFormControlLabel-label': {
+                width: '100%'
+              }
+            }}
+            control={
+              <Checkbox 
+                checked={isChecked}
+                onChange={() => handleToggle(formattedExchange)}
+                size="small"
+                sx={{
+                  py: 0.5,
+                  mr: 1
+                }}
+              />
+            }
+            label={
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column',
+                ml: 0.5
+              }}>
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    fontWeight: 'bold', 
+                    fontSize: '0.875rem',
+                    lineHeight: 1.2
+                  }}
+                >
+                  {cleanCode}
+                </Typography>
+                {name && (
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      color: theme.palette.text.secondary, 
+                      fontSize: '0.75rem',
+                      mt: 0.25,
+                      lineHeight: 1.2
+                    }}
+                  >
+                    {name}
+                  </Typography>
+                )}
+              </Box>
+            }
+          />
+        </Box>
+      );
+    });
   };
 
   return (
     <div>
       <Button
+        id="basic-button"
         aria-controls={open ? 'basic-menu' : undefined}
         aria-haspopup="true"
         aria-expanded={open ? 'true' : undefined}
         onClick={handleClick}
         startIcon={<FilterListIcon />}
         sx={{
-          color: 'inherit',
+          color: theme.palette.text.primary,
           textTransform: 'none',
-          minWidth: 'auto',
-          px: 1,
           '&:hover': {
-            backgroundColor: 'rgba(0, 0, 0, 0.04)'
+            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)'
           }
         }}
       >
-        Filter
+        Filter Exchanges
       </Button>
       <Menu
         id="basic-menu"
@@ -127,35 +260,50 @@ export default function BasicMenu({
         }}
       >
         <Box sx={{ 
+          p: 1, 
+          display: 'flex', 
+          gap: 1, 
+          borderBottom: 1,
+          borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)'
+        }}>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            onClick={handleSelectAll}
+            sx={{
+              flex: 1,
+              borderColor: theme.palette.mode === 'dark' ? '#444' : '#ddd',
+              '&:hover': {
+                borderColor: theme.palette.primary.main,
+                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)'
+              }
+            }}
+          >
+            Select All
+          </Button>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            onClick={handleClearAll}
+            sx={{
+              flex: 1,
+              borderColor: theme.palette.mode === 'dark' ? '#444' : '#ddd',
+              '&:hover': {
+                borderColor: theme.palette.primary.main,
+                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)'
+              }
+            }}
+          >
+            Clear All
+          </Button>
+        </Box>
+        <Box sx={{ 
           overflowY: 'auto', 
           flex: 1,
           borderBottom: 1,
           borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)'
         }}>
-          {commodities.map(commodity => (
-            <FormControlLabel
-              key={commodity}
-              sx={{ 
-                pl: 1,
-                pr: 2.5,
-                width: '100%',
-                margin: 0,
-                '&:hover': {
-                  backgroundColor: theme.palette.mode === 'dark' 
-                    ? 'rgba(255, 255, 255, 0.05)' 
-                    : 'rgba(0, 0, 0, 0.04)'
-                }
-              }}
-              control={
-                <Checkbox
-                  checked={checkedList.includes(commodity)}
-                  onChange={() => handleToggle(commodity)}
-                  size="small"
-                />
-              }
-              label={<span style={{ fontSize: "14px", wordBreak: "normal", whiteSpace: "normal" }}>{commodity}</span>}
-            />
-          ))}
+          {renderItems()}
         </Box>
         <Box sx={{ 
           p: 1, 
@@ -170,9 +318,7 @@ export default function BasicMenu({
               borderColor: theme.palette.mode === 'dark' ? '#444' : '#ddd',
               '&:hover': {
                 borderColor: theme.palette.primary.main,
-                backgroundColor: theme.palette.mode === 'dark' 
-                  ? 'rgba(255, 255, 255, 0.05)' 
-                  : 'rgba(0, 0, 0, 0.04)',
+                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)'
               }
             }}
             onClick={handleSavePreferences}
@@ -182,11 +328,10 @@ export default function BasicMenu({
         </Box>
       </Menu>
       <CustomSnackbar
-        open={snackbarOpen}
-        message={snackbarMessage}
-        severity={snackbarSeverity}
-        onClose={() => setSnackbarOpen(false)}
-        autoHideDuration={3000}
+        open={showSnackbar}
+        onClose={() => setShowSnackbar(false)}
+        message="Preferences saved successfully"
+        severity="success"
       />
     </div>
   );

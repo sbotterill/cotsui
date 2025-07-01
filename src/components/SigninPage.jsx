@@ -230,32 +230,6 @@ export default function SlotsSignIn(props) {
         localStorage.setItem('userName', `${data.first_name} ${data.last_name}`);
         
         try {
-          // Check subscription status first
-          const subscriptionResponse = await fetch(`${API_BASE_URL}/subscription-status?email=${encodeURIComponent(email)}`, {
-            credentials: 'include'
-          });
-          const subscriptionData = await subscriptionResponse.json();
-
-          if (subscriptionResponse.ok) {
-            // Check if user has active subscription or free trial
-            const hasActiveSubscription = subscriptionData.subscription_status === 'active' || 
-                                        subscriptionData.subscription_status === 'trialing' ||
-                                        subscriptionData.trial_status === 'active';
-            
-            const isTrialActive = subscriptionData.trial_status === 'active' && 
-                                new Date(subscriptionData.trial_end) > new Date();
-
-            if (!hasActiveSubscription && !isTrialActive) {
-              // Redirect to subscription page if no active subscription
-              navigate('/subscription');
-              return;
-            }
-          } else {
-            // If subscription check fails, redirect to subscription page
-            navigate('/subscription');
-            return;
-          }
-
           // Load preferences and favorites
           const [prefsResponse, favoritesResponse] = await Promise.all([
             fetch(`${API_BASE_URL}/preferences?email=${encodeURIComponent(email)}`, {
@@ -281,11 +255,21 @@ export default function SlotsSignIn(props) {
           } else {
             localStorage.setItem('initialFavorites', JSON.stringify([]));
           }
+
+          // Check if user needs subscription
+          if (data.needs_subscription) {
+            if (!data.has_active_subscription && !data.is_trialing) {
+              navigate('/subscription');
+              return;
+            }
+          }
+
+          props.setAuthorization(true);
         } catch (prefsError) {
           localStorage.setItem('initialFavorites', JSON.stringify([]));
+          // Still allow login even if preferences loading fails
+          props.setAuthorization(true);
         }
-        
-        props.setAuthorization(true);
       } else {
         setError(data.message || 'Invalid credentials');
       }
