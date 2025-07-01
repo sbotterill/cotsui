@@ -289,30 +289,23 @@ export default function App() {
         // Load table filters first
         const email = localStorage.getItem('userEmail');
         let filteredExchanges = result.exchanges;
-        console.log('App - Initial exchanges from result:', result.exchanges);
         
         if (email) {
           try {
             const response = await axios.get(`${API_BASE_URL}/preferences/table_filters?email=${email}`);
-            console.log('App - Loaded table filters response:', response.data);
             if (response.data.success && response.data.table_filters && response.data.table_filters.selected) {
               // Normalize the loaded filters
               filteredExchanges = response.data.table_filters.selected.map(code => code.trim());
-              console.log('App - Using saved filters:', filteredExchanges);
             } else {
-              console.log('App - No saved filters, using all exchanges');
             }
           } catch (error) {
             console.error('Error loading table filters:', error);
           }
         }
 
-        console.log('App - Final filtered exchanges:', filteredExchanges);
-
         // Filter data based on selected exchanges
         const filteredData = result.data.filter(item => {
           const included = filteredExchanges.includes(item.market_code?.trim());
-          console.log(`App - Checking if ${item.market_code} is in filtered exchanges:`, included);
           return included;
         });
 

@@ -105,7 +105,6 @@ export default function BasicMenu({
   const handleSavePreferences = async () => {
     try {
       const email = localStorage.getItem('userEmail');
-      console.log('ContextMenu - Saving preferences, checkedList:', checkedList);
       
       const requestBody = {
         email: email,
@@ -113,7 +112,6 @@ export default function BasicMenu({
           selected: checkedList
         }
       };
-      console.log('ContextMenu - Request body:', requestBody);
 
       const response = await fetch(`${API_BASE_URL}/preferences/table_filters`, {
         method: 'POST',
@@ -128,7 +126,6 @@ export default function BasicMenu({
       }
 
       const responseData = await response.json();
-      console.log('ContextMenu - Save response:', responseData);
 
       setShowSnackbar(true);
     } catch (error) {

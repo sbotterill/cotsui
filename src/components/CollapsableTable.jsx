@@ -118,8 +118,6 @@ export default function CollapsibleTable({
 
   // Filter exchanges to only include allowed ones
   const filteredExchanges = React.useMemo(() => {
-    console.log('CollapsibleTable - All exchanges:', exchanges);
-    console.log('CollapsibleTable - Display exchanges:', displayExchanges);
 
     // First format all exchanges with their full names
     const formatted = exchanges.map(exchange => {
@@ -132,17 +130,12 @@ export default function CollapsibleTable({
       return `${code} - ${fullName}`;
     });
 
-    console.log('CollapsibleTable - Formatted exchanges:', formatted);
-
     // Filter to only show exchanges that are in displayExchanges
     const filtered = formatted.filter(exchange => {
       const code = normalizeCode(exchange.split(' - ')[0]);
       const isIncluded = displayExchanges.some(d => normalizeCode(d) === code);
-      console.log(`CollapsibleTable - Comparing exchange ${code} with displayExchanges:`, isIncluded);
       return isIncluded;
     });
-
-    console.log('CollapsibleTable - Final filtered exchanges:', filtered);
 
     // Sort by the exchange code
     return filtered.sort((a, b) => {
