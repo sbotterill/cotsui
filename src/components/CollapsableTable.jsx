@@ -19,10 +19,12 @@ import Skeleton from '@mui/material/Skeleton';
 
 function formatPercentage(value) {
   if (value == null) return '-';
-  // Convert to number and format to 1 decimal place
+  // Convert to number and check if it's already a percentage
   const numValue = Number(value);
   if (isNaN(numValue)) return '-';
-  return `${(numValue * 100).toFixed(1)}%`;
+  // If value is already in percentage form (> 1), don't multiply by 100
+  const finalValue = numValue > 1 ? numValue : numValue * 100;
+  return `${finalValue.toFixed(1)}%`;
 }
 
 function getPercentageColor(value) {
@@ -46,7 +48,13 @@ function getPercentageColor(value) {
 function descendingComparator(a, b, orderBy) {
   if (orderBy === 'non_commercial_percentage_long' || 
       orderBy === 'commerical_percentage_long' || 
-      orderBy === 'non_reportable_percentage_long') {
+      orderBy === 'non_reportable_percentage_long' ||
+      orderBy === 'pct_of_oi_noncomm_long_all' ||
+      orderBy === 'pct_of_oi_noncomm_short_all' ||
+      orderBy === 'pct_of_oi_comm_long_all' ||
+      orderBy === 'pct_of_oi_comm_short_all' ||
+      orderBy === 'pct_of_oi_nonrept_long_all' ||
+      orderBy === 'pct_of_oi_nonrept_short_all') {
     // Convert percentage strings to numbers, removing the % sign
     const aValue = parseFloat(a[orderBy]) || 0;
     const bValue = parseFloat(b[orderBy]) || 0;
@@ -318,17 +326,22 @@ export default function CollapsibleTable({
                 Commodity
               </TableSortLabel>
             </TableCell>
-            <TableCell colSpan={6} align="center" sx={{ 
+            <TableCell colSpan={2} align="center" sx={{ 
+              color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+              backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+              paddingLeft: '2px'
+            }}>Open Interest</TableCell>
+            <TableCell colSpan={8} align="center" sx={{ 
               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
               paddingLeft: '2px'
             }}>Non-commercial</TableCell>
-            <TableCell colSpan={6} align="center" sx={{ 
+            <TableCell colSpan={8} align="center" sx={{ 
               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
               paddingLeft: '2px'
             }}>Commercial</TableCell>
-            <TableCell colSpan={6} align="center" sx={{ 
+            <TableCell colSpan={8} align="center" sx={{ 
               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
               paddingLeft: '2px'
@@ -342,7 +355,55 @@ export default function CollapsibleTable({
               height: '50px'
             }
           }}>
-            {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
+            {/* Open Interest Headers */}
+            <TableCell
+              align="center"
+              sx={{
+                color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                minWidth: '70px',
+                maxWidth: '80px',
+                backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                padding: '8px 4px',
+                fontSize: '0.75rem',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              <TableSortLabel
+                active={orderBy === 'open_interest_all'}
+                direction={orderBy === 'open_interest_all' ? order : 'asc'}
+                onClick={() => handleRequestSort('open_interest_all')}
+                sx={{ justifyContent: 'center' }}
+              >
+                Total
+              </TableSortLabel>
+            </TableCell>
+            <TableCell
+              align="center"
+              sx={{
+                color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                minWidth: '60px',
+                maxWidth: '70px',
+                backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                padding: '8px 4px',
+                fontSize: '0.75rem',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              <TableSortLabel
+                active={orderBy === 'change_in_open_interest_all'}
+                direction={orderBy === 'change_in_open_interest_all' ? order : 'asc'}
+                onClick={() => handleRequestSort('change_in_open_interest_all')}
+                sx={{ justifyContent: 'center' }}
+              >
+                Change
+              </TableSortLabel>
+            </TableCell>
+            {/* Non-commercial Headers */}
+            {['Long','Change','Short','Change','Total','% Long','% OI Long','% OI Short'].map((lbl,i) => (
               <TableCell
                 key={`h1-${i}`}
                 align="center"
@@ -359,26 +420,26 @@ export default function CollapsibleTable({
                 }}
               >
                 <TableSortLabel
-                  active={orderBy === `non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}`}
-                  direction={orderBy === `non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}` ? order : 'asc'}
-                  onClick={() => handleRequestSort(`non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}`)}
-                  sx={{
-                    width: '100%',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    paddingRight: '16px',
-                    '& .MuiTableSortLabel-icon': {
-                      position: 'absolute',
-                      right: 0
-                    }
-                  }}
+                  active={orderBy === `non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                    lbl === '% OI Long' ? 'pct_of_oi_noncomm_long_all' :
+                    lbl === '% OI Short' ? 'pct_of_oi_noncomm_short_all' :
+                    lbl.toLowerCase().replace('% ', 'percentage_')}`}
+                  direction={orderBy === `non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                    lbl === '% OI Long' ? 'pct_of_oi_noncomm_long_all' :
+                    lbl === '% OI Short' ? 'pct_of_oi_noncomm_short_all' :
+                    lbl.toLowerCase().replace('% ', 'percentage_')}` ? order : 'asc'}
+                  onClick={() => handleRequestSort(`non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                    lbl === '% OI Long' ? 'pct_of_oi_noncomm_long_all' :
+                    lbl === '% OI Short' ? 'pct_of_oi_noncomm_short_all' :
+                    lbl.toLowerCase().replace('% ', 'percentage_')}`)}
+                  sx={{ justifyContent: 'center' }}
                 >
                   {lbl}
                 </TableSortLabel>
               </TableCell>
             ))}
-            {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
+            {/* Commercial Headers */}
+            {['Long','Change','Short','Change','Total','% Long','% OI Long','% OI Short'].map((lbl,i) => (
               <TableCell
                 key={`h2-${i}`}
                 align="center"
@@ -395,20 +456,30 @@ export default function CollapsibleTable({
                 }}
               >
                 <TableSortLabel
-                  active={orderBy === `commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}`}
-                  direction={orderBy === `commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}` ? order : 'asc'}
-                  onClick={() => handleRequestSort(`commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}`)}
+                  active={orderBy === `commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                    lbl === '% OI Long' ? 'pct_of_oi_comm_long_all' :
+                    lbl === '% OI Short' ? 'pct_of_oi_comm_short_all' :
+                    lbl.toLowerCase().replace('% ', 'percentage_')}`}
+                  direction={orderBy === `commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                    lbl === '% OI Long' ? 'pct_of_oi_comm_long_all' :
+                    lbl === '% OI Short' ? 'pct_of_oi_comm_short_all' :
+                    lbl.toLowerCase().replace('% ', 'percentage_')}` ? order : 'asc'}
+                  onClick={() => handleRequestSort(`commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                    lbl === '% OI Long' ? 'pct_of_oi_comm_long_all' :
+                    lbl === '% OI Short' ? 'pct_of_oi_comm_short_all' :
+                    lbl.toLowerCase().replace('% ', 'percentage_')}`)}
                   sx={{ justifyContent: 'center' }}
                 >
                   {lbl}
                 </TableSortLabel>
               </TableCell>
             ))}
-            {['Long','Change','Short','Change','Total','% Long'].map((lbl,i) => (
-              <TableCell 
-                key={`h3-${i}`} 
+            {/* Non-reportable Headers */}
+            {['Long','Change','Short','Change','Total','% Long','% OI Long','% OI Short'].map((lbl,i) => (
+              <TableCell
+                key={`h3-${i}`}
                 align="center"
-                sx={{ 
+                sx={{
                   color: theme.palette.mode === 'dark' ? '#fff' : '#000',
                   minWidth: lbl === 'Change' ? '60px' : '70px',
                   maxWidth: lbl === 'Change' ? '70px' : '80px',
@@ -421,9 +492,18 @@ export default function CollapsibleTable({
                 }}
               >
                 <TableSortLabel
-                  active={orderBy === `non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}`}
-                  direction={orderBy === `non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}` ? order : 'asc'}
-                  onClick={() => handleRequestSort(`non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : lbl.toLowerCase().replace('% ', 'percentage_')}`)}
+                  active={orderBy === `non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                    lbl === '% OI Long' ? 'pct_of_oi_nonrept_long_all' :
+                    lbl === '% OI Short' ? 'pct_of_oi_nonrept_short_all' :
+                    lbl.toLowerCase().replace('% ', 'percentage_')}`}
+                  direction={orderBy === `non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                    lbl === '% OI Long' ? 'pct_of_oi_nonrept_long_all' :
+                    lbl === '% OI Short' ? 'pct_of_oi_nonrept_short_all' :
+                    lbl.toLowerCase().replace('% ', 'percentage_')}` ? order : 'asc'}
+                  onClick={() => handleRequestSort(`non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                    lbl === '% OI Long' ? 'pct_of_oi_nonrept_long_all' :
+                    lbl === '% OI Short' ? 'pct_of_oi_nonrept_short_all' :
+                    lbl.toLowerCase().replace('% ', 'percentage_')}`)}
                   sx={{ justifyContent: 'center' }}
                 >
                   {lbl}
@@ -433,102 +513,95 @@ export default function CollapsibleTable({
           </TableRow>
         </TableHead>
         <TableBody>
-          {sortedData.map(r => (
-            <TableRow
-              key={r.commodity}
-              onClick={() => handleRowClick(r.commodity)}
-              sx={{
-                height: '30px !important',
-                width: '100px !important',
-                '& td': { 
-                  border: 'none',
-                  transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
-                  position: 'relative',
+          {sortedData.map(r => {
+            return (
+              <TableRow
+                key={r.commodity}
+                onClick={() => handleRowClick(r.commodity)}
+                sx={{
                   height: '30px !important',
-                  padding: '4px', // Reduce padding to help maintain height
-                },
-                '& td:first-of-type': {
-                  padding: '0 10px',
-                },
-                '&:nth-of-type(odd) td': {
-                  backgroundColor: theme.palette.mode === 'dark' ? '#2a2a2a' : '#fafafa',
-                },
-                '&:nth-of-type(even) td': {
-                  backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#ffffff',
-                },
-                '&:hover td': {
-                  backgroundColor: theme.palette.mode === 'dark' ? '#3c3c3c' : '#e0e0e0',
-                  cursor: 'pointer',
-                  boxShadow: `inset 0 0 0 1px ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}`,
-                },
-                '&:hover td:first-of-type': {
-                  boxShadow: `inset 0 0 0 1px ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}, inset 2px 0 0 0 ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}`,
-                },
-                '&:hover td:last-of-type': {
-                  boxShadow: `inset 0 0 0 1px ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}, inset -2px 0 0 0 ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}`,
-                }
-              }}
-            >
-                          <TableCell sx={{ minWidth: '200px', maxWidth: '300px' }}>
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'row',
-                width: '100%',
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-              }}>
-                <Typography 
-                  sx={{ 
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    lineHeight: 1.2,
-                    pr: 1,
-                    fontSize: '0.75rem',
-                    flex: 1
-                  }}
-                >
-                  {r.commodity}
-                </Typography>
-                <FavoriteButton
-                  initial={favorites.includes(r.commodity)}
-                  onToggle={() => onToggleFavorite(r.commodity)}
-                  sx={{ flexShrink: 0 }}
-                />
-              </Box>
-            </TableCell>
+                  width: '100px !important',
+                  '& td': { 
+                    border: 'none',
+                    transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
+                    position: 'relative',
+                    height: '30px !important',
+                    padding: '4px', // Reduce padding to help maintain height
+                  },
+                  '& td:first-of-type': {
+                    padding: '0 10px',
+                  },
+                  '&:nth-of-type(odd) td': {
+                    backgroundColor: theme.palette.mode === 'dark' ? '#2a2a2a' : '#fafafa',
+                  },
+                  '&:nth-of-type(even) td': {
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#ffffff',
+                  },
+                  '&:hover td': {
+                    backgroundColor: theme.palette.mode === 'dark' ? '#3c3c3c' : '#e0e0e0',
+                    cursor: 'pointer',
+                    boxShadow: `inset 0 0 0 1px ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}`,
+                  },
+                  '&:hover td:first-of-type': {
+                    boxShadow: `inset 0 0 0 1px ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}, inset 2px 0 0 0 ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}`,
+                  },
+                  '&:hover td:last-of-type': {
+                    boxShadow: `inset 0 0 0 1px ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}, inset -2px 0 0 0 ${theme.palette.mode === 'dark' ? '#ffd700' : '#1976d2'}`,
+                  }
+                }}
+              >
+                <TableCell sx={{ minWidth: '200px', maxWidth: '300px' }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'row',
+                    width: '100%',
+                    alignItems: 'center', 
+                    justifyContent: 'space-between',
+                  }}>
+                    <Typography 
+                      sx={{ 
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        lineHeight: 1.2,
+                        pr: 1,
+                        fontSize: '0.75rem',
+                        flex: 1
+                      }}
+                    >
+                      {r.commodity}
+                    </Typography>
+                    <FavoriteButton
+                      initial={favorites.includes(r.commodity)}
+                      onToggle={() => onToggleFavorite(r.commodity)}
+                      sx={{ flexShrink: 0 }}
+                    />
+                  </Box>
+                </TableCell>
 
-              {/* Non-commercial */}
-              <TableCell align="center" sx={{ 
-                padding: '8px 4px 8px 10px', 
-                fontSize: '0.75rem',
-                borderLeft: `2px solid ${theme.palette.divider}`,
-                position: 'relative',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  left: 0,
-                  top: '10%',
-                  height: '80%',
-                  width: '1px',
-                  backgroundColor: theme.palette.divider
-                }
-              }}>{fmt.format(r.non_commercial_long)}</TableCell>
-              <TableCell align="center" sx={{ color: r.non_commercial_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
-                {fmt.format(r.non_commercial_long_change)}
-              </TableCell>
-              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_commercial_short)}</TableCell>
-              <TableCell align="center" sx={{ color: r.non_commercial_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
-                {fmt.format(r.non_commercial_short_change)}
-              </TableCell>
-              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_commercial_total)}</TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  color: getPercentageColor(r.non_commercial_percentage_long),
-                  position: 'relative',
-                  padding: '8px 4px',
+                {/* Open Interest */}
+                <TableCell align="center" sx={{ 
+                  padding: '8px 4px 8px 10px', 
                   fontSize: '0.75rem',
+                  borderLeft: `2px solid ${theme.palette.divider}`,
+                  position: 'relative',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    left: 0,
+                    top: '10%',
+                    height: '80%',
+                    width: '1px',
+                    backgroundColor: theme.palette.divider
+                  }
+                }}>
+                  {r.open_interest_all !== undefined && r.open_interest_all !== null ? fmt.format(r.open_interest_all) : '-'}
+                </TableCell>
+                <TableCell align="center" sx={{ 
+                  color: r.change_in_open_interest_all < 0 ? 'red' : 'green', 
+                  padding: '8px 4px', 
+                  fontSize: '0.75rem',
+                  position: 'relative',
                   '&::after': {
                     content: '""',
                     position: 'absolute',
@@ -538,28 +611,47 @@ export default function CollapsibleTable({
                     width: '1px',
                     backgroundColor: theme.palette.divider
                   }
-                }}
-              >
-                {formatPercentage(r.non_commercial_percentage_long)}
-              </TableCell>
+                }}>
+                  {r.change_in_open_interest_all !== undefined && r.change_in_open_interest_all !== null ? fmt.format(r.change_in_open_interest_all) : '-'}
+                </TableCell>
 
-              {/* Commercial */}
-              <TableCell align="center" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_long)}</TableCell>
-              <TableCell align="center" sx={{ color: r.commerical_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
-                {fmt.format(r.commerical_long_change)}
-              </TableCell>
-              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_short)}</TableCell>
-              <TableCell align="center" sx={{ color: r.commerical_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
-                {fmt.format(r.commerical_short_change)}
-              </TableCell>
-              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_total)}</TableCell>
-              <TableCell
-                align="center"
-                sx={{
-                  color: getPercentageColor(r.commerical_percentage_long),
-                  position: 'relative',
-                  padding: '8px 4px',
+                {/* Non-commercial */}
+                <TableCell align="center" sx={{ 
+                  padding: '8px 4px 8px 10px', 
                   fontSize: '0.75rem',
+                  borderLeft: `2px solid ${theme.palette.divider}`,
+                  position: 'relative',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    left: 0,
+                    top: '10%',
+                    height: '80%',
+                    width: '1px',
+                    backgroundColor: theme.palette.divider
+                  }
+                }}>{fmt.format(r.non_commercial_long)}</TableCell>
+                <TableCell align="center" sx={{ color: r.non_commercial_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
+                  {fmt.format(r.non_commercial_long_change)}
+                </TableCell>
+                <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_commercial_short)}</TableCell>
+                <TableCell align="center" sx={{ color: r.non_commercial_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
+                  {fmt.format(r.non_commercial_short_change)}
+                </TableCell>
+                <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>
+                  {fmt.format(r.non_commercial_total)}
+                </TableCell>
+                <TableCell align="center" sx={{ color: getPercentageColor(r.non_commercial_percentage_long), padding: '8px 4px', fontSize: '0.75rem' }}>
+                  {formatPercentage(r.non_commercial_percentage_long)}
+                </TableCell>
+                <TableCell align="center" sx={{ color: getPercentageColor(r.pct_of_oi_noncomm_long_all), padding: '8px 4px', fontSize: '0.75rem' }}>
+                  {formatPercentage(r.pct_of_oi_noncomm_long_all)}
+                </TableCell>
+                <TableCell align="center" sx={{ 
+                  color: getPercentageColor(r.pct_of_oi_noncomm_short_all), 
+                  padding: '8px 4px', 
+                  fontSize: '0.75rem',
+                  position: 'relative',
                   '&::after': {
                     content: '""',
                     position: 'absolute',
@@ -569,26 +661,66 @@ export default function CollapsibleTable({
                     width: '1px',
                     backgroundColor: theme.palette.divider
                   }
-                }}
-              >
-                {formatPercentage(r.commerical_percentage_long)}
-              </TableCell>
+                }}>
+                  {formatPercentage(r.pct_of_oi_noncomm_short_all)}
+                </TableCell>
 
-              {/* Non-reportable */}
-              <TableCell align="center" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_long)}</TableCell>
-              <TableCell align="center" sx={{ color: r.non_reportable_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
-                {fmt.format(r.non_reportable_long_change)}
-              </TableCell>
-              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_short)}</TableCell>
-              <TableCell align="center" sx={{ color: r.non_reportable_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
-                {fmt.format(r.non_reportable_short_change)}
-              </TableCell>
-              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_total)}</TableCell>
-              <TableCell align="center" sx={{ color: getPercentageColor(r.non_reportable_percentage_long), padding: '8px 4px', fontSize: '0.75rem' }}>
-                {formatPercentage(r.non_reportable_percentage_long)}
-              </TableCell>
-            </TableRow>
-          ))}
+                {/* Commercial */}
+                <TableCell align="center" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_long)}</TableCell>
+                <TableCell align="center" sx={{ color: r.commerical_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
+                  {fmt.format(r.commerical_long_change)}
+                </TableCell>
+                <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_short)}</TableCell>
+                <TableCell align="center" sx={{ color: r.commerical_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
+                  {fmt.format(r.commerical_short_change)}
+                </TableCell>
+                <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_total)}</TableCell>
+                <TableCell align="center" sx={{ color: getPercentageColor(r.commerical_percentage_long), padding: '8px 4px', fontSize: '0.75rem' }}>
+                  {formatPercentage(r.commerical_percentage_long)}
+                </TableCell>
+                <TableCell align="center" sx={{ color: getPercentageColor(r.pct_of_oi_comm_long_all), padding: '8px 4px', fontSize: '0.75rem' }}>
+                  {formatPercentage(r.pct_of_oi_comm_long_all)}
+                </TableCell>
+                <TableCell align="center" sx={{ 
+                  color: getPercentageColor(r.pct_of_oi_comm_short_all), 
+                  padding: '8px 4px', 
+                  fontSize: '0.75rem',
+                  position: 'relative',
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    right: 0,
+                    top: '10%',
+                    height: '80%',
+                    width: '1px',
+                    backgroundColor: theme.palette.divider
+                  }
+                }}>
+                  {formatPercentage(r.pct_of_oi_comm_short_all)}
+                </TableCell>
+
+                {/* Non-reportable */}
+                <TableCell align="center" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_long)}</TableCell>
+                <TableCell align="center" sx={{ color: r.non_reportable_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
+                  {fmt.format(r.non_reportable_long_change)}
+                </TableCell>
+                <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_short)}</TableCell>
+                <TableCell align="center" sx={{ color: r.non_reportable_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
+                  {fmt.format(r.non_reportable_short_change)}
+                </TableCell>
+                <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_total)}</TableCell>
+                <TableCell align="center" sx={{ color: getPercentageColor(r.non_reportable_percentage_long), padding: '8px 4px', fontSize: '0.75rem' }}>
+                  {formatPercentage(r.non_reportable_percentage_long)}
+                </TableCell>
+                <TableCell align="center" sx={{ color: getPercentageColor(r.pct_of_oi_nonrept_long_all), padding: '8px 4px', fontSize: '0.75rem' }}>
+                  {formatPercentage(r.pct_of_oi_nonrept_long_all)}
+                </TableCell>
+                <TableCell align="center" sx={{ color: getPercentageColor(r.pct_of_oi_nonrept_short_all), padding: '8px 4px', fontSize: '0.75rem' }}>
+                  {formatPercentage(r.pct_of_oi_nonrept_short_all)}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     );

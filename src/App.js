@@ -136,7 +136,9 @@ async function fetchData(selectedDate = null) {
         change_in_comm_long_all: parseInt(data.change_in_comm_long_all || 0),
         change_in_comm_short_all: parseInt(data.change_in_comm_short_all || 0),
         change_in_nonrept_long_all: parseInt(data.change_in_nonrept_long_all || 0),
-        change_in_nonrept_short_all: parseInt(data.change_in_nonrept_short_all || 0)
+        change_in_nonrept_short_all: parseInt(data.change_in_nonrept_short_all || 0),
+        open_interest_all: parseInt(data.open_interest_all || 0),
+        change_in_open_interest_all: parseInt(data.change_in_open_interest_all || 0)
       };
 
       // Calculate totals and percentages
@@ -155,6 +157,10 @@ async function fetchData(selectedDate = null) {
         contract_code: processedData.cftc_contract_market_code,
         market_code: processedData.cftc_market_code,
         report_date: reportDate,
+        // Open Interest fields
+        open_interest_all: processedData.open_interest_all,
+        change_in_open_interest_all: processedData.change_in_open_interest_all,
+        // Commercial fields
         commerical_long: processedData.comm_positions_long_all,
         commerical_long_change: processedData.change_in_comm_long_all || 0,
         commerical_short: processedData.comm_positions_short_all,
@@ -162,6 +168,7 @@ async function fetchData(selectedDate = null) {
         commerical_total: commercialTotalPositions,
         commerical_percentage_long: commercialPercentageLong,
         commerical_percentage_short: commercialPercentageShort,
+        // Non-commercial fields
         non_commercial_long: processedData.noncomm_positions_long_all,
         non_commercial_long_change: processedData.change_in_noncomm_long_all || 0,
         non_commercial_short: processedData.noncomm_positions_short_all,
@@ -169,6 +176,7 @@ async function fetchData(selectedDate = null) {
         non_commercial_total: nonCommercialTotalPositions,
         non_commercial_percentage_long: nonCommercialPercentageLong,
         non_commercial_percentage_short: nonCommercialPercentageShort,
+        // Non-reportable fields
         non_reportable_long: processedData.nonrept_positions_long_all,
         non_reportable_long_change: processedData.change_in_nonrept_long_all || 0,
         non_reportable_short: processedData.nonrept_positions_short_all,
@@ -176,6 +184,14 @@ async function fetchData(selectedDate = null) {
         non_reportable_total: nonReptTotalPositions,
         non_reportable_percentage_long: nonReptPercentageLong,
         non_reportable_percentage_short: nonReptPercentageShort,
+        // Percentage of Open Interest fields
+        pct_of_oi_noncomm_long_all: parseFloat(processedData.pct_of_oi_noncomm_long_all || 0),
+        pct_of_oi_noncomm_short_all: parseFloat(processedData.pct_of_oi_noncomm_short_all || 0),
+        pct_of_oi_comm_long_all: parseFloat(processedData.pct_of_oi_comm_long_all || 0),
+        pct_of_oi_comm_short_all: parseFloat(processedData.pct_of_oi_comm_short_all || 0),
+        pct_of_oi_nonrept_long_all: parseFloat(processedData.pct_of_oi_nonrept_long_all || 0),
+        pct_of_oi_nonrept_short_all: parseFloat(processedData.pct_of_oi_nonrept_short_all || 0),
+        // Total fields
         total_reportable_long: processedData.tot_rept_positions_long_all || 0,
         total_reportable_short: processedData.tot_rept_positions_short || 0,
         total_long: (processedData.nonrept_positions_long_all || 0) + (processedData.tot_rept_positions_long_all || 0),
