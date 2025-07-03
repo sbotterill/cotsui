@@ -94,6 +94,22 @@ export default function DrawerAppBar(props) {
 
       // Show no results message if needed
       setShowNoResults(filtered.length === 0);
+
+      // Only try to switch tabs if we're in the favorites tab (index 0)
+      if (filtered.length > 0 && props.selectedTab === 0) {
+        const isInFavorites = filtered.some(item => props.favorites.includes(item.commodity));
+        if (!isInFavorites) {
+          // Switch to the first exchange tab that has matches
+          const firstMatchExchange = filtered[0].market_code;
+          const exchangeIndex = props.exchanges.findIndex(e => {
+            const code = e.includes(' - ') ? e.split(' - ')[0].trim() : e.trim();
+            return code === firstMatchExchange;
+          });
+          if (exchangeIndex !== -1) {
+            props.onTabChange(exchangeIndex + 1); // +1 because exchange tabs start at index 1
+          }
+        }
+      }
     } catch (error) {
       console.error('Error in handleFuturesFilter:', error);
       // On error, restore all exchanges

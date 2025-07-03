@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, createContext } from 'react';
 import axios from 'axios';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
@@ -15,6 +15,7 @@ import VerificationPage from './components/VerificationPage';
 import SubscriptionPage from './components/SubscriptionPage';
 import SubscriptionGuard from './components/SubscriptionGuard';
 import ForgotPassword from './components/ForgotPassword';
+import LandingPage from './components/LandingPage';
 import { Box, CircularProgress } from '@mui/material';
 import { API_BASE_URL } from './config';
 import TradingViewIndicator from './components/TradingView';
@@ -245,6 +246,7 @@ export default function App() {
   const [tableFilters, setTableFilters] = useState([]);
   const [isDateLoading, setIsDateLoading] = React.useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedTab, setSelectedTab] = useState(0);
 
   // Theme state & toggle
   const colorMode = useMemo(() => ({
@@ -573,41 +575,40 @@ export default function App() {
   };
 
   const renderCollapsibleTable = () => {
-
-    // Group data by exchange code and get a sample commodity for each
-    const exchangeGroups = {};
-    filteredData.forEach(item => {
-      if (!item.market_code) return;
-      const code = item.market_code.trim();
-      if (!exchangeGroups[code]) {
-        exchangeGroups[code] = {
-          code,
-          fullName: EXCHANGE_CODE_MAP[code] || code,
-          sampleCommodity: item.commodity
-        };
-      }
-    });
-
-    // Format exchanges with proper names and sort them
-    const formattedExchanges = Object.values(exchangeGroups)
-      .map(({ code, fullName }) => `${code} - ${fullName}`)
-      .sort((a, b) => {
-        // Sort by the full name part after the " - "
-        const aName = a.split(' - ')[1];
-        const bName = b.split(' - ')[1];
-        return aName.localeCompare(bName);
-      });
-
     return (
-      <CollapsibleTable
-        key={`table-${favorites.length}-${formattedExchanges.length}`}
-        futuresData={filteredData}
-        exchanges={formattedExchanges}
-        favorites={favorites}
-        onToggleFavorite={handleToggleFavorite}
-        onCommoditySelect={handleCommoditySelect}
-        displayExchanges={displayExchanges}
-      />
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', height: '100%' }}>
+        <DrawerAppBar
+          futuresData={futuresData}
+          setFilteredData={setFilteredData}
+          exchanges={exchanges}
+          displayExchanges={displayExchanges}
+          onExchangeFilterChange={handleExchangeFilterChange}
+          lastUpdated={lastUpdated}
+          selectedDate={selectedDate}
+          onDateChange={handleDateChange}
+          isDateLoading={isDateLoading}
+          availableDates={availableDates}
+          isLatestData={isLatestData}
+          lastChecked={lastChecked}
+          selectedTab={selectedTab}
+          onTabChange={setSelectedTab}
+          favorites={favorites}
+        />
+        {isLoading ? (
+          <CollapsableTableSkeleton />
+        ) : (
+          <CollapsibleTable
+            futuresData={filteredData.length > 0 ? filteredData : futuresData}
+            exchanges={exchanges}
+            favorites={favorites}
+            onToggleFavorite={handleToggleFavorite}
+            onCommoditySelect={handleCommoditySelect}
+            displayExchanges={displayExchanges}
+            selectedTab={selectedTab}
+            onTabChange={setSelectedTab}
+          />
+        )}
+      </Box>
     );
   };
 
@@ -618,10 +619,11 @@ export default function App() {
         <Route path="/verify" element={<VerificationPage />} />
         <Route path="/subscription" element={<SubscriptionPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/" element={
+        <Route path="/sign-in" element={<SlotsSignIn setAuthorization={setAuthorization} />} />
+        <Route path="/dashboard" element={
           <>
             {!authorized ? (
-              <SlotsSignIn setAuthorization={setAuthorization} />
+              <Navigate to="/sign-in" replace />
             ) : (
               <SubscriptionGuard>
                 <ColorModeContext.Provider value={colorMode}>
@@ -641,31 +643,28 @@ export default function App() {
                         availableDates={availableDates}
                         isLatestData={isLatestData}
                         lastChecked={lastChecked}
+                        selectedTab={selectedTab}
+                        onTabChange={setSelectedTab}
+                        favorites={favorites}
                       />
                       <Box
                         component="main"
                         sx={{
                           flexGrow: 1,
-                          pt: { xs: '56px', sm: '64px' }, // Responsive top padding based on AppBar height
-                          px: 2, // Add some horizontal padding
+                          pt: { xs: '56px', sm: '64px' },
+                          px: 2,
                           width: '100%',
-                          overflow: 'hidden' // Prevent any potential scrollbar issues
+                          overflow: 'hidden'
                         }}
                       >
-                        {isLoading ? (
-                          <CollapsableTableSkeleton />
-                        ) : (
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', height: '100%' }}>
-                            {renderCollapsibleTable()}
-                            <LineChartWithReferenceLines 
-                              commericalChartData={commericalChartData} 
-                              nonCommercialChartData={nonCommercialChartData} 
-                              nonReportableChartData={nonReportableChartData} 
-                              chartDates={chartDates}
-                              selectedCommodity={selectedCommodity}
-                            />
-                          </Box>
-                        )}
+                        {renderCollapsibleTable()}
+                        <LineChartWithReferenceLines 
+                          commericalChartData={commericalChartData} 
+                          nonCommercialChartData={nonCommercialChartData} 
+                          nonReportableChartData={nonReportableChartData} 
+                          chartDates={chartDates}
+                          selectedCommodity={selectedCommodity}
+                        />
                       </Box>
                     </Box>
                   </ThemeProvider>
@@ -673,6 +672,18 @@ export default function App() {
               </SubscriptionGuard>
             )}
           </>
+        } />
+        <Route path="/" element={
+          authorized ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <ColorModeContext.Provider value={colorMode}>
+              <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <LandingPage />
+              </ThemeProvider>
+            </ColorModeContext.Provider>
+          )
         } />
       </Routes>
     </Router>

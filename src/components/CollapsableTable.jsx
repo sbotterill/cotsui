@@ -110,9 +110,10 @@ export default function CollapsibleTable({
   onToggleFavorite,
   onCommoditySelect,
   displayExchanges = [],
+  selectedTab,
+  onTabChange
 }) {
   const theme = useTheme();
-  const [selectedTab, setSelectedTab] = React.useState(0);
   const [order, setOrder] = React.useState('asc');
   const [orderBy, setOrderBy] = React.useState('commodity');
   const initialLoadDone = React.useRef(false);
@@ -156,10 +157,9 @@ export default function CollapsibleTable({
   // Initialize selected tab
   React.useEffect(() => {
     if (!initialLoadDone.current && futuresData?.length > 0 && filteredExchanges.length > 0) {
-
       // If no favorites, select first exchange tab
       const initialTab = favorites.length > 0 ? 0 : 1;
-      setSelectedTab(initialTab);
+      onTabChange(initialTab);
       
       // Select first commodity in the current tab
       const currentExchange = initialTab === 0 ? 'Favorites' : filteredExchanges[0];
@@ -189,7 +189,7 @@ export default function CollapsibleTable({
   };
 
   const handleTabChange = (event, newValue) => {
-    setSelectedTab(newValue);
+    onTabChange(newValue);
   };
 
   const getFilteredData = (exchange) => {    
@@ -244,7 +244,7 @@ export default function CollapsibleTable({
       const isCurrentExchangeVisible = displayExchanges.some(e => normalizeCode(e) === currentCode);
       
       if (!isCurrentExchangeVisible && displayExchanges.length > 0) {
-        setSelectedTab(1);
+        onTabChange(1);
       }
     }
   }, [displayExchanges, filteredExchanges, selectedTab]);
