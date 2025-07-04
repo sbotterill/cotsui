@@ -91,7 +91,6 @@ async function getAvailableReportDates() {
 
 // Fetching and processing CFTC data
 async function fetchData(selectedDate = null) {
-  console.log('fetchData called with selectedDate:', selectedDate);
   let exchangesList = [];
   let reportDate = null;
   let isLatestData = true;
@@ -99,46 +98,37 @@ async function fetchData(selectedDate = null) {
 
   try {
     if (!selectedDate) {
-      console.log('No selectedDate, checking latest data availability');
       // First try to get the latest available date
       const availabilityCheck = await checkLatestDataAvailability();
-      console.log('Data availability check result:', availabilityCheck);
       lastChecked = availabilityCheck.checkedAt;
       
       if (availabilityCheck.isAvailable) {
         const dates = await getAvailableReportDates();
-        console.log('Available dates:', dates);
         reportDate = dates[0]; // Get the most recent date
-        console.log('Using most recent date:', reportDate);
       } else {
         // If no data available, return error
-        console.error('No data available from availability check');
         throw new Error('No data available');
       }
     } else {
       reportDate = selectedDate;
       isLatestData = false;
-      console.log('Using provided selectedDate:', reportDate);
     }
 
     // Get data for the specific report date
-    console.log('Fetching CFTC data for report date:', reportDate);
     const response = await axios.get(`${API_BASE_URL}/api/cftc/data`, {
       params: {
         report_date: reportDate
       }
     });
-    console.log('CFTC data response:', response.data);
 
     const dataMap = [];
     const exchangeSet = new Set();
-    
-    console.log('Processing response data, total items:', response.data.data.length);
-    
+        
     for (const data of response.data.data) {      
       // Ensure all required fields have at least a 0 value
       const processedData = {
         ...data,
+        market_code: (data.cftc_market_code || '').trim(),  // Trim market code here
         noncomm_positions_long_all: parseInt(data.noncomm_positions_long_all || 0),
         noncomm_positions_short_all: parseInt(data.noncomm_positions_short_all || 0),
         comm_positions_long_all: parseInt(data.comm_positions_long_all || 0),
@@ -169,7 +159,7 @@ async function fetchData(selectedDate = null) {
       const obj = {
         commodity: processedData.contract_market_name,
         contract_code: processedData.cftc_contract_market_code,
-        market_code: processedData.cftc_market_code,
+        market_code: processedData.market_code,
         report_date: reportDate,
         // Open Interest fields
         open_interest_all: processedData.open_interest_all,
@@ -317,43 +307,23 @@ export default function App() {
           
           // Load table filters
           const email = localStorage.getItem('userEmail');
-          let filteredExchanges = result.exchanges;
+          let filteredExchanges = result.exchanges.map(code => code.trim());  // Trim here
           
           if (email) {
             try {
               const response = await axios.get(`${API_BASE_URL}/preferences/table_filters?email=${email}`);
-              console.log('Table filters response:', response.data);
               if (response.data.success && response.data.table_filters && response.data.table_filters.selected) {
-                filteredExchanges = response.data.table_filters.selected.map(code => code.trim());
+                filteredExchanges = response.data.table_filters.selected.map(code => code.trim());  // And here
               }
             } catch (error) {
               console.error('Error loading table filters:', error);
             }
           }
 
-          console.log('Data filtering:', {
-            availableExchanges: result.exchanges,
-            filteredExchanges,
-            totalDataCount: result.data.length,
-            uniqueMarketCodes: [...new Set(result.data.map(d => d.market_code))]
-          });
-
           // Filter data based on selected exchanges
           const filteredData = result.data.filter(item => {
-            const isIncluded = filteredExchanges.includes(item.market_code?.trim());
-            if (!isIncluded) {
-              console.log('Excluding item:', {
-                marketCode: item.market_code,
-                commodity: item.commodity,
-                filteredExchanges
-              });
-            }
+            const isIncluded = filteredExchanges.includes(item.market_code);  // market_code is already trimmed
             return isIncluded;
-          });
-
-          console.log('After filtering:', {
-            filteredDataCount: filteredData.length,
-            remainingMarketCodes: [...new Set(filteredData.map(d => d.market_code))]
           });
 
           // Set all states at once
@@ -407,7 +377,7 @@ export default function App() {
 
         // Filter data based on selected exchanges
         const filteredData = result.data.filter(item => {
-          return filteredExchanges.includes(item.market_code?.trim());
+          return filteredExchanges.includes(item.market_code);
         });
 
         // Update states
@@ -515,24 +485,13 @@ export default function App() {
   };
 
   const getChartData = async (marketCode) => {
-    console.log('getChartData called for marketCode:', marketCode);
     try {
       const response = await axios.get(
         `https://publicreporting.cftc.gov/resource/6dca-aqww.json?cftc_contract_market_code=${marketCode}&$order=report_date_as_yyyy_mm_dd DESC&$limit=1000`
       );
-      console.log('Chart data API response:', {
-        totalItems: response.data.length,
-        firstItem: response.data[0],
-        lastItem: response.data[response.data.length - 1]
-      });
       
       // Format dates and ensure numeric values
       const formattedData = response.data.map((item, index) => {
-        console.log(`Processing chart item ${index}:`, {
-          date: item.report_date_as_yyyy_mm_dd,
-          comm_long: item.comm_positions_long_all,
-          comm_short: item.comm_positions_short_all
-        });
         
         return {
           ...item,
@@ -553,39 +512,17 @@ export default function App() {
       // Calculate net positions and ensure they are numbers
       const commercialNet = formattedData.map((item, index) => {
         const net = item.comm_positions_long_all - item.comm_positions_short_all;
-        console.log(`Commercial net position ${index}:`, {
-          long: item.comm_positions_long_all,
-          short: item.comm_positions_short_all,
-          net
-        });
         return net;
       });
       
       const nonCommercialNet = formattedData.map((item, index) => {
         const net = item.noncomm_positions_long_all - item.noncomm_positions_short_all;
-        console.log(`Non-Commercial net position ${index}:`, {
-          long: item.noncomm_positions_long_all,
-          short: item.noncomm_positions_short_all,
-          net
-        });
         return net;
       });
       
       const nonReportableNet = formattedData.map((item, index) => {
         const net = item.nonrept_positions_long_all - item.nonrept_positions_short_all;
-        console.log(`Non-Reportable net position ${index}:`, {
-          long: item.nonrept_positions_long_all,
-          short: item.nonrept_positions_short_all,
-          net
-        });
         return net;
-      });
-
-      console.log('Final chart data:', {
-        dates: formattedData.map(item => item.report_date_as_yyyy_mm_dd),
-        commercialNet,
-        nonCommercialNet,
-        nonReportableNet
       });
 
       // Update chart data states
