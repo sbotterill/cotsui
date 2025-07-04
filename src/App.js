@@ -9,7 +9,6 @@ import '@fontsource/roboto/700.css';
 import DrawerAppBar from './components/AppBar';
 import CollapsibleTable, { CollapsableTableSkeleton } from './components/CollapsableTable';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import SlotsSignIn from './components/SigninPage';
 import SignUpPage from './components/SignUpPage';
 import VerificationPage from './components/VerificationPage';
 import SubscriptionPage from './components/SubscriptionPage';
@@ -22,6 +21,9 @@ import TradingViewIndicator from './components/TradingView';
 import LineChartWithReferenceLines from './components/LineGraph';
 import { CssBaseline } from '@mui/material';
 import { EXCHANGE_CODE_MAP } from './constants';
+import SigninPage from './components/SigninPage';
+import Profile from './components/Profile';
+import Loading from './components/Loading';
 
 // Context to expose toggle function for theme switch
 export const ColorModeContext = createContext({ toggleColorMode: () => {} });
@@ -89,6 +91,7 @@ async function getAvailableReportDates() {
 
 // Fetching and processing CFTC data
 async function fetchData(selectedDate = null) {
+  console.log('fetchData called with selectedDate:', selectedDate);
   let exchangesList = [];
   let reportDate = null;
   let isLatestData = true;
@@ -96,33 +99,43 @@ async function fetchData(selectedDate = null) {
 
   try {
     if (!selectedDate) {
+      console.log('No selectedDate, checking latest data availability');
       // First try to get the latest available date
       const availabilityCheck = await checkLatestDataAvailability();
+      console.log('Data availability check result:', availabilityCheck);
       lastChecked = availabilityCheck.checkedAt;
       
       if (availabilityCheck.isAvailable) {
         const dates = await getAvailableReportDates();
+        console.log('Available dates:', dates);
         reportDate = dates[0]; // Get the most recent date
+        console.log('Using most recent date:', reportDate);
       } else {
         // If no data available, return error
+        console.error('No data available from availability check');
         throw new Error('No data available');
       }
     } else {
       reportDate = selectedDate;
       isLatestData = false;
+      console.log('Using provided selectedDate:', reportDate);
     }
 
     // Get data for the specific report date
+    console.log('Fetching CFTC data for report date:', reportDate);
     const response = await axios.get(`${API_BASE_URL}/api/cftc/data`, {
       params: {
         report_date: reportDate
       }
     });
+    console.log('CFTC data response:', response.data);
 
     const dataMap = [];
     const exchangeSet = new Set();
     
-    for (const data of response.data.data) {
+    console.log('Processing response data, total items:', response.data.data.length);
+    
+    for (const data of response.data.data) {      
       // Ensure all required fields have at least a 0 value
       const processedData = {
         ...data,
@@ -262,57 +275,130 @@ export default function App() {
   
   // Add effect to handle authorization changes
   useEffect(() => {
-    const email = localStorage.getItem('userEmail');
-    setAuthorization(!!email);
-  }, []);
+    const checkAuth = () => {
+      const email = localStorage.getItem('userEmail');
+      setAuthorization(!!email);
+    };
 
-  // Load available dates on mount
-  useEffect(() => {
-    const loadAvailableDates = async () => {
-      if (!authorized) return;
-      try {
-        const dates = await getAvailableReportDates();
-        setAvailableDates(dates);
-      } catch (error) {
-        console.error('Error loading available dates:', error);
+    // Check initially
+    checkAuth();
+
+    // Add event listener for storage changes
+    const handleStorageChange = (e) => {
+      if (e.key === 'userEmail') {
+        checkAuth();
       }
     };
-    loadAvailableDates();
-  }, [authorized]);
-  
-  // Add a call counter and initial load flag
-  const fetchCallCount = React.useRef(0);
-  const initialLoadComplete = React.useRef(false);
-  const isInitialDateSet = React.useRef(false);
+    window.addEventListener('storage', handleStorageChange);
 
-  // Load initial data
+    // Cleanup
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  // Load available dates and initial data
   useEffect(() => {
-    const loadData = async () => {
-      if (!authorized) {
-        return;
-      }
-
-      // Skip if this is a redundant call due to selectedDate being set during initial load
-      if (fetchCallCount.current > 0 && !selectedDate) {
-        return;
-      }
+    const loadInitialData = async () => {
+      if (!authorized) return;
       
       try {
         setIsLoading(true);
-        const result = await fetchData(selectedDate);
-
-        // Load table filters first
-        const email = localStorage.getItem('userEmail');
-        let filteredExchanges = result.exchanges;
+        // First get available dates
+        const dates = await getAvailableReportDates();
+        setAvailableDates(dates);
         
-        if (email) {
+        if (dates && dates.length > 0) {
+          // Get the latest date
+          const latestDate = dates[0];
+          
+          // Load data for the latest date
+          const result = await fetchData(latestDate);
+          
+          // Load table filters
+          const email = localStorage.getItem('userEmail');
+          let filteredExchanges = result.exchanges;
+          
+          if (email) {
+            try {
+              const response = await axios.get(`${API_BASE_URL}/preferences/table_filters?email=${email}`);
+              console.log('Table filters response:', response.data);
+              if (response.data.success && response.data.table_filters && response.data.table_filters.selected) {
+                filteredExchanges = response.data.table_filters.selected.map(code => code.trim());
+              }
+            } catch (error) {
+              console.error('Error loading table filters:', error);
+            }
+          }
+
+          console.log('Data filtering:', {
+            availableExchanges: result.exchanges,
+            filteredExchanges,
+            totalDataCount: result.data.length,
+            uniqueMarketCodes: [...new Set(result.data.map(d => d.market_code))]
+          });
+
+          // Filter data based on selected exchanges
+          const filteredData = result.data.filter(item => {
+            const isIncluded = filteredExchanges.includes(item.market_code?.trim());
+            if (!isIncluded) {
+              console.log('Excluding item:', {
+                marketCode: item.market_code,
+                commodity: item.commodity,
+                filteredExchanges
+              });
+            }
+            return isIncluded;
+          });
+
+          console.log('After filtering:', {
+            filteredDataCount: filteredData.length,
+            remainingMarketCodes: [...new Set(filteredData.map(d => d.market_code))]
+          });
+
+          // Set all states at once
+          setExchanges(result.exchanges);
+          setDisplayExchanges(filteredExchanges);
+          setFuturesData(result.data);
+          setFilteredData(filteredData);
+          setLastUpdated(result.reportDate);
+          setIsLatestData(result.isLatestData);
+          setLastChecked(result.lastChecked);
+          setSelectedDate(latestDate);
+          
+          // Load favorites
+          await loadFavorites();
+        }
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+        setError(error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInitialData();
+  }, [authorized]);
+
+  // Handle subsequent date changes
+  useEffect(() => {
+    const handleDateUpdate = async () => {
+      if (!selectedDate || !authorized) return;
+      
+      try {
+        setIsLoading(true);
+        setIsDateLoading(true);
+        const result = await fetchData(selectedDate);
+        
+        // Load table filters
+        const email = localStorage.getItem('userEmail');
+        let filteredExchanges = displayExchanges.length > 0 ? displayExchanges : result.exchanges;
+        
+        if (email && displayExchanges.length === 0) {
           try {
             const response = await axios.get(`${API_BASE_URL}/preferences/table_filters?email=${email}`);
             if (response.data.success && response.data.table_filters && response.data.table_filters.selected) {
-              // Normalize the loaded filters
               filteredExchanges = response.data.table_filters.selected.map(code => code.trim());
-            } else {
-              console.log('App - No saved filters, using all exchanges');
             }
           } catch (error) {
             console.error('Error loading table filters:', error);
@@ -321,11 +407,10 @@ export default function App() {
 
         // Filter data based on selected exchanges
         const filteredData = result.data.filter(item => {
-          const included = filteredExchanges.includes(item.market_code?.trim());
-          return included;
+          return filteredExchanges.includes(item.market_code?.trim());
         });
 
-        // Set all states at once to minimize re-renders
+        // Update states
         setExchanges(result.exchanges);
         setDisplayExchanges(filteredExchanges);
         setFuturesData(result.data);
@@ -333,57 +418,17 @@ export default function App() {
         setLastUpdated(result.reportDate);
         setIsLatestData(result.isLatestData);
         setLastChecked(result.lastChecked);
-        
-        // Set selectedDate to match the report date on initial load only
-        if (!selectedDate && !initialLoadComplete.current) {
-          initialLoadComplete.current = true;
-          isInitialDateSet.current = true;
-          setSelectedDate(result.reportDate);
-        }
-
-        // Load favorites after data is loaded
-        await loadFavorites();
       } catch (error) {
-        console.error('Error in loadData:', error);
+        console.error('Error updating data:', error);
         setError(error.message);
       } finally {
         setIsLoading(false);
+        setIsDateLoading(false);
       }
     };
 
-    loadData();
-  }, [authorized]);
-
-  // Add a separate effect to load favorites when authorization changes
-  useEffect(() => {
-    if (authorized) {
-      loadFavorites();
-    }
-  }, [authorized]);
-
-  // Add effect to reload favorites periodically
-  useEffect(() => {
-    if (!authorized) return;
-
-    const intervalId = setInterval(() => {
-      loadFavorites();
-    }, 60000); // Refresh every minute
-
-    return () => clearInterval(intervalId);
-  }, [authorized]);
-
-  // Handle date changes in a separate effect
-  useEffect(() => {
-    if (selectedDate && initialLoadComplete.current) {
-      if (isInitialDateSet.current) {
-        // If this is the initial date set, just clear the flag and don't reload
-        isInitialDateSet.current = false;
-        return;
-      }
-
-      handleDateChange(selectedDate);
-    }
-  }, [selectedDate]);
+    handleDateUpdate();
+  }, [selectedDate, authorized]);
 
   // Load favorites from backend
   const loadFavorites = async () => {
@@ -470,24 +515,92 @@ export default function App() {
   };
 
   const getChartData = async (marketCode) => {
-    const response = await axios.get(
-      `https://publicreporting.cftc.gov/resource/6dca-aqww.json?cftc_contract_market_code=${marketCode}&$order=report_date_as_yyyy_mm_dd DESC&$limit=1000`
-    );
-    
-    // Format dates to MM/DD/YY
-    const formattedData = response.data.map(item => ({
-      ...item,
-      report_date_as_yyyy_mm_dd: new Date(item.report_date_as_yyyy_mm_dd).toLocaleDateString('en-US', {
-        month: '2-digit',
-        day: '2-digit',
-        year: '2-digit'
-      })
-    }));
+    console.log('getChartData called for marketCode:', marketCode);
+    try {
+      const response = await axios.get(
+        `https://publicreporting.cftc.gov/resource/6dca-aqww.json?cftc_contract_market_code=${marketCode}&$order=report_date_as_yyyy_mm_dd DESC&$limit=1000`
+      );
+      console.log('Chart data API response:', {
+        totalItems: response.data.length,
+        firstItem: response.data[0],
+        lastItem: response.data[response.data.length - 1]
+      });
+      
+      // Format dates and ensure numeric values
+      const formattedData = response.data.map((item, index) => {
+        console.log(`Processing chart item ${index}:`, {
+          date: item.report_date_as_yyyy_mm_dd,
+          comm_long: item.comm_positions_long_all,
+          comm_short: item.comm_positions_short_all
+        });
+        
+        return {
+          ...item,
+          report_date_as_yyyy_mm_dd: new Date(item.report_date_as_yyyy_mm_dd).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          }),
+          comm_positions_long_all: parseInt(item.comm_positions_long_all || 0),
+          comm_positions_short_all: parseInt(item.comm_positions_short_all || 0),
+          noncomm_positions_long_all: parseInt(item.noncomm_positions_long_all || 0),
+          noncomm_positions_short_all: parseInt(item.noncomm_positions_short_all || 0),
+          nonrept_positions_long_all: parseInt(item.nonrept_positions_long_all || 0),
+          nonrept_positions_short_all: parseInt(item.nonrept_positions_short_all || 0)
+        };
+      });
 
-    setChartDates(formattedData.map(item => item.report_date_as_yyyy_mm_dd));
-    setCommericalChartData(formattedData.map(item => item.comm_positions_long_all - item.comm_positions_short_all));
-    setNonCommercialChartData(formattedData.map(item => item.noncomm_positions_long_all - item.noncomm_positions_short_all));
-    setNonReportableChartData(formattedData.map(item => item.nonrept_positions_long_all - item.nonrept_positions_short_all));
+      // Calculate net positions and ensure they are numbers
+      const commercialNet = formattedData.map((item, index) => {
+        const net = item.comm_positions_long_all - item.comm_positions_short_all;
+        console.log(`Commercial net position ${index}:`, {
+          long: item.comm_positions_long_all,
+          short: item.comm_positions_short_all,
+          net
+        });
+        return net;
+      });
+      
+      const nonCommercialNet = formattedData.map((item, index) => {
+        const net = item.noncomm_positions_long_all - item.noncomm_positions_short_all;
+        console.log(`Non-Commercial net position ${index}:`, {
+          long: item.noncomm_positions_long_all,
+          short: item.noncomm_positions_short_all,
+          net
+        });
+        return net;
+      });
+      
+      const nonReportableNet = formattedData.map((item, index) => {
+        const net = item.nonrept_positions_long_all - item.nonrept_positions_short_all;
+        console.log(`Non-Reportable net position ${index}:`, {
+          long: item.nonrept_positions_long_all,
+          short: item.nonrept_positions_short_all,
+          net
+        });
+        return net;
+      });
+
+      console.log('Final chart data:', {
+        dates: formattedData.map(item => item.report_date_as_yyyy_mm_dd),
+        commercialNet,
+        nonCommercialNet,
+        nonReportableNet
+      });
+
+      // Update chart data states
+      setChartDates(formattedData.map(item => item.report_date_as_yyyy_mm_dd));
+      setCommericalChartData(commercialNet);
+      setNonCommercialChartData(nonCommercialNet);
+      setNonReportableChartData(nonReportableNet);
+    } catch (error) {
+      console.error('Error fetching chart data:', error);
+      // Reset chart data on error
+      setChartDates([]);
+      setCommericalChartData([]);
+      setNonCommercialChartData([]);
+      setNonReportableChartData([]);
+    }
   };
 
   // Exchange filter handler
@@ -520,7 +633,6 @@ export default function App() {
 
   // Refresh data handler
   const handleRefresh = async () => {
-    fetchCallCount.current += 1;
     setIsRefreshing(true);
     
     try {
@@ -545,33 +657,8 @@ export default function App() {
     await getChartData(marketCode);
   };
 
-  // Update loading state when data is ready
-  useEffect(() => {
-    if (futuresData.length > 0 && exchanges.length > 0) {
-      setIsLoading(false);
-    }
-  }, [futuresData, exchanges]);
-
   const handleDateChange = async (newDate) => {
-    fetchCallCount.current += 1;
-    setIsDateLoading(true);
     setSelectedDate(newDate);
-    
-    try {
-      const result = await fetchData(newDate);
-      setExchanges(result.exchanges);
-      setDisplayExchanges(result.exchanges);
-      setFuturesData(result.data);
-      setFilteredData(result.data);
-      setLastUpdated(result.reportDate);
-      setIsLatestData(result.isLatestData);
-      setLastChecked(result.lastChecked);
-    } catch (error) {
-      console.error('Error changing date:', error);
-      setError(error.message);
-    } finally {
-      setIsDateLoading(false);
-    }
   };
 
   const renderCollapsibleTable = () => {
@@ -597,16 +684,26 @@ export default function App() {
         {isLoading ? (
           <CollapsableTableSkeleton />
         ) : (
-          <CollapsibleTable
-            futuresData={filteredData.length > 0 ? filteredData : futuresData}
-            exchanges={exchanges}
-            favorites={favorites}
-            onToggleFavorite={handleToggleFavorite}
-            onCommoditySelect={handleCommoditySelect}
-            displayExchanges={displayExchanges}
-            selectedTab={selectedTab}
-            onTabChange={setSelectedTab}
-          />
+          <>
+            {console.log('Data being passed to CollapsibleTable:', {
+              allData: futuresData,
+              filteredData,
+              exchanges,
+              displayExchanges,
+              selectedTab,
+              dataBeingPassed: filteredData.length > 0 ? filteredData : futuresData
+            })}
+            <CollapsibleTable
+              futuresData={filteredData.length > 0 ? filteredData : futuresData}
+              exchanges={exchanges}
+              favorites={favorites}
+              onToggleFavorite={handleToggleFavorite}
+              onCommoditySelect={handleCommoditySelect}
+              displayExchanges={displayExchanges}
+              selectedTab={selectedTab}
+              onTabChange={setSelectedTab}
+            />
+          </>
         )}
       </Box>
     );
@@ -615,11 +712,11 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/signup" element={<SignUpPage setAuthorization={setAuthorization} />} />
         <Route path="/verify" element={<VerificationPage />} />
-        <Route path="/subscription" element={<SubscriptionPage />} />
+        <Route path="/subscription" element={<SubscriptionPage setAuthorization={setAuthorization} />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/sign-in" element={<SlotsSignIn setAuthorization={setAuthorization} />} />
+        <Route path="/sign-in" element={<SigninPage setAuthorization={setAuthorization} />} />
         <Route path="/dashboard" element={
           <>
             {!authorized ? (

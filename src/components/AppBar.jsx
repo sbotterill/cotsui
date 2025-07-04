@@ -29,16 +29,22 @@ export default function DrawerAppBar(props) {
   const [showAlert, setShowAlert] = React.useState(true);
   const [showNoResults, setShowNoResults] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState('');
-  const rawDate = props.lastUpdated;
-  const date = new Date(rawDate);
-  const lastChecked = props.lastChecked ? new Date(props.lastChecked) : null;
+  
+  // Format the date string directly without creating a Date object
+  const formatDateString = (dateStr) => {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-');
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
 
-  const readable = date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  const readable = formatDateString(props.lastUpdated);
+  const lastChecked = props.lastChecked ? new Date(props.lastChecked) : null;
 
   const lastCheckedReadable = lastChecked ? lastChecked.toLocaleTimeString('en-US', {
     hour: '2-digit',
@@ -46,7 +52,10 @@ export default function DrawerAppBar(props) {
     second: '2-digit'
   }) : null;
 
-  const formatDateOption = (date) => {
+  const formatDateOption = (dateStr) => {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-');
+    const date = new Date(year, month - 1, day);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -230,7 +239,7 @@ export default function DrawerAppBar(props) {
               >
                 {props.availableDates.map((date, index) => (
                   <MenuItem key={index} value={date}>
-                    {formatDateOption(new Date(date))}
+                    {formatDateOption(date)}
                   </MenuItem>
                 ))}
               </Select>

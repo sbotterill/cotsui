@@ -62,7 +62,7 @@ const SUBSCRIPTION_PLANS = [
   },
 ];
 
-export default function SubscriptionPage() {
+export default function SubscriptionPage({ setAuthorization }) {
   const navigate = useNavigate();
   const theme = useTheme();
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -113,8 +113,9 @@ export default function SubscriptionPage() {
 
   const handlePaymentSuccess = async (result) => {
     setShowPaymentDialog(false);
-    // Redirect to main app after successful subscription
-    window.location.href = '/';
+    // Update authorization state before redirecting
+    setAuthorization(true);
+    navigate('/dashboard');
   };
 
   const handlePaymentError = (error) => {
@@ -141,8 +142,9 @@ export default function SubscriptionPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Redirect to main app after successful trial creation
-        window.location.href = '/';
+        // Update authorization state before redirecting
+        setAuthorization(true);
+        navigate('/dashboard');
       } else {
         if (data.has_had_trial) {
           setHasHadTrial(true);

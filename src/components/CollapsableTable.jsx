@@ -113,6 +113,14 @@ export default function CollapsibleTable({
   selectedTab,
   onTabChange
 }) {
+  console.log('CollapsibleTable received props:', {
+    futuresDataLength: futuresData?.length,
+    exchangesLength: exchanges?.length,
+    displayExchanges,
+    selectedTab,
+    sampleData: futuresData?.[0]
+  });
+
   const theme = useTheme();
   const [order, setOrder] = React.useState('asc');
   const [orderBy, setOrderBy] = React.useState('commodity');
@@ -122,11 +130,33 @@ export default function CollapsibleTable({
   // Normalize exchange code by trimming and ensuring consistent format
   const normalizeCode = (code) => {
     if (!code) return '';
-    return code.trim();
+    // Log the code at each step of normalization
+    const original = code;
+    const trimmed = code.trim();
+    const noSpaces = trimmed.replace(/\s+/g, '');
+    const upper = noSpaces.toUpperCase();
+    
+    console.log('Code normalization:', {
+      original: original,
+      originalLength: original.length,
+      trimmed: trimmed,
+      trimmedLength: trimmed.length,
+      noSpaces: noSpaces,
+      noSpacesLength: noSpaces.length,
+      upper: upper,
+      upperLength: upper.length,
+      charCodes: Array.from(original).map(c => c.charCodeAt(0))
+    });
+    
+    return upper;
   };
 
   // Filter exchanges to only include allowed ones
   const filteredExchanges = React.useMemo(() => {
+    console.log('Filtering exchanges:', {
+      exchanges,
+      displayExchanges
+    });
 
     // First format all exchanges with their full names
     const formatted = exchanges.map(exchange => {
@@ -139,12 +169,22 @@ export default function CollapsibleTable({
       return `${code} - ${fullName}`;
     });
 
+    console.log('Formatted exchanges:', formatted);
+
     // Filter to only show exchanges that are in displayExchanges
     const filtered = formatted.filter(exchange => {
       const code = normalizeCode(exchange.split(' - ')[0]);
       const isIncluded = displayExchanges.some(d => normalizeCode(d) === code);
+      console.log('Checking exchange inclusion:', {
+        exchange,
+        code,
+        isIncluded,
+        displayExchanges: displayExchanges.map(d => normalizeCode(d))
+      });
       return isIncluded;
     });
+
+    console.log('Final filtered exchanges:', filtered);
 
     // Sort by the exchange code
     return filtered.sort((a, b) => {
@@ -193,30 +233,122 @@ export default function CollapsibleTable({
   };
 
   const getFilteredData = (exchange) => {    
-    if (!exchange) {
-      return [];
-    }
+    if (!exchange) return [];
 
     if (exchange === 'Favorites') {
       const filtered = futuresData?.filter(d => favorites.includes(d.commodity)) || [];
       return filtered;
     }
     
-    // Extract the market code from the exchange name (format: "CODE - FULL NAME")
-    const exchangeCode = normalizeCode(exchange.split(' - ')[0]);
+    // Extract and normalize the exchange code and name
+    const [rawExchangeCode, ...nameParts] = exchange.split(' - ');
+    const exchangeFullName = nameParts.join(' - ');
+    const normalizedExchangeCode = normalizeCode(rawExchangeCode);
+    
+    console.log('Exchange parsing:', {
+      original: exchange,
+      rawExchangeCode: rawExchangeCode,
+      exchangeFullName: exchangeFullName,
+      normalizedExchangeCode: normalizedExchangeCode
+    });
 
-    return futuresData?.filter(row => {
+    // Log all available market codes in the data
+    const uniqueMarketCodes = [...new Set(futuresData?.map(d => d.market_code))];
+    console.log('Available market codes in data:', {
+      uniqueMarketCodes,
+      sampleRows: futuresData?.slice(0, 3).map(row => ({
+        market_code: row.market_code,
+        contract_code: row.contract_code,
+        commodity: row.commodity
+      }))
+    });
+
+    // Get all possible codes for this exchange
+    const targetExchangeCodes = Object.entries(EXCHANGE_CODE_MAP)
+      .map(([code, name]) => {
+        const normalizedCode = normalizeCode(code);
+        const normalizedName = name.toUpperCase().trim();
+        const normalizedFullName = exchangeFullName.toUpperCase().trim();
+        
+        console.log('Exchange name comparison:', {
+          code: code,
+          normalizedCode: normalizedCode,
+          name: name,
+          normalizedName: normalizedName,
+          fullName: exchangeFullName,
+          normalizedFullName: normalizedFullName,
+          matches: normalizedName === normalizedFullName
+        });
+        
+        return {
+          code: normalizedCode,
+          matches: normalizedName === normalizedFullName
+        };
+      })
+      .filter(entry => entry.matches)
+      .map(entry => entry.code);
+
+    console.log('Looking for target codes:', {
+      targetExchangeCodes,
+      normalizedExchangeCode
+    });
+
+    const filtered = futuresData?.filter(row => {
       const rowMarketCode = normalizeCode(row.market_code || '');
-      const matches = rowMarketCode === exchangeCode;
+      const rowContractCode = normalizeCode(row.contract_code || '');
       
-      return matches;
+      const matchesByMarketCode = targetExchangeCodes.includes(rowMarketCode);
+      const matchesByContractCode = rowContractCode.startsWith(normalizedExchangeCode);
+
+      // Log every row's comparison details
+      console.log('Checking row:', {
+        commodity: row.commodity,
+        rowMarketCode,
+        rowContractCode,
+        targetExchangeCodes,
+        normalizedExchangeCode,
+        matchesByMarketCode,
+        matchesByContractCode
+      });
+
+      return matchesByMarketCode || matchesByContractCode;
     }) || [];
+
+    console.log('Filtered results:', {
+      exchangeCode: normalizedExchangeCode,
+      targetCodes: targetExchangeCodes,
+      totalRows: futuresData?.length || 0,
+      matchedRows: filtered.length,
+      sampleMatch: filtered[0]?.commodity,
+      // Log first few unmatched rows for debugging
+      unmatchedSamples: futuresData?.slice(0, 3).map(row => ({
+        commodity: row.commodity,
+        market_code: row.market_code,
+        contract_code: row.contract_code,
+        wouldMatch: {
+          byMarketCode: targetExchangeCodes.includes(normalizeCode(row.market_code || '')),
+          byContractCode: normalizeCode(row.contract_code || '').startsWith(normalizedExchangeCode)
+        }
+      }))
+    });
+
+    return filtered;
   };
 
   // Get the current exchange's data
   const currentExchangeData = React.useMemo(() => {
     const currentExchange = selectedTab === 0 ? 'Favorites' : filteredExchanges[selectedTab - 1];
+    console.log('Getting current exchange data:', {
+      selectedTab,
+      filteredExchanges,
+      currentExchange
+    });
     const data = getFilteredData(currentExchange);
+    console.log('Current exchange data:', {
+      currentExchange,
+      dataLength: data?.length,
+      sampleData: data?.[0]
+    });
     return data;
   }, [futuresData, filteredExchanges, selectedTab, favorites]);
 
@@ -248,6 +380,23 @@ export default function CollapsibleTable({
       }
     }
   }, [displayExchanges, filteredExchanges, selectedTab]);
+
+  // Add this at the start of the component
+  React.useEffect(() => {
+    // Log all unique market codes in the data
+    const uniqueMarketCodes = [...new Set(futuresData?.map(d => d.market_code))];
+    console.log('All unique market codes in data:', uniqueMarketCodes);
+    
+    // Log sample data for each unique market code
+    uniqueMarketCodes.forEach(code => {
+      const sample = futuresData?.find(d => d.market_code === code);
+      console.log(`Sample data for market code ${code}:`, {
+        market_code: sample.market_code,
+        commodity: sample.commodity,
+        contract_code: sample.contract_code
+      });
+    });
+  }, [futuresData]);
 
   const renderTable = () => {    
     return (
@@ -514,6 +663,28 @@ export default function CollapsibleTable({
         </TableHead>
         <TableBody>
           {sortedData.map(r => {
+            console.log('Processing row data:', {
+              original: r,
+              commodity: r.commodity,
+              market_code: r.market_code,
+              totals: r.totals,
+              open_interest: r.open_interest_all,
+              non_commercial: {
+                long: r.non_commercial_long,
+                short: r.non_commercial_short,
+                total: r.non_commercial_total
+              },
+              commercial: {
+                long: r.commerical_long,
+                short: r.commerical_short,
+                total: r.commerical_total
+              },
+              non_reportable: {
+                long: r.non_reportable_long,
+                short: r.non_reportable_short,
+                total: r.non_reportable_total
+              }
+            });
             return (
               <TableRow
                 key={r.commodity}

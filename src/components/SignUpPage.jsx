@@ -33,7 +33,7 @@ const passwordRequirements = [
   { label: 'At least one special character', validator: hasSpecialChar },
 ];
 
-export default function SignUpPage() {
+export default function SignUpPage({ setAuthorization }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -98,9 +98,20 @@ export default function SignUpPage() {
 
       const data = await response.json();
 
-      if (data.success) {
-        // Store email for verification
+      if (response.ok && data.success) {
+        // Store email and name for verification
         localStorage.setItem('userEmail', formData.email);
+        localStorage.setItem('userName', `${formData.firstName} ${formData.lastName}`);
+        
+        // Update authorization state
+        setAuthorization(true);
+        
+        // Dispatch storage event manually since we're in the same window
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'userEmail',
+          newValue: formData.email
+        }));
+        
         // Navigate to verification page
         navigate(`/verify?email=${encodeURIComponent(formData.email)}`);
       } else {

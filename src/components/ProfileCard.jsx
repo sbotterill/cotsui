@@ -150,7 +150,7 @@ export default function ProfileCard({ open, onClose, anchorEl, buttonRef }) {
                 color="primary"
                 onClick={() => {
                   localStorage.clear();
-                  window.location.reload();
+                  window.location.href = '/';
                 }}
               >
                 Sign Out

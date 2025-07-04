@@ -25,15 +25,12 @@ export default function SubscriptionGuard({ children }) {
       const data = await response.json();
 
       if (response.ok) {
-        // Check if user has active subscription or free trial
-        const hasActiveSubscription = data.subscription_status === 'active' || 
-                                    data.subscription_status === 'trialing' ||
-                                    data.trial_status === 'active';
-        
-        const isTrialActive = data.trial_status === 'active' && 
+        // Check if user has active subscription or valid trial
+        const hasActiveSubscription = data.subscription_status === 'active';
+        const hasValidTrial = data.trial_status === 'active' && 
                             new Date(data.trial_end) > new Date();
 
-        if (hasActiveSubscription || isTrialActive) {
+        if (hasActiveSubscription || hasValidTrial) {
           setHasAccess(true);
         } else {
           // Check if user has already had a trial

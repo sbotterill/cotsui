@@ -1,195 +1,48 @@
-import * as React from 'react';
+import React, { useState } from 'react';
 import {
   Button,
   FormControl,
-  Checkbox,
-  FormControlLabel,
-  InputLabel,
-  OutlinedInput,
   TextField,
   InputAdornment,
   Link,
   Alert,
   IconButton,
   Box,
+  Paper,
+  Container,
+  Typography,
 } from '@mui/material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import { AppProvider } from '@toolpad/core/AppProvider';
-import { SignInPage } from '@toolpad/core/SignInPage';
-import { useTheme } from '@mui/material/styles';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
 
-const providers = [{ id: 'credentials', name: 'Email and Password' }];
+export default function SigninPage({ setAuthorization }) {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-function CustomEmailField() {
-  return (
-    <TextField
-      id="input-with-icon-textfield"
-      label="Email"
-      name="email"
-      type="email"
-      size="small"
-      required
-      fullWidth
-      slotProps={{
-        input: {
-          startAdornment: (
-            <InputAdornment position="start">
-              <AccountCircle fontSize="inherit" />
-            </InputAdornment>
-          ),
-        },
-      }}
-      variant="outlined"
-    />
-  );
-}
-
-function CustomPasswordField() {
-  const [showPassword, setShowPassword] = React.useState(false);
-
-  const handleClickShowPassword = () => setShowPassword((show) => !show);
-
-  const handleMouseDownPassword = (event) => {
-    event.preventDefault();
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
-  return (
-    <FormControl sx={{ my: 2 }} fullWidth variant="outlined">
-      <InputLabel size="small" htmlFor="outlined-adornment-password">
-        Password
-      </InputLabel>
-      <OutlinedInput
-        id="outlined-adornment-password"
-        type={showPassword ? 'text' : 'password'}
-        name="password"
-        size="small"
-        required
-        endAdornment={
-          <InputAdornment position="end">
-            <IconButton
-              aria-label="toggle password visibility"
-              onClick={handleClickShowPassword}
-              onMouseDown={handleMouseDownPassword}
-              edge="end"
-              size="small"
-            >
-              {showPassword ? (
-                <VisibilityOff fontSize="inherit" />
-              ) : (
-                <Visibility fontSize="inherit" />
-              )}
-            </IconButton>
-          </InputAdornment>
-        }
-        label="Password"
-      />
-    </FormControl>
-  );
-}
-
-function CustomButton() {
-  return (
-    <Button
-      type="submit"
-      variant="outlined"
-      color="info"
-      size="small"
-      disableElevation
-      fullWidth
-      sx={{ my: 2 }}
-    >
-      Log In
-    </Button>
-  );
-}
-
-function SignUpLink() {
-  return (
-    <Link component={RouterLink} to="/signup" variant="body2">
-      Sign up
-    </Link>
-  );
-}
-
-function ForgotPasswordLink() {
-  return (
-    <Link component={RouterLink} to="/forgot-password" variant="body2">
-      Forgot password?
-    </Link>
-  );
-}
-
-function Title() {
-  return <h2 style={{ marginBottom: 8 }}>Login</h2>;
-}
-
-function Subtitle() {
-  return (
-    <Alert sx={{ mb: 2, px: 1, py: 0.25, width: '100%' }} severity="warning">
-      We are investigating an ongoing outage.
-    </Alert>
-  );
-}
-
-function RememberMeCheckbox() {
-  const theme = useTheme();
-  return (
-    <FormControlLabel
-      label="Remember me"
-      control={
-        <Checkbox
-          name="remember"
-          value="true"
-          color="primary"
-          sx={{ padding: 0.5, '& .MuiSvgIcon-root': { fontSize: 20 } }}
-        />
-      }
-      slotProps={{
-        typography: {
-          color: 'textSecondary',
-          fontSize: theme.typography.pxToRem(14),
-        },
-      }}
-    />
-  );
-}
-
-function ErrorAlert({ error, onClose }) {
-  if (!error) return null;
-  
-  return (
-    <Alert
-      severity="error"
-      sx={{
-        width: '100%',
-        boxShadow: 1,
-        borderRadius: 1,
-        mt: 2
-      }}
-      onClose={onClose}
-    >
-      {error}
-    </Alert>
-  );
-}
-
-export default function SlotsSignIn(props) {
-  const theme = useTheme();
-  const navigate = useNavigate();
-  const [error, setError] = React.useState(null);
-  const [isLoading, setIsLoading] = React.useState(false);
-
-  const handleSignIn = async (provider, formData) => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     try {
       setIsLoading(true);
       setError(null);
       
-      const email = formData.get('email');
-      const password = formData.get('password');
+      const { email, password } = formData;
 
       if (!email || !password) {
         setError('Please enter both email and password');
@@ -214,7 +67,7 @@ export default function SlotsSignIn(props) {
 
       if (!response.ok) {
         if (response.status === 401) {
-          if (data.message.includes('verify your email')) {
+          if (data.message?.includes('verify your email')) {
             navigate(`/verify?email=${encodeURIComponent(email)}`);
             return;
           }
@@ -246,30 +99,25 @@ export default function SlotsSignIn(props) {
 
           if (favoritesResponse.ok) {
             const favoritesData = await favoritesResponse.json();
-            // Store initial favorites in localStorage to ensure they're available on first load
             if (favoritesData.favorites?.selected) {
-              localStorage.setItem('initialFavorites', JSON.stringify(favoritesData.favorites.selected));
-            } else {
-              localStorage.setItem('initialFavorites', JSON.stringify([]));
-            }
-          } else {
-            localStorage.setItem('initialFavorites', JSON.stringify([]));
-          }
-
-          // Check if user needs subscription
-          if (data.needs_subscription) {
-            if (!data.has_active_subscription && !data.is_trialing) {
-              navigate('/subscription');
-              return;
+              localStorage.setItem('favorites', JSON.stringify(favoritesData.favorites.selected));
             }
           }
-
-          props.setAuthorization(true);
-        } catch (prefsError) {
-          localStorage.setItem('initialFavorites', JSON.stringify([]));
-          // Still allow login even if preferences loading fails
-          props.setAuthorization(true);
+        } catch (error) {
+          console.error('Error loading preferences:', error);
         }
+
+        // Set authorization state before navigation
+        setAuthorization(true);
+        
+        // Dispatch storage event manually since we're in the same window
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'userEmail',
+          newValue: email
+        }));
+        
+        navigate('/dashboard');
+        return;
       } else {
         setError(data.message || 'Invalid credentials');
       }
@@ -285,38 +133,93 @@ export default function SlotsSignIn(props) {
   };
 
   return (
-    <AppProvider theme={theme}>
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        minHeight: '100vh'
-      }}>
-        <SignInPage
-          signIn={handleSignIn}
-          sx={{
-            width: '475px',
-            minHeight: '600px',
-            padding: '32px',
-          }}
-          slots={{
-            title: Title,
-            emailField: CustomEmailField,
-            passwordField: CustomPasswordField,
-            submitButton: CustomButton,
-            signUpLink: SignUpLink,
-            rememberMe: RememberMeCheckbox,
-            forgotPasswordLink: ForgotPasswordLink,
-            subtitle: () => <ErrorAlert error={error} onClose={() => setError(null)} />
-          }}
-          slotProps={{ 
-            form: { noValidate: true },
-            submitButton: { disabled: isLoading }
-          }}
-          providers={providers}
-        />
-      </div>
-    </AppProvider>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        py: 4,
+      }}
+    >
+      <Container maxWidth="xs">
+        <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+          <Typography variant="h5" component="h1" gutterBottom align="center">
+            Sign In
+          </Typography>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
+
+          <Box component="form" onSubmit={handleSubmit}>
+            <TextField
+              fullWidth
+              label="Email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              margin="normal"
+              required
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <AccountCircle />
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            <FormControl fullWidth margin="normal" variant="outlined">
+              <TextField
+                fullWidth
+                label="Password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={handleChange}
+                required
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={() => setShowPassword(!showPassword)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </FormControl>
+
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              sx={{ mt: 3, mb: 2 }}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Signing in...' : 'Sign In'}
+            </Button>
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+              <Link component={RouterLink} to="/signup" variant="body2">
+                Don't have an account? Sign Up
+              </Link>
+              <Link component={RouterLink} to="/forgot-password" variant="body2">
+                Forgot password?
+              </Link>
+            </Box>
+          </Box>
+        </Paper>
+      </Container>
+    </Box>
   );
 }
