@@ -135,7 +135,7 @@ export default function LandingPage() {
               variant="body1"
               sx={{
                 fontSize: { xs: '0.9rem', md: '1.1rem' },
-                mb: 4,
+                mb: 24,
                 maxWidth: '800px',
                 mx: 'auto',
                 color: '#fff',
