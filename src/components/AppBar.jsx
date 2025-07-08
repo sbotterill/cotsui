@@ -71,8 +71,9 @@ export default function DrawerAppBar(props) {
 
   const handleFuturesFilter = (event) => {
     try {
-      const searchValue = event.target.value.trim().toLowerCase();
-      setSearchTerm(searchValue);
+      // Don't trim the search value immediately, only lowercase it
+      const searchValue = event.target.value.toLowerCase();
+      setSearchTerm(event.target.value); // Store the original value with spaces
       
       if (!searchValue) {
         handleClearSearch();
