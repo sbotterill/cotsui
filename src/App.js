@@ -145,6 +145,12 @@ async function fetchData(selectedDate = null) {
         change_in_open_interest_all: parseInt(data.change_in_open_interest_all || 0)
       };
 
+      // Consolidate ICE exchanges
+      const marketCode = processedData.market_code;
+      if (marketCode === 'ICEU' || marketCode === 'ICUS' || marketCode === 'IFED') {
+        processedData.market_code = 'ICE';
+      }
+
       // Calculate totals and percentages
       const commercialTotalPositions = processedData.comm_positions_long_all + processedData.comm_positions_short_all;
       const commercialPercentageLong = commercialTotalPositions ? processedData.comm_positions_long_all / commercialTotalPositions : 0;
@@ -321,22 +327,30 @@ export default function App() {
             }
           }
 
-          // Filter data based on selected exchanges
-          const filteredData = result.data.filter(item => {
-            const isIncluded = filteredExchanges.includes(item.market_code);  // market_code is already trimmed
-            return isIncluded;
-          });
-
-          // Set all states at once
+          // Set the complete data first
+          setFuturesData(result.data);
           setExchanges(result.exchanges);
           setDisplayExchanges(filteredExchanges);
           setUserExchanges(filteredExchanges);
-          setFuturesData(result.data);
-          setFilteredData(filteredData);
           setLastUpdated(result.reportDate);
           setIsLatestData(result.isLatestData);
           setLastChecked(result.lastChecked);
           setSelectedDate(latestDate);
+
+          // Then filter from the complete dataset
+          const filteredData = result.data.filter(item => {
+            const marketCode = item.market_code;
+            // Special handling for ICE exchanges
+            if (filteredExchanges.includes('ICE')) {
+              if (marketCode === 'ICEU' || marketCode === 'ICUS' || marketCode === 'IFED' || marketCode === 'ICE') {
+                return true;
+              }
+            }
+            return filteredExchanges.includes(marketCode);
+          });
+
+          // Set filtered data after
+          setFilteredData(filteredData);
           
           // Load favorites
           await loadFavorites();
@@ -377,19 +391,28 @@ export default function App() {
           }
         }
 
-        // Filter data based on selected exchanges
-        const filteredData = result.data.filter(item => {
-          return filteredExchanges.includes(item.market_code);
-        });
-
-        // Update states
+        // Set complete data first
+        setFuturesData(result.data);
         setExchanges(result.exchanges);
         setDisplayExchanges(filteredExchanges);
-        setFuturesData(result.data);
-        setFilteredData(filteredData);
         setLastUpdated(result.reportDate);
         setIsLatestData(result.isLatestData);
         setLastChecked(result.lastChecked);
+
+        // Then filter from complete dataset
+        const filteredData = result.data.filter(item => {
+          const marketCode = item.market_code;
+          // Special handling for ICE exchanges
+          if (filteredExchanges.includes('ICE')) {
+            if (marketCode === 'ICEU' || marketCode === 'ICUS' || marketCode === 'IFED' || marketCode === 'ICE') {
+              return true;
+            }
+          }
+          return filteredExchanges.includes(marketCode);
+        });
+
+        // Set filtered data after
+        setFilteredData(filteredData);
       } catch (error) {
         console.error('Error updating data:', error);
         setError(error.message);
@@ -545,6 +568,20 @@ export default function App() {
   // Exchange filter handler
   const handleExchangeFilterChange = async (newList, shouldSaveToServer = true) => {
     setDisplayExchanges(newList);
+
+    // Always filter from the complete data set
+    const newFilteredData = futuresData.filter(item => {
+      const marketCode = item.market_code;
+      // Special handling for ICE exchanges
+      if (newList.includes('ICE')) {
+        if (marketCode === 'ICEU' || marketCode === 'ICUS' || marketCode === 'IFED' || marketCode === 'ICE') {
+          return true;
+        }
+      }
+      return newList.includes(marketCode);
+    });
+    setFilteredData(newFilteredData);
+
     if (shouldSaveToServer) {
       try {
         const email = localStorage.getItem('userEmail');

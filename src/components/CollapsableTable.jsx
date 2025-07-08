@@ -121,6 +121,17 @@ export default function CollapsibleTable({
   const initialLoadDone = React.useRef(false);
   const fmt = new Intl.NumberFormat('en-US');
 
+  // Debug log for props
+  React.useEffect(() => {
+    console.log('CollapsibleTable Props:', {
+      futuresData: futuresData?.length,
+      filteredFuturesData: filteredFuturesData?.length,
+      exchanges,
+      displayExchanges,
+      selectedTab
+    });
+  }, [futuresData, filteredFuturesData, exchanges, displayExchanges, selectedTab]);
+
   // Normalize exchange code by trimming and ensuring consistent format
   const normalizeCode = (code) => {
     if (!code) return '';
@@ -204,6 +215,9 @@ export default function CollapsibleTable({
   const getFilteredData = (exchange) => {    
     if (!exchange) return [];
 
+    console.log('Getting filtered data for exchange:', exchange);
+    console.log('Available futures data:', filteredFuturesData);
+
     if (exchange === 'Favorites') {
       // Use complete futuresData for favorites to show all favorited items regardless of exchange
       const filtered = futuresData?.filter(d => favorites.includes(d.commodity)) || [];
@@ -212,13 +226,26 @@ export default function CollapsibleTable({
     
     // Get just the exchange code (e.g., "CME" from "CME - CHICAGO MERCANTILE EXCHANGE")
     const exchangeCode = exchange.split(' - ')[0];
+    console.log('Exchange code to match:', exchangeCode);
     
     // Use filteredFuturesData for exchange tabs to respect exchange filtering
     const filtered = filteredFuturesData?.filter(row => {
       const rowMarketCode = row.market_code?.trim() || '';
-      return rowMarketCode === exchangeCode;
+      console.log('Checking row market code:', rowMarketCode, 'for commodity:', row.commodity);
+      
+      // Special handling for ICE exchanges
+      if (exchangeCode === 'ICE') {
+        const isMatch = rowMarketCode === 'ICEU' || rowMarketCode === 'ICUS' || rowMarketCode === 'IFED' || rowMarketCode === 'ICE';
+        console.log('ICE match check:', isMatch, 'for', rowMarketCode);
+        return isMatch;
+      }
+      
+      const isMatch = rowMarketCode === exchangeCode;
+      console.log('Regular match check:', isMatch, 'for', rowMarketCode);
+      return isMatch;
     }) || [];
 
+    console.log('Filtered results:', filtered);
     return filtered;
   };
 
