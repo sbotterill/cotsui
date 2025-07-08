@@ -257,6 +257,7 @@ export default function App() {
   const [isDateLoading, setIsDateLoading] = React.useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState(0);
+  const [isChartLoading, setIsChartLoading] = useState(false);  // New state for chart loading
 
   // Theme state & toggle
   const colorMode = useMemo(() => ({
@@ -510,6 +511,7 @@ export default function App() {
   };
 
   const getChartData = async (marketCode) => {
+    setIsChartLoading(true);  // Set loading to true when starting
     try {
       const response = await axios.get(
         `https://publicreporting.cftc.gov/resource/6dca-aqww.json?cftc_contract_market_code=${marketCode}&$order=report_date_as_yyyy_mm_dd DESC&$limit=1000`
@@ -562,6 +564,8 @@ export default function App() {
       setCommericalChartData([]);
       setNonCommercialChartData([]);
       setNonReportableChartData([]);
+    } finally {
+      setIsChartLoading(false);  // Set loading to false when done
     }
   };
 
@@ -675,6 +679,34 @@ export default function App() {
               selectedTab={selectedTab}
               onTabChange={setSelectedTab}
             />
+            <Box sx={{ position: 'relative', minHeight: '400px' }}>
+              {isChartLoading && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    zIndex: 1,
+                    borderRadius: 1
+                  }}
+                >
+                  <CircularProgress />
+                </Box>
+              )}
+              <LineChartWithReferenceLines 
+                commericalChartData={commericalChartData} 
+                nonCommercialChartData={nonCommercialChartData} 
+                nonReportableChartData={nonReportableChartData} 
+                chartDates={chartDates}
+                selectedCommodity={selectedCommodity}
+              />
+            </Box>
           </>
         )}
       </Box>
@@ -727,13 +759,6 @@ export default function App() {
                         }}
                       >
                         {renderCollapsibleTable()}
-                        <LineChartWithReferenceLines 
-                          commericalChartData={commericalChartData} 
-                          nonCommercialChartData={nonCommercialChartData} 
-                          nonReportableChartData={nonReportableChartData} 
-                          chartDates={chartDates}
-                          selectedCommodity={selectedCommodity}
-                        />
                       </Box>
                     </Box>
                   </ThemeProvider>
