@@ -131,7 +131,7 @@ export default function DrawerAppBar(props) {
     props.setFilteredData(props.futuresData);
     
     // When clearing search, restore all exchanges from the original list
-    const allExchanges = props.exchanges.map(exchange => {
+    const allExchanges = props.userExchanges.map(exchange => {
       // Handle both formats: either "CODE - NAME" or just "CODE"
       const parts = exchange.includes(' - ') ? exchange.split(' - ') : [exchange];
       const code = normalizeCode(parts[0]);

@@ -605,6 +605,7 @@ export default function App() {
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', height: '100%' }}>
         <DrawerAppBar
           futuresData={futuresData}
+          userExchanges={userExchanges}
           setFilteredData={setFilteredData}
           exchanges={exchanges}
           setDisplayExchanges={setDisplayExchanges}
@@ -627,6 +628,7 @@ export default function App() {
           <>
             <CollapsibleTable
               futuresData={filteredData.length > 0 ? filteredData : futuresData}
+              userExchanges={userExchanges}
               exchanges={exchanges}
               favorites={favorites}
               onToggleFavorite={handleToggleFavorite}
