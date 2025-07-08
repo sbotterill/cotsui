@@ -719,6 +719,14 @@ export default function App() {
             </ColorModeContext.Provider>
           )
         } />
+        {/* Add catch-all route */}
+        <Route path="*" element={
+          authorized ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        } />
       </Routes>
     </Router>
   );

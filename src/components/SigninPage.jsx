@@ -11,6 +11,7 @@ import {
   Paper,
   Container,
   Typography,
+  useTheme,
 } from '@mui/material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import Visibility from '@mui/icons-material/Visibility';
@@ -19,6 +20,7 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
 
 export default function SigninPage({ setAuthorization }) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -137,19 +139,78 @@ export default function SigninPage({ setAuthorization }) {
       sx={{
         minHeight: '100vh',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
+        background: `linear-gradient(135deg, ${theme.palette.primary.main}15, ${theme.palette.secondary.main}15)`,
         py: 4,
       }}
     >
-      <Container maxWidth="xs">
-        <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-          <Typography variant="h5" component="h1" gutterBottom align="center">
-            Sign In
+      <Container maxWidth="sm">
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            mb: 4,
+          }}
+        >
+          <Typography 
+            variant="h3" 
+            component="h1" 
+            sx={{ 
+              fontWeight: 700,
+              color: theme.palette.primary.main,
+              mb: 1,
+            }}
+          >
+            COTS UI
+          </Typography>
+          <Typography 
+            variant="subtitle1" 
+            sx={{ 
+              color: theme.palette.text.secondary,
+              textAlign: 'center',
+              maxWidth: '80%',
+            }}
+          >
+            Access real-time CFTC Commitment of Traders data
+          </Typography>
+        </Box>
+
+        <Paper 
+          elevation={2} 
+          sx={{ 
+            p: 4, 
+            borderRadius: 3,
+            background: theme.palette.background.paper,
+            backdropFilter: 'blur(10px)',
+            border: '1px solid',
+            borderColor: theme.palette.divider,
+          }}
+        >
+          <Typography 
+            variant="h5" 
+            component="h2" 
+            gutterBottom 
+            align="center"
+            sx={{ 
+              fontWeight: 600,
+              mb: 3,
+            }}
+          >
+            Welcome Back
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 3,
+                borderRadius: 2,
+              }} 
+              onClose={() => setError(null)}
+            >
               {error}
             </Alert>
           )}
@@ -164,10 +225,17 @@ export default function SigninPage({ setAuthorization }) {
               onChange={handleChange}
               margin="normal"
               required
+              variant="outlined"
+              sx={{
+                mb: 2,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                }
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <AccountCircle />
+                    <AccountCircle color="primary" />
                   </InputAdornment>
                 ),
               }}
@@ -182,6 +250,11 @@ export default function SigninPage({ setAuthorization }) {
                 value={formData.password}
                 onChange={handleChange}
                 required
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  }
+                }}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
@@ -203,17 +276,59 @@ export default function SigninPage({ setAuthorization }) {
               type="submit"
               fullWidth
               variant="contained"
-              sx={{ mt: 3, mb: 2 }}
+              sx={{ 
+                mt: 4, 
+                mb: 2,
+                py: 1.5,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                boxShadow: 2,
+                '&:hover': {
+                  boxShadow: 4,
+                }
+              }}
               disabled={isLoading}
             >
               {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-              <Link component={RouterLink} to="/signup" variant="body2">
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                mt: 3,
+                flexWrap: 'wrap',
+                gap: 1,
+              }}
+            >
+              <Link 
+                component={RouterLink} 
+                to="/signup" 
+                variant="body2"
+                sx={{
+                  color: theme.palette.primary.main,
+                  textDecoration: 'none',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                  }
+                }}
+              >
                 Don't have an account? Sign Up
               </Link>
-              <Link component={RouterLink} to="/forgot-password" variant="body2">
+              <Link 
+                component={RouterLink} 
+                to="/forgot-password" 
+                variant="body2"
+                sx={{
+                  color: theme.palette.primary.main,
+                  textDecoration: 'none',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                  }
+                }}
+              >
                 Forgot password?
               </Link>
             </Box>
