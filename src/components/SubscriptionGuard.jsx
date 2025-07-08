@@ -30,8 +30,7 @@ export default function SubscriptionGuard({ children }) {
       if (response.ok) {
         // Check if user has active subscription or valid trial
         const hasActiveSubscription = data.subscription_status === 'active' || data.subscription_status === 'trialing';
-        const hasValidTrial = data.trial_status === 'active' && 
-                            new Date(data.trial_end) > new Date();
+        const hasValidTrial = data.trial_status === 'active' && new Date(data.trial_end) > new Date();
         
         console.log('Subscription check:', {
           hasActiveSubscription,

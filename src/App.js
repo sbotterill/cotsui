@@ -327,8 +327,6 @@ export default function App() {
             return isIncluded;
           });
 
-          console.log(filteredData, "filteredData")
-
           // Set all states at once
           setExchanges(result.exchanges);
           setDisplayExchanges(filteredExchanges);
