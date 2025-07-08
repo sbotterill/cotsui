@@ -105,6 +105,7 @@ function TabPanel({ children, value, index }) {
 
 export default function CollapsibleTable({
   futuresData,
+  filteredFuturesData,
   exchanges,
   favorites,
   onToggleFavorite,
@@ -204,6 +205,7 @@ export default function CollapsibleTable({
     if (!exchange) return [];
 
     if (exchange === 'Favorites') {
+      // Use complete futuresData for favorites to show all favorited items regardless of exchange
       const filtered = futuresData?.filter(d => favorites.includes(d.commodity)) || [];
       return filtered;
     }
@@ -211,8 +213,8 @@ export default function CollapsibleTable({
     // Get just the exchange code (e.g., "CME" from "CME - CHICAGO MERCANTILE EXCHANGE")
     const exchangeCode = exchange.split(' - ')[0];
     
-    // Filter data based on exact market_code match
-    const filtered = futuresData?.filter(row => {
+    // Use filteredFuturesData for exchange tabs to respect exchange filtering
+    const filtered = filteredFuturesData?.filter(row => {
       const rowMarketCode = row.market_code?.trim() || '';
       return rowMarketCode === exchangeCode;
     }) || [];

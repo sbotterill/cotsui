@@ -327,6 +327,8 @@ export default function App() {
             return isIncluded;
           });
 
+          console.log(filteredData, "filteredData")
+
           // Set all states at once
           setExchanges(result.exchanges);
           setDisplayExchanges(filteredExchanges);
@@ -627,7 +629,8 @@ export default function App() {
         ) : (
           <>
             <CollapsibleTable
-              futuresData={filteredData.length > 0 ? filteredData : futuresData}
+              futuresData={futuresData} // Pass complete data for favorites
+              filteredFuturesData={filteredData} // Pass filtered data for exchange tabs
               userExchanges={userExchanges}
               exchanges={exchanges}
               favorites={favorites}
