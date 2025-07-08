@@ -118,6 +118,15 @@ export default function SigninPage({ setAuthorization }) {
           newValue: email
         }));
         
+        // Check if user needs to be redirected to subscription page
+        if (!data.subscription_active) {
+          // If user has had a trial, add query param
+          const hasHadTrial = data.trial_end !== null;
+          navigate(`/subscription${hasHadTrial ? '?trial_used=true' : ''}`);
+          return;
+        }
+        
+        // If subscription is active, go to dashboard
         navigate('/dashboard');
         return;
       } else {

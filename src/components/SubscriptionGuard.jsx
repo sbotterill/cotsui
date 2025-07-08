@@ -25,14 +25,24 @@ export default function SubscriptionGuard({ children }) {
       const data = await response.json();
 
       if (response.ok) {
-        // Check if user has active subscription or valid trial
-        const hasActiveSubscription = data.subscription_status === 'active' || data.subscription_status === 'trialing';
-        const hasValidTrial = data.trial_status === 'active' && new Date(data.trial_end) > new Date();
+        const now = new Date();
+        const trialEndDate = data.trial_end ? new Date(data.trial_end * 1000) : null; // Convert Unix timestamp to Date
 
-        // Also check payment_status as a fallback
-        const hasActivePayment = data.payment_status === 'active' || data.payment_status === 'trialing';
+        // Check various conditions for access
+        const hasActiveSubscription = data.subscription_status === 'active';
+        const isInTrialPeriod = trialEndDate && now < trialEndDate;
+        const hasActivePayment = data.payment_status === 'active';
 
-        if (hasActiveSubscription || hasValidTrial || hasActivePayment) {
+        console.log('Access Check Details:', {
+          status: data.subscription_status,
+          trialEnd: trialEndDate?.toISOString(),
+          now: now.toISOString(),
+          isInTrialPeriod,
+          hasActiveSubscription,
+          hasActivePayment
+        });
+
+        if (hasActiveSubscription || isInTrialPeriod || hasActivePayment) {
           setHasAccess(true);
         } else {
           // Check if user has already had a trial

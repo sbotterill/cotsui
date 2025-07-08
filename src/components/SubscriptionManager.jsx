@@ -387,7 +387,7 @@ const SubscriptionManager = ({ email }) => {
             </CardContent>
           </Card>
 
-          {subscriptionData.status === 'active' && !subscriptionData.cancel_at_period_end && (
+          {(subscriptionData.status === 'active' || subscriptionData.status === 'trialing') && !subscriptionData.cancel_at_period_end && (
             <Box mt={3}>
               <Button
                 variant="outlined"
