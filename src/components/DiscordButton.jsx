@@ -7,7 +7,7 @@ export default function DiscordButton() {
 
   const handleDiscordClick = () => {
     // Replace this with your actual Discord invite link
-    window.open('https://discord.gg/cQczXyMf', '_blank');
+    window.open('https://discord.gg/mJGS4Xyna4', '_blank');
   };
 
   return (

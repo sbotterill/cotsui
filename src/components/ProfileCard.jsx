@@ -132,7 +132,7 @@ export default function ProfileCard({ open, onClose, anchorEl, buttonRef }) {
                 fullWidth
                 variant="outlined"
                 startIcon={<DiscordIcon />}
-                href="https://discord.gg/cotsui"
+                href="https://discord.gg/mJGS4Xyna4"
                 target="_blank"
                 rel="noopener noreferrer"
               >
