@@ -231,6 +231,7 @@ export default function App() {
   });
   const [error, setError] = useState(null);
   const [exchanges, setExchanges] = useState([]);
+  const [userExchanges, setUserExchanges] = useState({});
   const [displayExchanges, setDisplayExchanges] = useState([]);
   const [futuresData, setFuturesData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
@@ -329,6 +330,7 @@ export default function App() {
           // Set all states at once
           setExchanges(result.exchanges);
           setDisplayExchanges(filteredExchanges);
+          setUserExchanges(filteredExchanges);
           setFuturesData(result.data);
           setFilteredData(filteredData);
           setLastUpdated(result.reportDate);
@@ -605,6 +607,7 @@ export default function App() {
           futuresData={futuresData}
           setFilteredData={setFilteredData}
           exchanges={exchanges}
+          setDisplayExchanges={setDisplayExchanges}
           displayExchanges={displayExchanges}
           onExchangeFilterChange={handleExchangeFilterChange}
           lastUpdated={lastUpdated}
@@ -622,14 +625,6 @@ export default function App() {
           <CollapsableTableSkeleton />
         ) : (
           <>
-            {console.log('Data being passed to CollapsibleTable:', {
-              allData: futuresData,
-              filteredData,
-              exchanges,
-              displayExchanges,
-              selectedTab,
-              dataBeingPassed: filteredData.length > 0 ? filteredData : futuresData
-            })}
             <CollapsibleTable
               futuresData={filteredData.length > 0 ? filteredData : futuresData}
               exchanges={exchanges}
