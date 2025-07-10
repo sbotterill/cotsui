@@ -33,15 +33,6 @@ export default function SubscriptionGuard({ children }) {
         const isInTrialPeriod = trialEndDate && now < trialEndDate;
         const hasActivePayment = data.payment_status === 'active';
 
-        console.log('Access Check Details:', {
-          status: data.subscription_status,
-          trialEnd: trialEndDate?.toISOString(),
-          now: now.toISOString(),
-          isInTrialPeriod,
-          hasActiveSubscription,
-          hasActivePayment
-        });
-
         if (hasActiveSubscription || isInTrialPeriod || hasActivePayment) {
           setHasAccess(true);
         } else {

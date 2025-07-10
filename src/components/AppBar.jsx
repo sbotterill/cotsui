@@ -95,12 +95,15 @@ export default function DrawerAppBar(props) {
 
       const matchingExchangesList = Array.from(matchingExchanges);
 
+      console.log(filtered, "filtered from search");
       // Update filtered data
+      console.log('🔧 About to call setFilteredData with:', filtered.length, 'items');
+      console.log('🔧 First few filtered items:', filtered.slice(0, 3).map(item => item.commodity));
       props.setFilteredData(filtered);
       
-      // During search, we want to show matching exchanges but not update the saved preferences
-      // Pass false to prevent saving to server and maintain context menu state
-      props.onExchangeFilterChange(matchingExchangesList, false);
+      // During search, we DON'T want to call exchange filter change as it overrides the search results
+      // The search results should be the primary filter, not the exchange filter
+      // props.onExchangeFilterChange(matchingExchangesList, false);
 
       // Show no results message if needed
       setShowNoResults(filtered.length === 0);

@@ -241,6 +241,11 @@ export default function App() {
   const [displayExchanges, setDisplayExchanges] = useState([]);
   const [futuresData, setFuturesData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
+  
+  // Add logging to track filteredData changes
+  const setFilteredDataWithLogging = (newData) => {
+    setFilteredData(newData);
+  };
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isLatestData, setIsLatestData] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -339,7 +344,7 @@ export default function App() {
           setSelectedDate(latestDate);
 
           // Then filter from the complete dataset
-          const filteredData = result.data.filter(item => {
+          const newFilteredData = result.data.filter(item => {
             const marketCode = item.market_code;
             // Special handling for ICE exchanges
             if (filteredExchanges.includes('ICE')) {
@@ -351,7 +356,7 @@ export default function App() {
           });
 
           // Set filtered data after
-          setFilteredData(filteredData);
+          setFilteredData(newFilteredData);
           
           // Load favorites
           await loadFavorites();
@@ -401,7 +406,7 @@ export default function App() {
         setLastChecked(result.lastChecked);
 
         // Then filter from complete dataset
-        const filteredData = result.data.filter(item => {
+        const newFilteredData = result.data.filter(item => {
           const marketCode = item.market_code;
           // Special handling for ICE exchanges
           if (filteredExchanges.includes('ICE')) {
@@ -413,7 +418,7 @@ export default function App() {
         });
 
         // Set filtered data after
-        setFilteredData(filteredData);
+        setFilteredData(newFilteredData);
       } catch (error) {
         console.error('Error updating data:', error);
         setError(error.message);
@@ -647,7 +652,7 @@ export default function App() {
         <DrawerAppBar
           futuresData={futuresData}
           userExchanges={userExchanges}
-          setFilteredData={setFilteredData}
+          setFilteredData={setFilteredDataWithLogging}
           exchanges={exchanges}
           setDisplayExchanges={setDisplayExchanges}
           displayExchanges={displayExchanges}
@@ -733,7 +738,7 @@ export default function App() {
                     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
                       <DrawerAppBar
                         futuresData={futuresData}
-                        setFilteredData={setFilteredData}
+                        setFilteredData={setFilteredDataWithLogging}
                         exchanges={exchanges}
                         displayExchanges={displayExchanges}
                         onExchangeFilterChange={handleExchangeFilterChange}
