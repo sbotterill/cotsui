@@ -120,9 +120,23 @@ export default function SigninPage({ setAuthorization }) {
         
         // Check if user needs to be redirected to subscription page
         if (!data.subscription_active) {
-          // If user has had a trial, add query param
-          const hasHadTrial = data.trial_end !== null;
-          navigate(`/subscription${hasHadTrial ? '?trial_used=true' : ''}`);
+          // Check if user has already had a trial using the subscription status endpoint
+          try {
+            const statusResponse = await fetch(`${API_BASE_URL}/subscription-status?email=${encodeURIComponent(email)}`);
+            const statusData = await statusResponse.json();
+            
+            if (statusResponse.ok && statusData.has_had_trial) {
+              // User has already had a trial
+              navigate('/subscription?trial_used=true');
+            } else {
+              // User hasn't had a trial yet
+              navigate('/subscription');
+            }
+          } catch (err) {
+            console.error('Error checking trial status:', err);
+            // Default to subscription page without trial_used param
+            navigate('/subscription');
+          }
           return;
         }
         

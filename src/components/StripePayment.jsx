@@ -138,7 +138,7 @@ const suggestionItemStyles = {
   }
 };
 
-export default function StripePayment({ plan, onSuccess, onError, isUpdatingPaymentMethod = false }) {
+export default function StripePayment({ plan, onSuccess, onError, isUpdatingPaymentMethod = false, hasHadTrial = false }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -445,7 +445,10 @@ export default function StripePayment({ plan, onSuccess, onError, isUpdatingPaym
           }
         };
         
-        const response = await fetch(`${API_BASE_URL}/create-subscription`, {
+        // Use different endpoint based on trial eligibility
+        const endpoint = hasHadTrial ? '/create-subscription-no-trial' : '/create-subscription';
+        
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

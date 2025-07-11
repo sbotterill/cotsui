@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -59,20 +59,84 @@ const SUBSCRIPTION_PLANS = [
   },
 ];
 
+const SUBSCRIPTION_PLANS_NO_TRIAL = [
+  {
+    id: 'monthly',
+    name: 'Monthly Plan',
+    price: '$4.99',
+    interval: 'month',
+    features: [
+      'Full access to all features',
+      'Discord support',
+      'Real-time data updates',
+      'Immediate access',
+    ],
+  },
+  {
+    id: 'annual',
+    name: 'Annual Plan',
+    price: '$49.99',
+    interval: 'year',
+    features: [
+      'All Monthly features',
+      'Priority Discord support',
+      'Save 16% compared to monthly',
+      'Immediate access',
+    ],
+  },
+];
+
 export default function SubscriptionPage({ setAuthorization }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const theme = useTheme();
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [trialEligibility, setTrialEligibility] = useState(null);
+  const [checkingEligibility, setCheckingEligibility] = useState(true);
   const email = localStorage.getItem('userEmail');
 
   useEffect(() => {
     if (!email) {
       navigate('/signup');
+      return;
     }
+
+    // Check if user has already had a trial
+    checkTrialEligibility();
   }, [email, navigate]);
+
+  const checkTrialEligibility = async () => {
+    try {
+      setCheckingEligibility(true);
+      const response = await fetch(`${API_BASE_URL}/subscription-status?email=${encodeURIComponent(email)}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setTrialEligibility({
+          hasHadTrial: data.has_had_trial || false,
+          subscriptionStatus: data.subscription_status
+        });
+      } else {
+        // If we can't check eligibility, assume they can have a trial
+        setTrialEligibility({
+          hasHadTrial: false,
+          subscriptionStatus: 'inactive'
+        });
+      }
+    } catch (err) {
+      console.error('Error checking trial eligibility:', err);
+      // Default to allowing trial if we can't check
+      setTrialEligibility({
+        hasHadTrial: false,
+        subscriptionStatus: 'inactive'
+      });
+    } finally {
+      setCheckingEligibility(false);
+    }
+  };
 
   const handlePlanSelect = (planId) => {
     setSelectedPlan(planId);
@@ -90,6 +154,27 @@ export default function SubscriptionPage({ setAuthorization }) {
     setShowPaymentDialog(false);
   };
 
+  // Check if user came from URL with trial_used parameter
+  const trialUsedFromURL = searchParams.get('trial_used') === 'true';
+  const hasHadTrial = trialEligibility?.hasHadTrial || trialUsedFromURL;
+  const plans = hasHadTrial ? SUBSCRIPTION_PLANS_NO_TRIAL : SUBSCRIPTION_PLANS;
+
+  if (checkingEligibility) {
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#fff',
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
     <Box
       sx={{
@@ -106,10 +191,22 @@ export default function SubscriptionPage({ setAuthorization }) {
           <Typography variant="h4" component="h1" gutterBottom>
             Choose Your Plan
           </Typography>
-          <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-            Start with a 7-day free trial. Cancel anytime.
-          </Typography>
+          {hasHadTrial ? (
+            <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+              Welcome back! Choose a plan to continue your access.
+            </Typography>
+          ) : (
+            <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+              Start with a 7-day free trial. Cancel anytime.
+            </Typography>
+          )}
         </Box>
+
+        {hasHadTrial && (
+          <Alert severity="info" sx={{ mb: 3, maxWidth: 600, mx: 'auto' }}>
+            You have already used your free trial. Please choose a subscription plan to continue.
+          </Alert>
+        )}
 
         {error && (
           <Alert severity="warning" sx={{ mb: 3, maxWidth: 600, mx: 'auto' }}>
@@ -119,81 +216,42 @@ export default function SubscriptionPage({ setAuthorization }) {
 
         <Box
           sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: 3,
-            flexWrap: 'wrap',
-            maxWidth: '1200px',
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+            gap: 4,
+            maxWidth: 800,
             mx: 'auto',
-            px: 2
           }}
         >
-          {SUBSCRIPTION_PLANS.map((plan) => (
-            <Box
-              key={plan.id}
-              sx={{
-                flex: '1 1 400px',
-                maxWidth: '500px',
-                minWidth: '350px'
-              }}
-            >
+          {plans.map((plan) => (
+            <Box key={plan.id}>
               <Card
                 sx={{
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
-                  position: 'relative',
-                  border: selectedPlan === plan.id ? `2px solid ${theme.palette.primary.main}` : '1px solid rgba(0, 0, 0, 0.12)',
-                  borderRadius: 2,
-                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  transition: 'all 0.3s ease',
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: theme.shadows[4],
+                    boxShadow: theme.shadows[8],
                   },
                 }}
               >
                 <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                  <Typography 
-                    variant="h5" 
-                    component="h2" 
-                    gutterBottom
-                    sx={{ 
-                      fontWeight: 600,
-                      mb: 2,
-                      textAlign: 'center'
-                    }}
-                  >
+                  <Typography variant="h5" component="h2" gutterBottom>
                     {plan.name}
                   </Typography>
-                  <Typography 
-                    variant="h4" 
-                    component="div" 
-                    sx={{ 
-                      mb: 2,
-                      textAlign: 'center',
-                      display: 'flex',
-                      alignItems: 'baseline',
-                      justifyContent: 'center'
-                    }}
-                  >
+                  <Typography variant="h3" component="div" sx={{ mb: 1 }}>
                     {plan.price}
                     <Typography
                       component="span"
                       variant="subtitle1"
                       color="text.secondary"
-                      sx={{ ml: 1 }}
                     >
                       /{plan.interval}
                     </Typography>
                   </Typography>
-                  <Box 
-                    component="ul" 
-                    sx={{ 
-                      pl: 0, 
-                      listStyle: 'none',
-                      mt: 2
-                    }}
-                  >
+                  <Box component="ul" sx={{ listStyle: 'none', p: 0, m: 0 }}>
                     {plan.features.map((feature, index) => (
                       <Box
                         component="li"
@@ -253,34 +311,23 @@ export default function SubscriptionPage({ setAuthorization }) {
             onClose={() => setShowPaymentDialog(false)}
             maxWidth="sm"
             fullWidth
-            PaperProps={{
-              sx: {
-                borderRadius: 3,
-                boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-                position: 'relative',
-                zIndex: 1301,
-              }
-            }}
           >
-            <DialogTitle sx={{ 
-              pb: 1, 
-              borderBottom: '1px solid #e0e0e0',
-              backgroundColor: '#f8f9fa'
-            }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography variant="h6" component="div">
+            <DialogTitle sx={{ m: 0, p: 3, pb: 1 }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Typography variant="h6">
                   Complete Your Subscription
                 </Typography>
                 <IconButton
+                  aria-label="close"
                   onClick={() => setShowPaymentDialog(false)}
-                  size="small"
-                  sx={{ color: 'text.secondary' }}
+                  sx={{
+                    color: (theme) => theme.palette.grey[500],
+                  }}
                 >
                   <CloseIcon />
                 </IconButton>
               </Box>
             </DialogTitle>
-            
             <DialogContent sx={{ p: 3 }}>
               <Box sx={{ mb: 3 }}>
                 <Typography variant="h6" gutterBottom>
@@ -296,11 +343,19 @@ export default function SubscriptionPage({ setAuthorization }) {
                     /{selectedPlan === 'monthly' ? 'month' : 'year'}
                   </Typography>
                 </Typography>
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  <Typography variant="body2">
-                    Your first 7 days are free. After the trial, you'll be charged {selectedPlan === 'monthly' ? '$4.99/month' : '$49.99/year'}. Cancel anytime during the trial.
-                  </Typography>
-                </Alert>
+                {hasHadTrial ? (
+                  <Alert severity="info" sx={{ mt: 2 }}>
+                    <Typography variant="body2">
+                      You will be charged {selectedPlan === 'monthly' ? '$4.99/month' : '$49.99/year'} immediately. Cancel anytime.
+                    </Typography>
+                  </Alert>
+                ) : (
+                  <Alert severity="info" sx={{ mt: 2 }}>
+                    <Typography variant="body2">
+                      Your first 7 days are free. After the trial, you'll be charged {selectedPlan === 'monthly' ? '$4.99/month' : '$49.99/year'}. Cancel anytime during the trial.
+                    </Typography>
+                  </Alert>
+                )}
               </Box>
 
               {stripePromise ? (
@@ -309,6 +364,7 @@ export default function SubscriptionPage({ setAuthorization }) {
                     plan={selectedPlan}
                     onSuccess={handlePaymentSuccess}
                     onError={handlePaymentError}
+                    hasHadTrial={hasHadTrial}
                   />
                 </Elements>
               ) : (
