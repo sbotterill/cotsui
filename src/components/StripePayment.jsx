@@ -715,23 +715,40 @@ export default function StripePayment({ plan, onSuccess, onError, isUpdatingPaym
                   {plan === 'monthly' ? '$4.99' : '$49.99'}
                 </Typography>
               </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body2" color="success.main">
-                  Free Trial (7 days)
-                </Typography>
-                <Typography variant="body2" color="success.main" fontWeight={600}>
-                  -{plan === 'monthly' ? '$4.99' : '$49.99'}
-                </Typography>
-              </Box>
-              <Divider sx={{ my: 1 }} />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" fontWeight={600}>
-                  Today's Charge
-                </Typography>
-                <Typography variant="body2" fontWeight={600} color="success.main">
-                  $0.00
-                </Typography>
-              </Box>
+              {!hasHadTrial && (
+                <>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="body2" color="success.main">
+                      Free Trial (7 days)
+                    </Typography>
+                    <Typography variant="body2" color="success.main" fontWeight={600}>
+                      -{plan === 'monthly' ? '$4.99' : '$49.99'}
+                    </Typography>
+                  </Box>
+                  <Divider sx={{ my: 1 }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" fontWeight={600}>
+                      Today's Charge
+                    </Typography>
+                    <Typography variant="body2" fontWeight={600} color="success.main">
+                      $0.00
+                    </Typography>
+                  </Box>
+                </>
+              )}
+              {hasHadTrial && (
+                <>
+                  <Divider sx={{ my: 1 }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" fontWeight={600}>
+                      Today's Charge
+                    </Typography>
+                    <Typography variant="body2" fontWeight={600}>
+                      {plan === 'monthly' ? '$4.99' : '$49.99'}
+                    </Typography>
+                  </Box>
+                </>
+              )}
             </Box>
           </Box>
         </>
@@ -761,7 +778,9 @@ export default function StripePayment({ plan, onSuccess, onError, isUpdatingPaym
             <LockIcon sx={{ mr: 1, fontSize: '1.2rem' }} />
             {isUpdatingPaymentMethod 
               ? 'Update Payment Method'
-              : `Start ${plan === 'annual' ? 'Annual' : 'Monthly'} Plan with 7-Day Trial`}
+              : hasHadTrial 
+                ? `Start ${plan === 'annual' ? 'Annual' : 'Monthly'} Plan`
+                : `Start ${plan === 'annual' ? 'Annual' : 'Monthly'} Plan with 7-Day Trial`}
           </>
         )}
       </Button>
