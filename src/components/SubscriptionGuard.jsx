@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, CircularProgress, Alert } from '@mui/material';
 import { API_BASE_URL } from '../config';
+import TrialEndPayment from './TrialEndPayment';
 
 export default function SubscriptionGuard({ children }) {
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
   const [error, setError] = useState(null);
+  const [showTrialEndPayment, setShowTrialEndPayment] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,9 +34,13 @@ export default function SubscriptionGuard({ children }) {
         const hasActiveSubscription = data.subscription_status === 'active';
         const isInTrialPeriod = trialEndDate && now < trialEndDate;
         const hasActivePayment = data.payment_status === 'active';
+        const isTrialEnded = trialEndDate && now > trialEndDate && data.subscription_status === 'trialing';
 
         if (hasActiveSubscription || isInTrialPeriod || hasActivePayment) {
           setHasAccess(true);
+        } else if (isTrialEnded) {
+          // Trial has ended, show payment options
+          setShowTrialEndPayment(true);
         } else {
           // Check if user has already had a trial
           if (data.has_had_trial) {
@@ -49,17 +55,35 @@ export default function SubscriptionGuard({ children }) {
         // If user not found or other error, redirect to subscription page
         navigate('/subscription');
       }
-    } catch (err) {
-      console.error('Error checking subscription:', err);
+    } catch (error) {
+      console.error('Error checking subscription status:', error);
       setError('Failed to check subscription status');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleTrialEndSuccess = (result) => {
+    setShowTrialEndPayment(false);
+    setHasAccess(true);
+  };
+
+  const handleTrialEndError = (error) => {
+    setError(error);
+    setShowTrialEndPayment(false);
+  };
+
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#fff',
+        }}
+      >
         <CircularProgress />
       </Box>
     );
@@ -67,11 +91,34 @@ export default function SubscriptionGuard({ children }) {
 
   if (error) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <Alert severity="error">{error}</Alert>
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#fff',
+        }}
+      >
+        <Alert severity="error" sx={{ maxWidth: 600 }}>
+          {error}
+        </Alert>
       </Box>
     );
   }
 
-  return hasAccess ? children : null;
+  if (showTrialEndPayment) {
+    return (
+      <TrialEndPayment
+        onSuccess={handleTrialEndSuccess}
+        onError={handleTrialEndError}
+      />
+    );
+  }
+
+  if (hasAccess) {
+    return children;
+  }
+
+  return null;
 } 

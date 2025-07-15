@@ -138,7 +138,7 @@ const suggestionItemStyles = {
   }
 };
 
-export default function StripePayment({ plan, onSuccess, onError, isUpdatingPaymentMethod = false, hasHadTrial = false }) {
+export default function StripePayment({ plan, onSuccess, onError, isUpdatingPaymentMethod = false, hasHadTrial = false, isAddingToTrial = false }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -429,6 +429,27 @@ export default function StripePayment({ plan, onSuccess, onError, isUpdatingPaym
         }
 
         onSuccess(data);
+      } else if (isAddingToTrial) {
+        // Add payment method to existing trial subscription
+        const response = await fetch(`${API_BASE_URL}/add-payment-method-to-trial`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: localStorage.getItem('userEmail'),
+            paymentMethodId: paymentMethod.id,
+            plan: plan
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to add payment method to trial');
+        }
+
+        onSuccess(data);
       } else {
         // Create new subscription
         const requestData = {
@@ -693,7 +714,7 @@ export default function StripePayment({ plan, onSuccess, onError, isUpdatingPaym
         </Box>
       </Box>
 
-      {!isUpdatingPaymentMethod && (
+      {!isUpdatingPaymentMethod && !isAddingToTrial && (
         <>
           <Divider sx={{ my: 3 }} />
 
@@ -778,9 +799,11 @@ export default function StripePayment({ plan, onSuccess, onError, isUpdatingPaym
             <LockIcon sx={{ mr: 1, fontSize: '1.2rem' }} />
             {isUpdatingPaymentMethod 
               ? 'Update Payment Method'
-              : hasHadTrial 
-                ? `Start ${plan === 'annual' ? 'Annual' : 'Monthly'} Plan`
-                : `Start ${plan === 'annual' ? 'Annual' : 'Monthly'} Plan with 7-Day Trial`}
+              : isAddingToTrial
+                ? `Continue with ${plan === 'annual' ? 'Annual' : 'Monthly'} Plan`
+                : hasHadTrial 
+                  ? `Start ${plan === 'annual' ? 'Annual' : 'Monthly'} Plan`
+                  : `Start ${plan === 'annual' ? 'Annual' : 'Monthly'} Plan with 7-Day Trial`}
           </>
         )}
       </Button>

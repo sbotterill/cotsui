@@ -15,6 +15,8 @@ import {
   DialogTitle,
   DialogContent,
   IconButton,
+  TextField,
+  Grid,
 } from '@mui/material';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
@@ -86,6 +88,174 @@ const SUBSCRIPTION_PLANS_NO_TRIAL = [
   },
 ];
 
+// New component for starting trial without payment
+function StartTrialDialog({ open, onClose, onSuccess, onError }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [trialDetails, setTrialDetails] = useState({
+    firstName: '',
+    lastName: ''
+  });
+
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    setTrialDetails(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleStartTrial = async () => {
+    if (!trialDetails.firstName.trim() || !trialDetails.lastName.trim()) {
+      setError('Please enter your first and last name');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/create-trial`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: localStorage.getItem('userEmail'),
+          name: `${trialDetails.firstName} ${trialDetails.lastName}`
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to start trial');
+      }
+
+      onSuccess(data);
+    } catch (err) {
+      setError(err.message);
+      onError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle sx={{ m: 0, p: 3, pb: 1 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Typography variant="h6">
+            Start Your Free Trial
+          </Typography>
+          <IconButton
+            aria-label="close"
+            onClick={onClose}
+            sx={{
+              color: (theme) => theme.palette.grey[500],
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Box>
+      </DialogTitle>
+      <DialogContent sx={{ p: 3 }}>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Get Started with a 7-Day Free Trial
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            Start exploring all features immediately. No credit card required during the trial period.
+          </Typography>
+          
+          <Alert severity="info" sx={{ mb: 3 }}>
+            <Typography variant="body2">
+              You'll only need to add payment information when your trial ends. Cancel anytime during the trial.
+            </Typography>
+          </Alert>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+          )}
+
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="First Name"
+                name="firstName"
+                value={trialDetails.firstName}
+                onChange={handleInputChange}
+                required
+                sx={{ 
+                  '& .MuiInputBase-input': {
+                    padding: '16px',
+                    fontSize: '16px'
+                  },
+                  '& .MuiOutlinedInput-root': {
+                    height: '56px'
+                  }
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Last Name"
+                name="lastName"
+                value={trialDetails.lastName}
+                onChange={handleInputChange}
+                required
+                sx={{ 
+                  '& .MuiInputBase-input': {
+                    padding: '16px',
+                    fontSize: '16px'
+                  },
+                  '& .MuiOutlinedInput-root': {
+                    height: '56px'
+                  }
+                }}
+              />
+            </Grid>
+          </Grid>
+        </Box>
+
+        <Button
+          fullWidth
+          variant="contained"
+          onClick={handleStartTrial}
+          disabled={loading}
+          size="large"
+          sx={{ 
+            py: 1.5,
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            borderRadius: 2,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            '&:hover': {
+              boxShadow: '0 6px 16px rgba(0,0,0,0.2)',
+            }
+          }}
+        >
+          {loading ? (
+            <CircularProgress size={24} color="inherit" />
+          ) : (
+            'Start Free Trial'
+          )}
+        </Button>
+
+        <Box sx={{ mt: 3, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            By starting your trial, you agree to our Terms of Service and Privacy Policy
+          </Typography>
+        </Box>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function SubscriptionPage({ setAuthorization }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -94,6 +264,7 @@ export default function SubscriptionPage({ setAuthorization }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showTrialDialog, setShowTrialDialog] = useState(false);
   const [trialEligibility, setTrialEligibility] = useState(null);
   const [checkingEligibility, setCheckingEligibility] = useState(true);
   const email = localStorage.getItem('userEmail');
@@ -140,7 +311,24 @@ export default function SubscriptionPage({ setAuthorization }) {
 
   const handlePlanSelect = (planId) => {
     setSelectedPlan(planId);
-    setShowPaymentDialog(true);
+    if (hasHadTrial) {
+      // If they've had a trial, show payment dialog immediately
+      setShowPaymentDialog(true);
+    } else {
+      // If they haven't had a trial, show trial dialog
+      setShowTrialDialog(true);
+    }
+  };
+
+  const handleTrialSuccess = async (result) => {
+    setShowTrialDialog(false);
+    setAuthorization(true);
+    navigate('/dashboard');
+  };
+
+  const handleTrialError = (error) => {
+    setError(error);
+    setShowTrialDialog(false);
   };
 
   const handlePaymentSuccess = async (result) => {
@@ -197,7 +385,7 @@ export default function SubscriptionPage({ setAuthorization }) {
             </Typography>
           ) : (
             <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-              Start with a 7-day free trial. Cancel anytime.
+              Start with a 7-day free trial. No credit card required during trial.
             </Typography>
           )}
         </Box>
@@ -296,7 +484,9 @@ export default function SubscriptionPage({ setAuthorization }) {
                     }}
                   >
                     {loading ? <CircularProgress size={24} /> : 
-                      `Start ${plan.interval === 'month' ? 'Monthly' : 'Annual'} Plan`
+                      hasHadTrial 
+                        ? `Start ${plan.interval === 'month' ? 'Monthly' : 'Annual'} Plan`
+                        : `Start ${plan.interval === 'month' ? 'Monthly' : 'Annual'} Trial`
                     }
                   </Button>
                 </CardActions>
@@ -305,6 +495,15 @@ export default function SubscriptionPage({ setAuthorization }) {
           ))}
         </Box>
 
+        {/* Trial Dialog */}
+        <StartTrialDialog
+          open={showTrialDialog}
+          onClose={() => setShowTrialDialog(false)}
+          onSuccess={handleTrialSuccess}
+          onError={handleTrialError}
+        />
+
+        {/* Payment Dialog for users who have had trials */}
         {showPaymentDialog && (
           <Dialog
             open={showPaymentDialog}
@@ -343,19 +542,11 @@ export default function SubscriptionPage({ setAuthorization }) {
                     /{selectedPlan === 'monthly' ? 'month' : 'year'}
                   </Typography>
                 </Typography>
-                {hasHadTrial ? (
-                  <Alert severity="info" sx={{ mt: 2 }}>
-                    <Typography variant="body2">
-                      You will be charged {selectedPlan === 'monthly' ? '$4.99/month' : '$49.99/year'} immediately. Cancel anytime.
-                    </Typography>
-                  </Alert>
-                ) : (
-                  <Alert severity="info" sx={{ mt: 2 }}>
-                    <Typography variant="body2">
-                      Your first 7 days are free. After the trial, you'll be charged {selectedPlan === 'monthly' ? '$4.99/month' : '$49.99/year'}. Cancel anytime during the trial.
-                    </Typography>
-                  </Alert>
-                )}
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  <Typography variant="body2">
+                    You will be charged {selectedPlan === 'monthly' ? '$4.99/month' : '$49.99/year'} immediately. Cancel anytime.
+                  </Typography>
+                </Alert>
               </Box>
 
               {stripePromise ? (
@@ -364,7 +555,7 @@ export default function SubscriptionPage({ setAuthorization }) {
                     plan={selectedPlan}
                     onSuccess={handlePaymentSuccess}
                     onError={handlePaymentError}
-                    hasHadTrial={hasHadTrial}
+                    hasHadTrial={true}
                   />
                 </Elements>
               ) : (

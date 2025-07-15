@@ -10,10 +10,21 @@ import {
   AppBar,
   Toolbar,
 } from '@mui/material';
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import HowItWorksVideo from './HowItWorksVideo';
 
 export default function LandingPage() {
   const theme = useTheme();
   const navigate = useNavigate();
+  const [videoOpen, setVideoOpen] = React.useState(false);
+
+  const handleOpenVideo = () => {
+    setVideoOpen(true);
+  };
+
+  const handleCloseVideo = () => {
+    setVideoOpen(false);
+  };
 
   return (
     <Box
@@ -50,6 +61,19 @@ export default function LandingPage() {
             COTS UI
           </Typography>
           <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="text"
+              onClick={handleOpenVideo}
+              startIcon={<PlayCircleOutlineIcon />}
+              sx={{
+                color: '#fff',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                }
+              }}
+            >
+              How It Works
+            </Button>
             <Button
               variant="contained"
               onClick={() => navigate('/sign-in')}
@@ -89,7 +113,7 @@ export default function LandingPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundImage: 'url("/iStock-2148264573.jpg")',
+          backgroundImage: 'url("/AdobeStock_842920994.jpeg")',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
@@ -116,32 +140,38 @@ export default function LandingPage() {
           <Box
             sx={{
               textAlign: 'center',
-              py: 2,
-              mb: 10
+              py: 4,
+              px: 4,
+              mb: 10,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              borderRadius: 4,
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+              maxWidth: '800px',
+              mx: 'auto',
             }}
           >
             <Typography
               variant="h2"
               sx={{
                 fontSize: { xs: '1.25rem', md: '1.75rem' },
-                mb: 1,
+                mb: 2,
                 color: '#fff',
                 fontWeight: 600,
               }}
             >
-              Smart Money Tracker - COTS Analytics
+              CFTC Commitment of Traders Report Viewer
             </Typography>
             <Typography
               variant="body1"
               sx={{
                 fontSize: { xs: '0.9rem', md: '1.1rem' },
-                mb: 24,
-                maxWidth: '800px',
-                mx: 'auto',
                 color: '#fff',
+                opacity: 0.9,
               }}
             >
-              Built by traders for traders.
+              Designed to make government-reported data more accessible and actionable.
             </Typography>
           </Box>
         </Container>
@@ -158,20 +188,20 @@ export default function LandingPage() {
         >
           {[
             {
+              title: 'Market Insights',
+              description: 'Spot market trends and reversals with our unique market research tools.',
+            },
+            {
               title: 'Real-time Data',
-              description: 'Access up-to-date market data and trends with our comprehensive dashboard.',
+              description: 'Access continuously updated financial data through our intuitive dashboard.',
             },
             {
               title: 'Advanced Analytics',
-              description: 'Follow institutional money flow with precise tracking of commercial trader positions.',
+              description: 'Visualize institutional market activity using aggregated trader sentiment indicators.',
             },
             {
-              title: 'Market Insights',
-              description: 'Spot key market reversals and trends with our proprietary analysis tools.',
-            },
-            {
-              title: 'Direct Support',
-              description: 'Get exclusive Discord access and direct support from our app developers.',
+              title: 'Discord Community',
+              description: 'Join our exclusive Discord server for direct support and market discussions.',
             },
           ].map((feature, index) => (
             <Paper
@@ -208,6 +238,12 @@ export default function LandingPage() {
           ))}
         </Box>
       </Container>
+
+      {/* How It Works Video Dialog */}
+      <HowItWorksVideo 
+        open={videoOpen} 
+        onClose={handleCloseVideo} 
+      />
     </Box>
   );
 } 
