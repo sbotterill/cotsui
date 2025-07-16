@@ -141,7 +141,7 @@ export default function CollapsibleTable({
     return upper;
   };
 
-  // Filter exchanges to only include allowed ones
+  // Filter exchanges to only include allowed ones and those with data
   const filteredExchanges = React.useMemo(() => {
 
     // First format all exchanges with their full names
@@ -155,12 +155,27 @@ export default function CollapsibleTable({
       return `${code} - ${fullName}`;
     });
 
-    // Filter to only show exchanges that are in displayExchanges
+    // Filter to only show exchanges that are in displayExchanges AND have data
     const filtered = formatted.filter(exchange => {
       const code = normalizeCode(exchange.split(' - ')[0]);
       const isIncluded = displayExchanges.some(d => normalizeCode(d) === code);
 
-      return isIncluded;
+      // If not in displayExchanges, exclude
+      if (!isIncluded) return false;
+
+      // Check if this exchange has any data in the current filtered results
+      const hasData = filteredFuturesData?.some(row => {
+        const rowMarketCode = row.market_code?.trim() || '';
+        
+        // Special handling for ICE exchanges
+        if (code === 'ICE') {
+          return rowMarketCode === 'ICEU' || rowMarketCode === 'ICUS' || rowMarketCode === 'IFED' || rowMarketCode === 'ICE';
+        }
+        
+        return rowMarketCode === code;
+      });
+
+      return hasData;
     });
 
     // Sort by the exchange code
@@ -169,17 +184,29 @@ export default function CollapsibleTable({
       const bCode = normalizeCode(b.split(' - ')[0]);
       return aCode.localeCompare(bCode);
     });
-  }, [exchanges, displayExchanges]);
+  }, [exchanges, displayExchanges, filteredFuturesData]);
 
   // Initialize selected tab
   React.useEffect(() => {
-    if (!initialLoadDone.current && futuresData?.length > 0 && filteredExchanges.length > 0) {
-      // If no favorites, select first exchange tab
-      const initialTab = favorites.length > 0 ? 0 : 1;
+    if (!initialLoadDone.current && futuresData?.length > 0 && (filteredExchanges.length > 0 || favorites.length > 0)) {
+      // Check if favorites tab should be shown
+      const favoritesInSearch = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
+      const shouldShowFavorites = favoritesInSearch.length > 0;
+      
+      // Determine initial tab
+      let initialTab;
+      if (shouldShowFavorites) {
+        initialTab = 0; // Favorites tab
+      } else if (filteredExchanges.length > 0) {
+        initialTab = 0; // First exchange tab (index 0 when no favorites)
+      } else {
+        return; // No tabs available
+      }
+      
       onTabChange(initialTab);
       
       // Select first commodity in the current tab
-      const currentExchange = initialTab === 0 ? 'Favorites' : filteredExchanges[0];
+      const currentExchange = shouldShowFavorites ? 'Favorites' : filteredExchanges[0];
       const filteredData = getFilteredData(currentExchange);
       
       if (filteredData.length > 0) {
@@ -213,8 +240,8 @@ export default function CollapsibleTable({
     if (!exchange) return [];
 
     if (exchange === 'Favorites') {
-      // Use complete futuresData for favorites to show all favorited items regardless of exchange
-      const filtered = futuresData?.filter(d => favorites.includes(d.commodity)) || [];
+      // Use filteredFuturesData for favorites to respect search filtering
+      const filtered = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
       return filtered;
     }
     
@@ -240,9 +267,19 @@ export default function CollapsibleTable({
 
   // Get the current exchange's data
   const currentExchangeData = React.useMemo(() => {
-    const currentExchange = selectedTab === 0 ? 'Favorites' : filteredExchanges[selectedTab - 1];
+    // Check if favorites tab should be shown
+    const favoritesInSearch = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
+    const shouldShowFavorites = favoritesInSearch.length > 0;
+    
+    let currentExchange;
+    if (selectedTab === 0 && shouldShowFavorites) {
+      currentExchange = 'Favorites';
+    } else {
+      const exchangeIndex = shouldShowFavorites ? selectedTab - 1 : selectedTab;
+      currentExchange = filteredExchanges[exchangeIndex];
+    }
+    
     const data = getFilteredData(currentExchange);
-
     return data;
   }, [futuresData, filteredFuturesData, filteredExchanges, selectedTab, favorites]);
 
@@ -260,20 +297,31 @@ export default function CollapsibleTable({
     }
   };
 
-  // Update tab selection when displayExchanges changes
+  // Update tab selection when displayExchanges changes or when search filters out current tab
   React.useEffect(() => {
-    if (selectedTab > 0) {
-      const currentExchange = filteredExchanges[selectedTab - 1];
-      const currentCode = normalizeCode(currentExchange?.split(' - ')[0]);
-      
-      // Check if current tab's exchange is still in displayExchanges
-      const isCurrentExchangeVisible = displayExchanges.some(e => normalizeCode(e) === currentCode);
-      
-      if (!isCurrentExchangeVisible && displayExchanges.length > 0) {
-        onTabChange(1);
+    // Check if favorites tab should be shown
+    const favoritesInSearch = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
+    const shouldShowFavorites = favoritesInSearch.length > 0;
+    
+    // Check if current tab is still valid
+    let isCurrentTabValid = false;
+    
+    if (selectedTab === 0) {
+      isCurrentTabValid = shouldShowFavorites;
+    } else {
+      const exchangeIndex = shouldShowFavorites ? selectedTab - 1 : selectedTab;
+      isCurrentTabValid = exchangeIndex >= 0 && exchangeIndex < filteredExchanges.length;
+    }
+    
+    // If current tab is not valid, switch to first available tab
+    if (!isCurrentTabValid) {
+      if (shouldShowFavorites) {
+        onTabChange(0); // Switch to favorites tab
+      } else if (filteredExchanges.length > 0) {
+        onTabChange(0); // Switch to first exchange tab (index 0 when no favorites)
       }
     }
-  }, [displayExchanges, filteredExchanges, selectedTab]);
+  }, [displayExchanges, filteredExchanges, selectedTab, futuresData, filteredFuturesData, favorites]);
 
   // Add this at the start of the component
   React.useEffect(() => {
@@ -765,6 +813,10 @@ export default function CollapsibleTable({
 
   // Render the tabs with cleaner formatting
   const renderTabs = () => {
+    // Check if favorites tab should be shown (has favorites in current search results)
+    const favoritesInSearch = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
+    const shouldShowFavorites = favoritesInSearch.length > 0;
+
     return (
       <Tabs 
         value={selectedTab} 
@@ -803,36 +855,38 @@ export default function CollapsibleTable({
           }
         }}
       >
-        <Tab 
-          key="favorites" 
-          label={
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1
-            }}>
-              <span>Favorites</span>
-              {favorites.length > 0 && (
-                <Box
-                  sx={{
-                    backgroundColor: theme.palette.mode === 'dark' 
-                      ? 'rgba(255, 255, 255, 0.12)' 
-                      : 'rgba(0, 0, 0, 0.08)',
-                    color: theme.palette.text.primary,
-                    borderRadius: '12px',
-                    padding: '2px 8px',
-                    fontSize: '0.75rem',
-                    lineHeight: 1,
-                    fontWeight: 500
-                  }}
-                >
-                  {favorites.length}
-                </Box>
-              )}
-            </Box>
-          } 
-          id="tab-0" 
-        />
+        {shouldShowFavorites && (
+          <Tab 
+            key="favorites" 
+            label={
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1
+              }}>
+                <span>Favorites</span>
+                {favoritesInSearch.length > 0 && (
+                  <Box
+                    sx={{
+                      backgroundColor: theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.12)' 
+                        : 'rgba(0, 0, 0, 0.08)',
+                      color: theme.palette.text.primary,
+                      borderRadius: '12px',
+                      padding: '2px 8px',
+                      fontSize: '0.75rem',
+                      lineHeight: 1,
+                      fontWeight: 500
+                    }}
+                  >
+                    {favoritesInSearch.length}
+                  </Box>
+                )}
+              </Box>
+            } 
+            id="tab-0" 
+          />
+        )}
         {filteredExchanges.map((exchange, index) => {
           const code = normalizeCode(exchange.split(' - ')[0]);
           return (
@@ -846,7 +900,7 @@ export default function CollapsibleTable({
                   <span className="market-code">{code}</span>
                 </Box>
               } 
-              id={`tab-${index + 1}`}
+              id={`tab-${shouldShowFavorites ? index + 1 : index}`}
             />
           );
         })}
@@ -876,10 +930,20 @@ export default function CollapsibleTable({
           border: 'none'
         }
       }}>
-        {selectedTab === 0 && <div key="favorites-table">{renderTable()}</div>}
-        {filteredExchanges.map((exchange, index) => (
-          selectedTab === index + 1 && <div key={`table-${exchange}`}>{renderTable()}</div>
-        ))}
+        {(() => {
+          // Check if favorites tab should be shown
+          const favoritesInSearch = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
+          const shouldShowFavorites = favoritesInSearch.length > 0;
+          
+          if (selectedTab === 0 && shouldShowFavorites) {
+            return <div key="favorites-table">{renderTable()}</div>;
+          }
+          
+          return filteredExchanges.map((exchange, index) => {
+            const tabIndex = shouldShowFavorites ? index + 1 : index;
+            return selectedTab === tabIndex ? <div key={`table-${exchange}`}>{renderTable()}</div> : null;
+          });
+        })()}
       </TableContainer>
     </Box>
   );
