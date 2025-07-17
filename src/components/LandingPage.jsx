@@ -32,7 +32,7 @@ export default function LandingPage() {
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: theme.palette.mode === 'dark' ? '#121212' : '#f5f5f5',
+        background: 'rgba(68, 79, 90, 0.7)',
       }}
     >
       {/* App Bar */}
@@ -40,26 +40,22 @@ export default function LandingPage() {
         position="fixed" 
         elevation={0}
         sx={{
-          backgroundColor: 'transparent',
+          backgroundColor: 'rgba(68, 79, 90, 0.7)',
           backdropFilter: 'blur(8px)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Typography
-            variant="h6"
+          <Box
+            component="img"
+            src="/noBgColor.png"
+            alt="COTS UI Logo"
             sx={{
-              fontSize: '1.5rem',
-              fontWeight: 700,
-              background: theme.palette.mode === 'dark' 
-                ? 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)'
-                : 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              height: '40px',
+              width: 'auto',
+              cursor: 'pointer',
             }}
-          >
-            COTS UI
-          </Typography>
+          />
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
               variant="text"
@@ -78,10 +74,10 @@ export default function LandingPage() {
               variant="contained"
               onClick={() => navigate('/sign-in')}
               sx={{
-                background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                background: '#cbb26a',
                 color: '#fff',
                 '&:hover': {
-                  background: 'linear-gradient(45deg, #1976D2 30%, #1CB5E0 90%)',
+                  background: '#b8a05a',
                 }
               }}
             >
@@ -143,7 +139,7 @@ export default function LandingPage() {
               py: 4,
               px: 4,
               mb: 10,
-              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              backgroundColor: 'rgba(68, 79, 90, 0.7)',
               borderRadius: 4,
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -211,7 +207,7 @@ export default function LandingPage() {
                 p: 2.5,
                 textAlign: 'center',
                 backgroundColor: theme.palette.mode === 'dark' ? '#1A1A1A' : '#fff',
-                border: `1px solid ${theme.palette.divider}`,
+                border: `1px solid rgba(255, 255, 255, 0.3)`,
                 borderRadius: 2,
               }}
             >
