@@ -14,8 +14,8 @@ import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 export default function HowItWorksVideo({ open, onClose }) {
   const theme = useTheme();
 
-  // Replace this with your actual YouTube video ID
-  const youtubeVideoId = 'https://youtu.be/QWkFgL3sd2A'; // You'll need to replace this with your actual video ID
+  // YouTube video ID (extract just the ID from the URL)
+  const youtubeVideoId = 'QWkFgL3sd2A'; // Extract just the video ID from the URL
 
   return (
     <Dialog
