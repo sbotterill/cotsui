@@ -15,7 +15,7 @@ export default function HowItWorksVideo({ open, onClose }) {
   const theme = useTheme();
 
   // Replace this with your actual YouTube video ID
-  const youtubeVideoId = 'https://youtu.be/xcaQEoaPhRI'; // You'll need to replace this with your actual video ID
+  const youtubeVideoId = 'https://youtu.be/QWkFgL3sd2A'; // You'll need to replace this with your actual video ID
 
   return (
     <Dialog
