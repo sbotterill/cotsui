@@ -24,6 +24,12 @@ import { EXCHANGE_CODE_MAP } from './constants';
 import SigninPage from './components/SigninPage';
 import Profile from './components/Profile';
 import Loading from './components/Loading';
+import { useMediaQuery } from '@mui/material';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import TableChartIcon from '@mui/icons-material/TableChart';
+import ShowChartIcon from '@mui/icons-material/ShowChart';
+import { getCommercialExtremes } from './services/cftcService';
 
 // Context to expose toggle function for theme switch
 export const ColorModeContext = createContext({ toggleColorMode: () => {} });
@@ -232,6 +238,18 @@ async function fetchData(selectedDate = null) {
 // Main App component
 export default function App() {
   const [mode, setMode] = useState('dark');
+  
+  // Theme state & toggle
+  const colorMode = useMemo(() => ({
+    toggleColorMode: () => {
+      setMode(prev => (prev === 'light' ? 'dark' : 'light'));
+    },
+  }), []);
+  
+  const theme = useMemo(() => createTheme({ palette: { mode } }), [mode]);
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  const [mobileView, setMobileView] = useState('table');
   const [authorized, setAuthorization] = useState(() => {
     return !!localStorage.getItem('userEmail');
   });
@@ -263,14 +281,8 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState(0);
   const [isChartLoading, setIsChartLoading] = useState(false);  // New state for chart loading
-
-  // Theme state & toggle
-  const colorMode = useMemo(() => ({
-    toggleColorMode: () => {
-      setMode(prev => (prev === 'light' ? 'dark' : 'light'));
-    },
-  }), []);
-  const theme = useMemo(() => createTheme({ palette: { mode } }), [mode]);
+  const [commercialExtremes, setCommercialExtremes] = useState({});
+  const [isLoadingExtremes, setIsLoadingExtremes] = useState(false);
 
   useEffect(() => {
     document.documentElement.style.backgroundColor = theme.palette.background.default;
@@ -320,13 +332,13 @@ export default function App() {
           
           // Load table filters
           const email = localStorage.getItem('userEmail');
-          let filteredExchanges = result.exchanges.map(code => code.trim());  // Trim here
+          let filteredExchanges = result.exchanges.map(code => code.trim());
           
           if (email) {
             try {
               const response = await axios.get(`${API_BASE_URL}/preferences/table_filters?email=${email}`);
               if (response.data.success && response.data.table_filters && response.data.table_filters.selected) {
-                filteredExchanges = response.data.table_filters.selected.map(code => code.trim());  // And here
+                filteredExchanges = response.data.table_filters.selected.map(code => code.trim());
               }
             } catch (error) {
               console.error('Error loading table filters:', error);
@@ -360,9 +372,25 @@ export default function App() {
           
           // Load favorites
           await loadFavorites();
+
+          // Load commercial extremes
+          console.log('📈 Loading commercial extremes');
+          setIsLoadingExtremes(true);
+          try {
+            const extremes = await getCommercialExtremes(result.data);
+            console.log('📈 Commercial extremes loaded:', {
+              extremesKeys: Object.keys(extremes),
+              sampleValues: Object.entries(extremes).slice(0, 3)
+            });
+            setCommercialExtremes(extremes);
+          } catch (error) {
+            console.error('❌ Error loading commercial extremes:', error);
+          } finally {
+            setIsLoadingExtremes(false);
+          }
         }
       } catch (error) {
-        console.error('Error loading initial data:', error);
+        console.error('❌ Error loading initial data:', error);
         setError(error.message);
       } finally {
         setIsLoading(false);
@@ -646,6 +674,12 @@ export default function App() {
     setSelectedDate(newDate);
   };
 
+  const handleMobileViewChange = (event, newView) => {
+    if (newView !== null) {
+      setMobileView(newView);
+    }
+  };
+
   const renderCollapsibleTable = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', height: '100%' }}>
@@ -672,46 +706,87 @@ export default function App() {
           <CollapsableTableSkeleton />
         ) : (
           <>
-            <CollapsibleTable
-              futuresData={futuresData} // Pass complete data for favorites
-              filteredFuturesData={filteredData} // Pass filtered data for exchange tabs
-              userExchanges={userExchanges}
-              exchanges={exchanges}
-              favorites={favorites}
-              onToggleFavorite={handleToggleFavorite}
-              onCommoditySelect={handleCommoditySelect}
-              displayExchanges={displayExchanges}
-              selectedTab={selectedTab}
-              onTabChange={setSelectedTab}
-            />
-            <Box sx={{ position: 'relative', minHeight: '400px' }}>
-              {isChartLoading && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    zIndex: 1,
-                    borderRadius: 1
-                  }}
+            {isMobile && (
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                mt: 1,
+                position: 'sticky',
+                top: '64px',
+                zIndex: 1,
+                backgroundColor: theme.palette.background.default,
+                py: 1
+              }}>
+                <ToggleButtonGroup
+                  value={mobileView}
+                  exclusive
+                  onChange={handleMobileViewChange}
+                  aria-label="mobile view"
+                  size="small"
                 >
-                  <CircularProgress />
-                </Box>
-              )}
-              <LineChartWithReferenceLines 
-                commericalChartData={commericalChartData} 
-                nonCommercialChartData={nonCommercialChartData} 
-                nonReportableChartData={nonReportableChartData} 
-                chartDates={chartDates}
-                selectedCommodity={selectedCommodity}
+                  <ToggleButton value="table" aria-label="table view">
+                    <TableChartIcon sx={{ mr: 1 }} />
+                    Table
+                  </ToggleButton>
+                  <ToggleButton value="chart" aria-label="chart view">
+                    <ShowChartIcon sx={{ mr: 1 }} />
+                    Chart
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+            )}
+            
+            {(!isMobile || mobileView === 'table') && (
+              <CollapsibleTable
+                futuresData={futuresData}
+                filteredFuturesData={filteredData}
+                userExchanges={userExchanges}
+                exchanges={exchanges}
+                favorites={favorites}
+                onToggleFavorite={handleToggleFavorite}
+                onCommoditySelect={handleCommoditySelect}
+                displayExchanges={displayExchanges}
+                selectedTab={selectedTab}
+                onTabChange={setSelectedTab}
+                commercialExtremes={commercialExtremes}
+                isLoadingExtremes={isLoadingExtremes}
               />
-            </Box>
+            )}
+            
+            {(!isMobile || mobileView === 'chart') && (
+              <Box sx={{ 
+                position: 'relative', 
+                minHeight: isMobile ? 'calc(100vh - 180px)' : '400px',
+                mt: isMobile ? 1 : 2
+              }}>
+                {isChartLoading && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                      zIndex: 1,
+                      borderRadius: 1
+                    }}
+                  >
+                    <CircularProgress />
+                  </Box>
+                )}
+                <LineChartWithReferenceLines 
+                  commericalChartData={commericalChartData} 
+                  nonCommercialChartData={nonCommercialChartData} 
+                  nonReportableChartData={nonReportableChartData} 
+                  chartDates={chartDates}
+                  selectedCommodity={selectedCommodity}
+                />
+              </Box>
+            )}
           </>
         )}
       </Box>

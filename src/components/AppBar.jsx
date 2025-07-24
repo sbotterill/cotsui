@@ -13,22 +13,30 @@ import {
   FormControl,
   InputLabel,
   Snackbar,
-  Box
-} from '@mui/material'
+  Box,
+  useMediaQuery,
+  Drawer,
+  List,
+  ListItem,
+  Divider
+} from '@mui/material';
 import BasicMenu from './ContextMenu';
 import ThemeSwitch from './ThemeSwitch';
 import { useTheme } from '@mui/material/styles';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CloseIcon from '@mui/icons-material/Close';
+import MenuIcon from '@mui/icons-material/Menu';
 import Profile from './Profile';
 import { ALLOWED_EXCHANGES, isValidExchange, EXCHANGE_CODE_MAP } from '../constants';
 
 export default function DrawerAppBar(props) {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [showAlert, setShowAlert] = React.useState(true);
   const [showNoResults, setShowNoResults] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   
   // Format the date string directly without creating a Date object
   const formatDateString = (dateStr) => {
@@ -71,9 +79,8 @@ export default function DrawerAppBar(props) {
 
   const handleFuturesFilter = (event) => {
     try {
-      // Don't trim the search value immediately, only lowercase it
       const searchValue = event.target.value.toLowerCase();
-      setSearchTerm(event.target.value); // Store the original value with spaces
+      setSearchTerm(event.target.value);
       
       if (!searchValue) {
         handleClearSearch();
@@ -85,43 +92,32 @@ export default function DrawerAppBar(props) {
         row.commodity.toLowerCase().includes(searchValue)
       );
 
-      // Get unique exchanges from filtered data
-      const matchingExchanges = new Set();
-      filtered.forEach(row => {
-        if (!row.market_code) return;
-        const code = normalizeCode(row.market_code);
-        matchingExchanges.add(code);
-      });
-
-      const matchingExchangesList = Array.from(matchingExchanges);
-
       // Update filtered data
       props.setFilteredData(filtered);
       
-      // During search, we DON'T want to call exchange filter change as it overrides the search results
-      // The search results should be the primary filter, not the exchange filter
-      // props.onExchangeFilterChange(matchingExchangesList, false);
       // Show no results message if needed
       setShowNoResults(filtered.length === 0);
 
-      // Only try to switch tabs if we're in the favorites tab (index 0)
-      if (filtered.length > 0 && props.selectedTab === 0) {
-        const isInFavorites = filtered.some(item => props.favorites.includes(item.commodity));
-        if (!isInFavorites) {
-          // Switch to the first exchange tab that has matches
-          const firstMatchExchange = filtered[0].market_code;
-          const exchangeIndex = props.exchanges.findIndex(e => {
-            const code = e.includes(' - ') ? e.split(' - ')[0].trim() : e.trim();
-            return code === firstMatchExchange;
-          });
-          if (exchangeIndex !== -1) {
-            props.onTabChange(exchangeIndex + 1); // +1 because exchange tabs start at index 1
-          }
+      // Check if there are any matches in favorites
+      const favoritesInSearch = filtered.some(item => props.favorites.includes(item.commodity));
+
+      // Only switch tabs if:
+      // 1. We're in the favorites tab (index 0)
+      // 2. There are search results
+      // 3. None of the search results are in favorites
+      if (filtered.length > 0 && props.selectedTab === 0 && !favoritesInSearch) {
+        // Find the first exchange that has matches
+        const firstMatchExchange = filtered[0].market_code;
+        const exchangeIndex = props.exchanges.findIndex(e => {
+          const code = e.includes(' - ') ? e.split(' - ')[0].trim() : e.trim();
+          return code === firstMatchExchange;
+        });
+        if (exchangeIndex !== -1) {
+          props.onTabChange(exchangeIndex + 1); // +1 because exchange tabs start at index 1
         }
       }
     } catch (error) {
       console.error('Error in handleFuturesFilter:', error);
-      // On error, restore all exchanges
       handleClearSearch();
     }
   };
@@ -143,23 +139,31 @@ export default function DrawerAppBar(props) {
     setShowNoResults(false);
   };
 
-  return (
-    <>
-      <AppBar position='fixed' sx={{backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#fff', borderBottom: '1px solid #444', display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between"}} elevation={1} component="div">
-        <Toolbar sx={{display: "flex", flexDirection:"row", alignContent: "center", color: 'text.primary', background: 'background.paper', width: "1000px", padding: "10px 0px"}}>
-          <Typography
-            variant="h5"
-            component="div"
-            sx={{marginRight: "20px"}}
-          >
-            COTS UI
-          </Typography>
+  const handleMobileMenuToggle = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  const mobileMenu = (
+    <Drawer
+      anchor="right"
+      open={mobileMenuOpen}
+      onClose={() => setMobileMenuOpen(false)}
+      sx={{
+        display: { sm: 'none' },
+        '& .MuiDrawer-paper': {
+          width: '80%',
+          maxWidth: '300px',
+          backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#fff',
+        },
+      }}
+    >
+      <List>
+        <ListItem>
           <TextField 
             onChange={handleFuturesFilter} 
             value={searchTerm}
-            sx={{width: "250px", marginRight: "15px"}} 
+            fullWidth
             size='small' 
-            id="outlined-basic" 
             label="Search" 
             variant="outlined" 
             InputLabelProps={{ style: { color: 'inherit' } }} 
@@ -169,110 +173,199 @@ export default function DrawerAppBar(props) {
                 <IconButton
                   size="small"
                   onClick={handleClearSearch}
-                  sx={{ 
-                    padding: '2px',
-                    '&:hover': {
-                      backgroundColor: 'rgba(0, 0, 0, 0.04)'
-                    }
-                  }}
+                  sx={{ padding: '2px' }}
                 >
                   <CloseIcon fontSize="small" />
                 </IconButton>
               )
             }} 
           />
-          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-            <FormControl 
-              size="small" 
-              sx={{ 
-                width: "250px",
-                marginRight: "8px",
-                '& .MuiInputBase-root': {
-                  height: '40px' // Match search bar height
-                }
-              }}
+        </ListItem>
+        <Divider />
+        <ListItem>
+          <FormControl fullWidth size="small">
+            <InputLabel>Report Date</InputLabel>
+            <Select
+              value={props.selectedDate || ''}
+              onChange={(e) => props.onDateChange(e.target.value)}
+              disabled={props.isDateLoading}
+              label="Report Date"
             >
-              <InputLabel id="date-select-label">Report Date</InputLabel>
-              <Select
-                labelId="date-select-label"
-                id="date-select"
-                value={props.selectedDate || ''}
-                label="Report Date"
-                onChange={(e) => props.onDateChange(e.target.value)}
-                disabled={props.isDateLoading}
-                endAdornment={
-                  props.isDateLoading ? (
-                    <CircularProgress
-                      size={20}
-                      sx={{
-                        position: 'absolute',
-                        right: 25,
-                        color: theme.palette.primary.main
-                      }}
-                    />
-                  ) : null
-                }
-                MenuProps={{
-                  PaperProps: {
-                    style: {
-                      maxHeight: 300
-                    },
-                    sx: {
-                      '& .MuiList-root': {
-                        padding: 0,
-                        maxHeight: 300,
-                        overflowY: 'scroll',
-                        '&::-webkit-scrollbar': {
-                          display: 'none'  // Safari and Chrome
-                        },
-                        scrollbarWidth: 'none',  // Firefox
-                        msOverflowStyle: 'none',  // IE and Edge
-                        '&:hover': {
-                          '&::-webkit-scrollbar': {
-                            display: 'none'
-                          }
-                        }
-                      }
-                    }
-                  }
-                }}
+              {props.availableDates.map((date) => (
+                <MenuItem key={date} value={date}>
+                  {formatDateOption(date)}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </ListItem>
+        <ListItem>
+          <BasicMenu 
+            commodities={props.exchanges} 
+            selected={props.displayExchanges} 
+            onFilterChange={props.onExchangeFilterChange}
+            isMobile={true}
+          />
+        </ListItem>
+      </List>
+    </Drawer>
+  );
+
+  return (
+    <>
+      <AppBar 
+        position='fixed' 
+        sx={{
+          backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#fff',
+          borderBottom: '1px solid #444',
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between"
+        }}
+        elevation={1}
+        component="div"
+      >
+        {!isMobile ? (
+          // Desktop View - Keep original layout
+          <>
+            <Toolbar sx={{
+              display: "flex",
+              flexDirection: "row",
+              alignContent: "center",
+              color: 'text.primary',
+              background: 'background.paper',
+              width: "1000px",
+              padding: "10px 0px"
+            }}>
+              <Typography
+                variant="h5"
+                component="div"
+                sx={{ marginRight: "20px" }}
               >
-                {props.availableDates.map((date, index) => (
-                  <MenuItem key={index} value={date}>
-                    {formatDateOption(date)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Tooltip 
-              title={
-                <React.Fragment>
-                  <Typography variant="body2" component="div">
-                    • This week's data available for selection Friday 3:30 PM EST
-                  </Typography>
-                  <Typography variant="body2" component="div">
-                    • Only Tuesdays are available for selection
-                  </Typography>
-                </React.Fragment>
-              }
-            >
-              <InfoOutlinedIcon 
-                sx={{ 
-                  fontSize: '1.2rem',
-                  color: theme.palette.text.secondary,
-                  cursor: 'help'
+                COTS UI
+              </Typography>
+              <TextField 
+                onChange={handleFuturesFilter} 
+                value={searchTerm}
+                sx={{ width: "250px", marginRight: "15px" }} 
+                size='small' 
+                label="Search" 
+                variant="outlined" 
+                InputLabelProps={{ style: { color: 'inherit' } }} 
+                InputProps={{ 
+                  style: { color: 'inherit' },
+                  endAdornment: searchTerm && (
+                    <IconButton
+                      size="small"
+                      onClick={handleClearSearch}
+                      sx={{ padding: '2px' }}
+                    >
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  )
                 }} 
               />
-            </Tooltip>
-          </div>
-        </Toolbar>
-        <div className='appbar-context-menu'>
-          <BasicMenu commodities={props.exchanges} selected={props.displayExchanges} onFilterChange={props.onExchangeFilterChange}/>
-          <Box sx={{ position: 'relative' }}>
-            <Profile />
-          </Box>
-        </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FormControl 
+                  size="small" 
+                  sx={{ 
+                    width: "250px",
+                    marginRight: "8px",
+                    '& .MuiInputBase-root': {
+                      height: '40px'
+                    }
+                  }}
+                >
+                  <InputLabel id="date-select-label">Report Date</InputLabel>
+                  <Select
+                    labelId="date-select-label"
+                    id="date-select"
+                    value={props.selectedDate || ''}
+                    label="Report Date"
+                    onChange={(e) => props.onDateChange(e.target.value)}
+                    disabled={props.isDateLoading}
+                    endAdornment={
+                      props.isDateLoading ? (
+                        <CircularProgress
+                          size={20}
+                          sx={{
+                            position: 'absolute',
+                            right: 25,
+                            color: theme.palette.primary.main
+                          }}
+                        />
+                      ) : null
+                    }
+                  >
+                    {props.availableDates.map((date) => (
+                      <MenuItem key={date} value={date}>
+                        {formatDateOption(date)}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <Tooltip 
+                  title={
+                    <React.Fragment>
+                      <Typography variant="body2" component="div">
+                        • This week's data available for selection Friday 3:30 PM EST
+                      </Typography>
+                      <Typography variant="body2" component="div">
+                        • Only Tuesdays are available for selection
+                      </Typography>
+                    </React.Fragment>
+                  }
+                >
+                  <InfoOutlinedIcon 
+                    sx={{ 
+                      fontSize: '1.2rem',
+                      color: theme.palette.text.secondary,
+                      cursor: 'help'
+                    }} 
+                  />
+                </Tooltip>
+              </div>
+            </Toolbar>
+            <div className='appbar-context-menu'>
+              <BasicMenu 
+                commodities={props.exchanges} 
+                selected={props.displayExchanges} 
+                onFilterChange={props.onExchangeFilterChange}
+              />
+              <Box sx={{ position: 'relative' }}>
+                <Profile />
+              </Box>
+            </div>
+          </>
+        ) : (
+          // Mobile View
+          <Toolbar sx={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            width: "100%",
+            padding: "8px"
+          }}>
+            <Typography variant="h6" component="div">
+              COTS UI
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Profile />
+              <IconButton
+                color="inherit"
+                aria-label="open mobile menu"
+                edge="end"
+                onClick={handleMobileMenuToggle}
+              >
+                <MenuIcon />
+              </IconButton>
+            </Box>
+          </Toolbar>
+        )}
       </AppBar>
+      {mobileMenu}
       {showNoResults && (
         <Alert 
           severity="info" 
