@@ -131,6 +131,7 @@ async function fetchData(selectedDate = null) {
     const exchangeSet = new Set();
         
     for (const data of response.data.data) {      
+
       // Ensure all required fields have at least a 0 value
       const processedData = {
         ...data,
@@ -177,13 +178,13 @@ async function fetchData(selectedDate = null) {
         open_interest_all: processedData.open_interest_all,
         change_in_open_interest_all: processedData.change_in_open_interest_all,
         // Commercial fields
-        commerical_long: processedData.comm_positions_long_all,
-        commerical_long_change: processedData.change_in_comm_long_all || 0,
-        commerical_short: processedData.comm_positions_short_all,
-        commerical_short_change: processedData.change_in_comm_short_all || 0,
-        commerical_total: commercialTotalPositions,
-        commerical_percentage_long: commercialPercentageLong,
-        commerical_percentage_short: commercialPercentageShort,
+        commercial_long: processedData.comm_positions_long_all,
+        commercial_long_change: processedData.change_in_comm_long_all || 0,
+        commercial_short: processedData.comm_positions_short_all,
+        commercial_short_change: processedData.change_in_comm_short_all || 0,
+        commercial_total: commercialTotalPositions,
+        commercial_percentage_long: commercialPercentageLong,
+        commercial_percentage_short: commercialPercentageShort,
         // Non-commercial fields
         non_commercial_long: processedData.noncomm_positions_long_all,
         non_commercial_long_change: processedData.change_in_noncomm_long_all || 0,
@@ -269,7 +270,7 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastChecked, setLastChecked] = useState(null);
   const [selectedCommodity, setSelectedCommodity] = useState(null);
-  const [commericalChartData, setCommericalChartData] = useState([]);
+  const [commercialChartData, setCommercialChartData] = useState([]);
   const [nonCommercialChartData, setNonCommercialChartData] = useState([]);
   const [nonReportableChartData, setNonReportableChartData] = useState([]);
   const [chartDates, setChartDates] = useState([]);
@@ -373,15 +374,9 @@ export default function App() {
           // Load favorites
           await loadFavorites();
 
-          // Load commercial extremes
-          console.log('📈 Loading commercial extremes');
           setIsLoadingExtremes(true);
           try {
             const extremes = await getCommercialExtremes(result.data);
-            console.log('📈 Commercial extremes loaded:', {
-              extremesKeys: Object.keys(extremes),
-              sampleValues: Object.entries(extremes).slice(0, 3)
-            });
             setCommercialExtremes(extremes);
           } catch (error) {
             console.error('❌ Error loading commercial extremes:', error);
@@ -399,6 +394,103 @@ export default function App() {
 
     loadInitialData();
   }, [authorized]);
+
+  // Force refresh function
+  const forceRefresh = async () => {    
+    // Clear localStorage
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('commercialExtremes_')) {
+        localStorage.removeItem(key);
+      }
+    });
+
+    // Clear state
+    setCommercialExtremes({});
+    setFuturesData([]);
+    setFilteredData([]);
+    
+    // Reload data
+    if (!authorized) return;
+      
+    try {
+      setIsLoading(true);
+      // First get available dates
+      const dates = await getAvailableReportDates();
+      setAvailableDates(dates);
+      
+      if (dates && dates.length > 0) {
+        // Get the latest date
+        const latestDate = dates[0];
+        
+        // Load data for the latest date
+        const result = await fetchData(latestDate);
+        
+        // Load table filters
+        const email = localStorage.getItem('userEmail');
+        let filteredExchanges = result.exchanges.map(code => code.trim());
+        
+        if (email) {
+          try {
+            const response = await axios.get(`${API_BASE_URL}/preferences/table_filters?email=${email}`);
+            if (response.data.success && response.data.table_filters && response.data.table_filters.selected) {
+              filteredExchanges = response.data.table_filters.selected.map(code => code.trim());
+            }
+          } catch (error) {
+            console.error('Error loading table filters:', error);
+          }
+        }
+
+        // Set the complete data first
+        setFuturesData(result.data);
+        setExchanges(result.exchanges);
+        setDisplayExchanges(filteredExchanges);
+        setUserExchanges(filteredExchanges);
+        setLastUpdated(result.reportDate);
+        setIsLatestData(result.isLatestData);
+        setLastChecked(result.lastChecked);
+        setSelectedDate(latestDate);
+
+        // Then filter from the complete dataset
+        const newFilteredData = result.data.filter(item => {
+          const marketCode = item.market_code;
+          // Special handling for ICE exchanges
+          if (filteredExchanges.includes('ICE')) {
+            if (marketCode === 'ICEU' || marketCode === 'ICUS' || marketCode === 'IFED' || marketCode === 'ICE') {
+              return true;
+            }
+          }
+          return filteredExchanges.includes(marketCode);
+        });
+
+        // Set filtered data after
+        setFilteredData(newFilteredData);
+        
+        // Load favorites
+        await loadFavorites();
+
+        // Load commercial extremes
+        setIsLoadingExtremes(true);
+        try {
+          const extremes = await getCommercialExtremes(result.data);
+          setCommercialExtremes(extremes);
+        } catch (error) {
+          console.error('❌ Error loading commercial extremes:', error);
+        } finally {
+          setIsLoadingExtremes(false);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error loading initial data:', error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Add this effect to force refresh when component mounts
+  useEffect(() => {
+    forceRefresh();
+  }, []); // Empty dependency array means this runs once on mount
 
   // Handle subsequent date changes
   useEffect(() => {
@@ -587,14 +679,14 @@ export default function App() {
 
       // Update chart data states
       setChartDates(formattedData.map(item => item.report_date_as_yyyy_mm_dd));
-      setCommericalChartData(commercialNet);
+      setCommercialChartData(commercialNet);
       setNonCommercialChartData(nonCommercialNet);
       setNonReportableChartData(nonReportableNet);
     } catch (error) {
       console.error('Error fetching chart data:', error);
       // Reset chart data on error
       setChartDates([]);
-      setCommericalChartData([]);
+      setCommercialChartData([]);
       setNonCommercialChartData([]);
       setNonReportableChartData([]);
     } finally {
@@ -779,7 +871,7 @@ export default function App() {
                   </Box>
                 )}
                 <LineChartWithReferenceLines 
-                  commericalChartData={commericalChartData} 
+                  commercialChartData={commercialChartData} 
                   nonCommercialChartData={nonCommercialChartData} 
                   nonReportableChartData={nonReportableChartData} 
                   chartDates={chartDates}

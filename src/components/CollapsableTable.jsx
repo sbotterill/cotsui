@@ -50,7 +50,7 @@ function getPercentageColor(value) {
 
 function descendingComparator(a, b, orderBy) {
   if (orderBy === 'non_commercial_percentage_long' || 
-      orderBy === 'commerical_percentage_long' || 
+      orderBy === 'commercial_percentage_long' || 
       orderBy === 'non_reportable_percentage_long' ||
       orderBy === 'pct_of_oi_noncomm_long_all' ||
       orderBy === 'pct_of_oi_noncomm_short_all' ||
@@ -130,17 +130,6 @@ export default function CollapsibleTable({
   // Commercial Tracker threshold - commodities with commercial percentage over this will be tracked
   const COMMERCIAL_THRESHOLD = 0.7; // 70%
 
-  // Function to get commercial tracker data
-  const getCommercialTrackerData = (data) => {
-    return data.filter(item => {
-      const commercialPercentage = Math.max(
-        item.commerical_percentage_long || 0,
-        item.commerical_percentage_short || 0
-      );
-      return commercialPercentage >= COMMERCIAL_THRESHOLD;
-    });
-  };
-
   // Normalize exchange code by trimming and ensuring consistent format
   const normalizeCode = (code) => {
     if (!code) return '';
@@ -199,14 +188,60 @@ export default function CollapsibleTable({
 
   // Get commercial tracker data
   const commercialTrackerData = React.useMemo(() => {
-    console.log('🔄 Calculating commercial tracker data');
-    const data = getCommercialTrackerData(filteredFuturesData, commercialExtremes);
-    console.log('📊 Commercial tracker results:', {
-      inputLength: filteredFuturesData?.length,
-      outputLength: data.length,
-      trackedCommodities: data.map(d => d.commodity)
-    });
-    return data;
+    // Log input data
+    console.log('\n🔄 Starting commercial tracker calculation');
+    
+    // Validate input data
+    const hasValidData = filteredFuturesData && filteredFuturesData.length > 0;
+    const hasValidExtremes = commercialExtremes && Object.keys(commercialExtremes).length > 0;
+    
+    if (!hasValidData || !hasValidExtremes) {
+      console.log('⚠️ Missing required data:', {
+        hasValidData,
+        hasValidExtremes,
+        dataLength: filteredFuturesData?.length || 0,
+        extremesCount: Object.keys(commercialExtremes || {}).length
+      });
+      return [];
+    }
+
+    try {
+      // Log sample data before processing
+      const sampleItem = filteredFuturesData[0];
+      if (sampleItem) {
+        console.log('📊 Sample data:', {
+          commodity: sampleItem.commodity,
+          positions: {
+            long: sampleItem.commercial_long,
+            short: sampleItem.commercial_short,
+            net: parseInt(sampleItem.commercial_long) - parseInt(sampleItem.commercial_short)
+          },
+          extremes: commercialExtremes[sampleItem.contract_code]
+        });
+      }
+
+      // Use the imported function
+      const data = getCommercialTrackerData(filteredFuturesData, commercialExtremes);
+      
+      // Log results
+      console.log('✅ Commercial tracker results:', {
+        inputCount: filteredFuturesData.length,
+        trackedCount: data.length,
+        trackedItems: data.map(item => ({
+          commodity: item.commodity,
+          positions: {
+            long: item.commercial_long,
+            short: item.commercial_short,
+            net: parseInt(item.commercial_long) - parseInt(item.commercial_short)
+          }
+        }))
+      });
+
+      return data;
+    } catch (error) {
+      console.error('❌ Error in commercial tracker:', error);
+      return [];
+    }
   }, [filteredFuturesData, commercialExtremes]);
 
   // Initialize selected tab
@@ -476,10 +511,10 @@ export default function CollapsibleTable({
       </TableCell>
 
       {/* Commercial */}
-      <TableCell align="center">{fmt.format(r.commerical_long)}</TableCell>
-      <TableCell align="center">{fmt.format(r.commerical_short)}</TableCell>
+      <TableCell align="center">{fmt.format(r.commercial_long)}</TableCell>
+      <TableCell align="center">{fmt.format(r.commercial_short)}</TableCell>
       <TableCell align="center" sx={{ fontWeight: 500 }}>
-        {formatPercentage(r.commerical_percentage_long)}
+        {formatPercentage(r.commercial_percentage_long)}
       </TableCell>
 
       {/* Non-Reportable */}
@@ -606,8 +641,8 @@ export default function CollapsibleTable({
                 </TableCell>
 
                 {/* Commercial */}
-                <TableCell align="right">{fmt.format(row.commerical_long)}</TableCell>
-                <TableCell align="right">{fmt.format(row.commerical_short)}</TableCell>
+                <TableCell align="right">{fmt.format(row.commercial_long)}</TableCell>
+                <TableCell align="right">{fmt.format(row.commercial_short)}</TableCell>
                 <TableCell 
                   align="right"
                   sx={{ 
@@ -615,7 +650,7 @@ export default function CollapsibleTable({
                     borderRight: `1px solid ${theme.palette.divider}`
                   }}
                 >
-                  {formatPercentage(row.commerical_percentage_long)}
+                  {formatPercentage(row.commercial_percentage_long)}
                 </TableCell>
 
                 {/* Non-Reportable */}
@@ -895,15 +930,15 @@ export default function CollapsibleTable({
                 }}
               >
                 <TableSortLabel
-                  active={orderBy === `commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                  active={orderBy === `commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
                     lbl === '% OI Long' ? 'pct_of_oi_comm_long_all' :
                     lbl === '% OI Short' ? 'pct_of_oi_comm_short_all' :
                     lbl.toLowerCase().replace('% ', 'percentage_')}`}
-                  direction={orderBy === `commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                  direction={orderBy === `commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
                     lbl === '% OI Long' ? 'pct_of_oi_comm_long_all' :
                     lbl === '% OI Short' ? 'pct_of_oi_comm_short_all' :
                     lbl.toLowerCase().replace('% ', 'percentage_')}` ? order : 'asc'}
-                  onClick={() => handleRequestSort(`commerical_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                  onClick={() => handleRequestSort(`commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
                     lbl === '% OI Long' ? 'pct_of_oi_comm_long_all' :
                     lbl === '% OI Short' ? 'pct_of_oi_comm_short_all' :
                     lbl.toLowerCase().replace('% ', 'percentage_')}`)}
@@ -1102,17 +1137,17 @@ export default function CollapsibleTable({
               </TableCell>
 
               {/* Commercial */}
-              <TableCell align="center" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_long)}</TableCell>
-              <TableCell align="center" sx={{ color: r.commerical_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
-                {fmt.format(r.commerical_long_change)}
+              <TableCell align="center" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem' }}>{fmt.format(r.commercial_long)}</TableCell>
+              <TableCell align="center" sx={{ color: r.commercial_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
+                {fmt.format(r.commercial_long_change)}
               </TableCell>
-              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_short)}</TableCell>
-              <TableCell align="center" sx={{ color: r.commerical_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
-                {fmt.format(r.commerical_short_change)}
+              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.commercial_short)}</TableCell>
+              <TableCell align="center" sx={{ color: r.commercial_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
+                {fmt.format(r.commercial_short_change)}
               </TableCell>
-              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.commerical_total)}</TableCell>
-              <TableCell align="center" sx={{ color: getPercentageColor(r.commerical_percentage_long), padding: '8px 4px', fontSize: '0.75rem' }}>
-                {formatPercentage(r.commerical_percentage_long)}
+              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.commercial_total)}</TableCell>
+              <TableCell align="center" sx={{ color: getPercentageColor(r.commercial_percentage_long), padding: '8px 4px', fontSize: '0.75rem' }}>
+                {formatPercentage(r.commercial_percentage_long)}
               </TableCell>
               <TableCell align="center" sx={{ color: getPercentageColor(r.pct_of_oi_comm_long_all), padding: '8px 4px', fontSize: '0.75rem' }}>
                 {formatPercentage(r.pct_of_oi_comm_long_all)}

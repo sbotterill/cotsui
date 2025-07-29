@@ -24,10 +24,10 @@ export default function LineChartWithReferenceLines(props) {
   // Memoize reversed data arrays
   const reversedData = React.useMemo(() => ({
     dates: [...props.chartDates].reverse(),
-    commercial: [...props.commericalChartData].reverse(),
+    commercial: [...props.commercialChartData].reverse(),
     nonCommercial: [...props.nonCommercialChartData].reverse(),
     nonReportable: [...props.nonReportableChartData].reverse()
-  }), [props.chartDates, props.commericalChartData, props.nonCommercialChartData, props.nonReportableChartData]);
+  }), [props.chartDates, props.commercialChartData, props.nonCommercialChartData, props.nonReportableChartData]);
 
   // Memoize the currently visible data
   const visibleData = React.useMemo(() => {
