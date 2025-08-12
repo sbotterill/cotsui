@@ -379,19 +379,9 @@ export default function App() {
           await loadFavorites();
 
           // Load commercial extremes
-          console.log('�� Loading commercial statistics');
           setIsLoadingExtremes(true);
           try {
             const historicalData = await getCommercialExtremes(result.data);
-            console.log('📈 Historical data loaded:', {
-              commoditiesWithData: Object.keys(historicalData).length,
-              sampleStats: Object.entries(historicalData).slice(0, 3).map(([code, data]) => ({
-                code,
-                mean: data.stats.mean.toFixed(2),
-                stdDev: data.stats.stdDev.toFixed(2),
-                sampleSize: data.stats.count
-              }))
-            });
             setCommercialExtremes(historicalData);
           } catch (error) {
             console.error('❌ Error loading commercial extremes:', error);
@@ -488,15 +478,6 @@ export default function App() {
         setIsLoadingExtremes(true);
         try {
           const historicalData = await getCommercialExtremes(result.data);
-          console.log('📈 Historical data loaded:', {
-            commoditiesWithData: Object.keys(historicalData).length,
-            sampleStats: Object.entries(historicalData).slice(0, 3).map(([code, data]) => ({
-              code,
-              mean: data.stats.mean.toFixed(2),
-              stdDev: data.stats.stdDev.toFixed(2),
-              sampleSize: data.stats.count
-            }))
-          });
           setCommercialExtremes(historicalData);
         } catch (error) {
           console.error('❌ Error loading commercial extremes:', error);

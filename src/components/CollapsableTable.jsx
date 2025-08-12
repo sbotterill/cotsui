@@ -149,10 +149,14 @@ export default function CollapsibleTable({
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'lg'));
+  const isLandscape = useMediaQuery('(orientation: landscape)');
+  const isTabletLandscape = isTablet && isLandscape;
   const [order, setOrder] = React.useState('asc');
   const [orderBy, setOrderBy] = React.useState('commodity');
   const initialLoadDone = React.useRef(false);
   const fmt = new Intl.NumberFormat('en-US');
+  const fmtCompact = new Intl.NumberFormat('en-US', { notation: 'compact' });
 
   // Commercial Tracker threshold - commodities with commercial percentage over this will be tracked
   const COMMERCIAL_THRESHOLD = 0.7; // 70%
@@ -701,6 +705,134 @@ export default function CollapsibleTable({
                 >
                   {formatPercentage(row.non_reportable_percentage_long)}
                 </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      );
+    }
+
+    if (isTablet) {
+      return (
+        <Table size="small" aria-label="futures data tablet" sx={{ 
+          borderCollapse: 'collapse',
+          tableLayout: 'fixed',
+          width: '100%',
+          border: `1px solid ${theme.palette.divider}`,
+          '& .MuiTableCell-root': {
+            padding: isTabletLandscape ? '12px 10px' : '10px 8px',
+            fontSize: isTabletLandscape ? '0.95rem' : '0.85rem',
+            whiteSpace: 'nowrap'
+          }
+        }}>
+          <TableHead>
+            <TableRow>
+              <TableCell 
+                sx={{ 
+                  position: 'sticky',
+                  left: 0,
+                  backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                  zIndex: 2,
+                  minWidth: isTabletLandscape ? '260px' : '200px'
+                }}
+              >
+                <TableSortLabel
+                  active={orderBy === 'commodity'}
+                  direction={orderBy === 'commodity' ? order : 'asc'}
+                  onClick={() => handleRequestSort('commodity')}
+                  sx={{ justifyContent: 'center' }}
+                >
+                  Commodity
+                </TableSortLabel>
+              </TableCell>
+              {isCommercialTrackerSelected && (
+                <TableCell align="center">
+                  <TableSortLabel
+                    active={orderBy === 'zScore'}
+                    direction={orderBy === 'zScore' ? order : 'asc'}
+                    onClick={() => handleRequestSort('zScore')}
+                    sx={{ justifyContent: 'center' }}
+                  >
+                    zScore
+                  </TableSortLabel>
+                </TableCell>
+              )}
+              <TableCell colSpan={2} align="center">Open Interest</TableCell>
+              <TableCell colSpan={isTabletLandscape ? 4 : 3} align="center">Non-commercial</TableCell>
+              <TableCell colSpan={isTabletLandscape ? 4 : 3} align="center">Commercial</TableCell>
+              <TableCell colSpan={3} align="center">Non-reportable</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell sx={{ position: 'sticky', left: 0, backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5', zIndex: 1 }} />
+              {isCommercialTrackerSelected && (
+                <TableCell align="center">zScore</TableCell>
+              )}
+              <TableCell align="center">Total</TableCell>
+              <TableCell align="center">Change</TableCell>
+              <TableCell align="center">Long</TableCell>
+              <TableCell align="center">Short</TableCell>
+              <TableCell align="center">%L</TableCell>
+              {isTabletLandscape && <TableCell align="center">% OI L</TableCell>}
+              <TableCell align="center">Long</TableCell>
+              <TableCell align="center">Short</TableCell>
+              <TableCell align="center">%L</TableCell>
+              {isTabletLandscape && <TableCell align="center">% OI L</TableCell>}
+              <TableCell align="center">Long</TableCell>
+              <TableCell align="center">Short</TableCell>
+              <TableCell align="center">%L</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {sortedData.map((row) => (
+              <TableRow
+                key={row.commodity}
+                onClick={() => handleRowClick(row.commodity)}
+                sx={{ cursor: 'pointer', '&:hover': { backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' } }}
+              >
+                <TableCell 
+                  sx={{ 
+                    position: 'sticky',
+                    left: 0,
+                    backgroundColor: theme.palette.background.paper,
+                    zIndex: 1,
+                    borderRight: `1px solid ${theme.palette.divider}`
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <FavoriteButton
+                      initial={favorites.includes(row.commodity)}
+                      onToggle={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite(row.commodity);
+                      }}
+                    />
+                    <Typography noWrap sx={{ fontWeight: 600 }}>{row.commodity}</Typography>
+                  </Box>
+                </TableCell>
+                {isCommercialTrackerSelected && (
+                  <TableCell align="center"><ZBadge z={row.zScore} type={row.extremeType} /></TableCell>
+                )}
+                {/* Open Interest */}
+                <TableCell align="right">{isTabletLandscape ? fmt.format(row.open_interest_all) : fmtCompact.format(row.open_interest_all)}</TableCell>
+                <TableCell align="right" sx={{ color: row.change_in_open_interest_all < 0 ? 'error.main' : 'success.main' }}>{fmt.format(row.change_in_open_interest_all)}</TableCell>
+                {/* Non-commercial */}
+                <TableCell align="right">{fmt.format(row.non_commercial_long)}</TableCell>
+                <TableCell align="right">{fmt.format(row.non_commercial_short)}</TableCell>
+                <TableCell align="right">{formatPercentage(row.non_commercial_percentage_long)}</TableCell>
+                {isTabletLandscape && (
+                  <TableCell align="right">{formatPercentage(row.pct_of_oi_noncomm_long_all)}</TableCell>
+                )}
+                {/* Commercial */}
+                <TableCell align="right">{fmt.format(row.commercial_long)}</TableCell>
+                <TableCell align="right">{fmt.format(row.commercial_short)}</TableCell>
+                <TableCell align="right">{formatPercentage(row.commercial_percentage_long)}</TableCell>
+                {isTabletLandscape && (
+                  <TableCell align="right">{formatPercentage(row.pct_of_oi_comm_long_all)}</TableCell>
+                )}
+                {/* Non-reportable */}
+                <TableCell align="right">{fmt.format(row.non_reportable_long)}</TableCell>
+                <TableCell align="right">{fmt.format(row.non_reportable_short)}</TableCell>
+                <TableCell align="right">{formatPercentage(row.non_reportable_percentage_long)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
