@@ -175,11 +175,11 @@ export function getCommercialTrackerData(data, historicalData) {
     historicalDataAvailable: Object.keys(historicalData).length
   });
 
-  return data.filter(item => {
+  const enriched = data.map(item => {
     // Get historical data for this commodity
     const history = historicalData[item.contract_code];
     if (!history || !history.stats) {
-      return false;
+      return null;
     }
 
     // Calculate current net position
@@ -188,7 +188,7 @@ export function getCommercialTrackerData(data, historicalData) {
     const currentNet = longPosition - shortPosition;
 
     if (isNaN(currentNet)) {
-      return false;
+      return null;
     }
 
     // Calculate Z-score
@@ -196,6 +196,8 @@ export function getCommercialTrackerData(data, historicalData) {
 
     // Check if position is extreme based on Z-score
     const isExtreme = Math.abs(zScore) >= Z_SCORE_THRESHOLD;
+    const extremeType = zScore >= Z_SCORE_THRESHOLD ? 'BULLISH' : 
+                        zScore <= -Z_SCORE_THRESHOLD ? 'BEARISH' : 'NORMAL';
 
     // Log calculation for each commodity
     console.log(`\n🧮 ${item.commodity} (${item.contract_code}):`, {
@@ -212,11 +214,18 @@ export function getCommercialTrackerData(data, historicalData) {
       zScore: zScore.toFixed(2),
       isExtreme: {
         value: isExtreme,
-        type: zScore >= Z_SCORE_THRESHOLD ? 'BULLISH' : 
-              zScore <= -Z_SCORE_THRESHOLD ? 'BEARISH' : 'NORMAL'
+        type: extremeType
       }
     });
 
-    return isExtreme;
+    // Return enriched item regardless; we'll filter below
+    return {
+      ...item,
+      zScore: Number(zScore.toFixed(2)),
+      extremeType
+    };
   });
+
+  // Keep only extremes for the tracker
+  return enriched.filter(x => x && Math.abs(x.zScore) >= Z_SCORE_THRESHOLD);
 } 

@@ -20,7 +20,7 @@ import { API_BASE_URL } from './config';
 import TradingViewIndicator from './components/TradingView';
 import LineChartWithReferenceLines from './components/LineGraph';
 import { CssBaseline } from '@mui/material';
-import { EXCHANGE_CODE_MAP } from './constants';
+import { EXCHANGE_CODE_MAP, REMOVED_EXCHANGE_CODES } from './constants';
 import SigninPage from './components/SigninPage';
 import Profile from './components/Profile';
 import Loading from './components/Loading';
@@ -215,8 +215,11 @@ async function fetchData(selectedDate = null) {
         total_short: (processedData.nonrept_positions_short_all || 0) + (processedData.tot_rept_positions_short || 0)
       };
 
-      dataMap.push(obj);
-      exchangeSet.add(obj.market_code);
+      // Skip any rows belonging to removed exchanges
+      if (!REMOVED_EXCHANGE_CODES.includes(obj.market_code)) {
+        dataMap.push(obj);
+        exchangeSet.add(obj.market_code);
+      }
     }
 
     exchangesList = Array.from(exchangeSet).sort();  // Sort alphabetically
@@ -333,13 +336,13 @@ export default function App() {
           
           // Load table filters
           const email = localStorage.getItem('userEmail');
-          let filteredExchanges = result.exchanges.map(code => code.trim());
+          let filteredExchanges = result.exchanges.map(code => code.trim()).filter(code => !REMOVED_EXCHANGE_CODES.includes(code));
           
           if (email) {
             try {
               const response = await axios.get(`${API_BASE_URL}/preferences/table_filters?email=${email}`);
               if (response.data.success && response.data.table_filters && response.data.table_filters.selected) {
-                filteredExchanges = response.data.table_filters.selected.map(code => code.trim());
+                filteredExchanges = response.data.table_filters.selected.map(code => code.trim()).filter(code => !REMOVED_EXCHANGE_CODES.includes(code));
               }
             } catch (error) {
               console.error('Error loading table filters:', error);
@@ -359,6 +362,7 @@ export default function App() {
           // Then filter from the complete dataset
           const newFilteredData = result.data.filter(item => {
             const marketCode = item.market_code;
+            if (REMOVED_EXCHANGE_CODES.includes(marketCode)) return false;
             // Special handling for ICE exchanges
             if (filteredExchanges.includes('ICE')) {
               if (marketCode === 'ICEU' || marketCode === 'ICUS' || marketCode === 'IFED' || marketCode === 'ICE') {
@@ -438,13 +442,13 @@ export default function App() {
         
         // Load table filters
         const email = localStorage.getItem('userEmail');
-        let filteredExchanges = result.exchanges.map(code => code.trim());
+        let filteredExchanges = result.exchanges.map(code => code.trim()).filter(code => !REMOVED_EXCHANGE_CODES.includes(code));
         
         if (email) {
           try {
             const response = await axios.get(`${API_BASE_URL}/preferences/table_filters?email=${email}`);
             if (response.data.success && response.data.table_filters && response.data.table_filters.selected) {
-              filteredExchanges = response.data.table_filters.selected.map(code => code.trim());
+              filteredExchanges = response.data.table_filters.selected.map(code => code.trim()).filter(code => !REMOVED_EXCHANGE_CODES.includes(code));
             }
           } catch (error) {
             console.error('Error loading table filters:', error);
@@ -464,6 +468,7 @@ export default function App() {
         // Then filter from the complete dataset
         const newFilteredData = result.data.filter(item => {
           const marketCode = item.market_code;
+          if (REMOVED_EXCHANGE_CODES.includes(marketCode)) return false;
           // Special handling for ICE exchanges
           if (filteredExchanges.includes('ICE')) {
             if (marketCode === 'ICEU' || marketCode === 'ICUS' || marketCode === 'IFED' || marketCode === 'ICE') {
@@ -524,13 +529,13 @@ export default function App() {
         
         // Load table filters
         const email = localStorage.getItem('userEmail');
-        let filteredExchanges = displayExchanges.length > 0 ? displayExchanges : result.exchanges;
+        let filteredExchanges = (displayExchanges.length > 0 ? displayExchanges : result.exchanges).filter(code => !REMOVED_EXCHANGE_CODES.includes(code));
         
         if (email && displayExchanges.length === 0) {
           try {
             const response = await axios.get(`${API_BASE_URL}/preferences/table_filters?email=${email}`);
             if (response.data.success && response.data.table_filters && response.data.table_filters.selected) {
-              filteredExchanges = response.data.table_filters.selected.map(code => code.trim());
+              filteredExchanges = response.data.table_filters.selected.map(code => code.trim()).filter(code => !REMOVED_EXCHANGE_CODES.includes(code));
             }
           } catch (error) {
             console.error('Error loading table filters:', error);
@@ -548,6 +553,7 @@ export default function App() {
         // Then filter from complete dataset
         const newFilteredData = result.data.filter(item => {
           const marketCode = item.market_code;
+          if (REMOVED_EXCHANGE_CODES.includes(marketCode)) return false;
           // Special handling for ICE exchanges
           if (filteredExchanges.includes('ICE')) {
             if (marketCode === 'ICEU' || marketCode === 'ICUS' || marketCode === 'IFED' || marketCode === 'ICE') {
@@ -721,6 +727,7 @@ export default function App() {
     // Always filter from the complete data set
     const newFilteredData = futuresData.filter(item => {
       const marketCode = item.market_code;
+      if (REMOVED_EXCHANGE_CODES.includes(marketCode)) return false;
       // Special handling for ICE exchanges
       if (newList.includes('ICE')) {
         if (marketCode === 'ICEU' || marketCode === 'ICUS' || marketCode === 'IFED' || marketCode === 'ICE') {

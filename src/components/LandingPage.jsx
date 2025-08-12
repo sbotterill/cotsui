@@ -105,7 +105,7 @@ export default function LandingPage() {
       <Box
         sx={{
           position: 'relative',
-          minHeight: '75vh',
+          minHeight: '80vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -174,7 +174,7 @@ export default function LandingPage() {
       </Box>
 
       {/* Features Section */}
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: 4, height: "20vh", display: 'flex' }}>
         <Box
           sx={{
             display: 'grid',
@@ -209,6 +209,11 @@ export default function LandingPage() {
                 backgroundColor: theme.palette.mode === 'dark' ? '#1A1A1A' : '#fff',
                 border: `1px solid rgba(255, 255, 255, 0.3)`,
                 borderRadius: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100%',
               }}
             >
               <Typography 

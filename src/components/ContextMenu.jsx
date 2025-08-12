@@ -8,7 +8,7 @@ import { useTheme } from '@mui/material/styles';
 import { Typography, Box, Checkbox, FormControlLabel } from '@mui/material';
 import CustomSnackbar from './Snackbar';
 import { API_BASE_URL } from '../config';
-import { EXCHANGE_CODE_MAP } from '../constants';
+import { EXCHANGE_CODE_MAP, REMOVED_EXCHANGE_CODES } from '../constants';
 import { ListItemIcon } from '@mui/material';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
@@ -135,7 +135,11 @@ export default function BasicMenu({
 
   // Format and sort commodities list for display
   const formattedCommodities = React.useMemo(() => {
-    return selected.map(code => getFormattedExchange(normalizeCode(code))).sort((a, b) => {
+    return selected
+      .map(code => normalizeCode(code))
+      .filter(code => !REMOVED_EXCHANGE_CODES.includes(code))
+      .map(code => getFormattedExchange(code))
+      .sort((a, b) => {
       const aName = a.split(' - ')[1];
       const bName = b.split(' - ')[1];
       return aName.localeCompare(bName);
@@ -144,8 +148,10 @@ export default function BasicMenu({
 
   // Render menu items
   const renderItems = () => {
-    return commodities.map((code) => {
-      const cleanCode = normalizeCode(code);
+    return commodities
+      .map((code) => normalizeCode(code))
+      .filter(cleanCode => !REMOVED_EXCHANGE_CODES.includes(cleanCode))
+      .map((cleanCode) => {
       const name = EXCHANGE_CODE_MAP[cleanCode] || cleanCode;
       const formattedExchange = `${cleanCode} - ${name}`;
       const normalizedSelected = selected.map(s => normalizeCode(s));

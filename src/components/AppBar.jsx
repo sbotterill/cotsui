@@ -28,7 +28,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import MenuIcon from '@mui/icons-material/Menu';
 import Profile from './Profile';
-import { ALLOWED_EXCHANGES, isValidExchange, EXCHANGE_CODE_MAP } from '../constants';
+import { ALLOWED_EXCHANGES, isValidExchange, EXCHANGE_CODE_MAP, REMOVED_EXCHANGE_CODES } from '../constants';
 
 export default function DrawerAppBar(props) {
   const theme = useTheme();
@@ -88,9 +88,9 @@ export default function DrawerAppBar(props) {
       }
       
       // Filter data based on search term
-      const filtered = props.futuresData.filter(row =>
-        row.commodity.toLowerCase().includes(searchValue)
-      );
+      const filtered = props.futuresData
+        .filter(row => !REMOVED_EXCHANGE_CODES.includes((row.market_code || '').trim()))
+        .filter(row => row.commodity.toLowerCase().includes(searchValue));
 
       // Update filtered data
       props.setFilteredData(filtered);
@@ -110,6 +110,7 @@ export default function DrawerAppBar(props) {
         const firstMatchExchange = filtered[0].market_code;
         const exchangeIndex = props.exchanges.findIndex(e => {
           const code = e.includes(' - ') ? e.split(' - ')[0].trim() : e.trim();
+          if (REMOVED_EXCHANGE_CODES.includes(code)) return false;
           return code === firstMatchExchange;
         });
         if (exchangeIndex !== -1) {

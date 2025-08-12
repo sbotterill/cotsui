@@ -1,6 +1,6 @@
 // src/components/CollapsableTable.jsx
 import * as React from 'react';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, alpha } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -14,9 +14,9 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import FavoriteButton from './FavoriteButton';
 import Typography from '@mui/material/Typography';
-import { ALLOWED_EXCHANGES, isValidExchange, EXCHANGE_CODE_MAP } from '../constants';
+import { ALLOWED_EXCHANGES, isValidExchange, EXCHANGE_CODE_MAP, REMOVED_EXCHANGE_CODES } from '../constants';
 import Skeleton from '@mui/material/Skeleton';
-import { useMediaQuery } from '@mui/material';
+import { useMediaQuery, Tooltip, Chip } from '@mui/material';
 import { getCommercialTrackerData } from '../services/cftcService';
 import CircularProgress from '@mui/material/CircularProgress';
 
@@ -46,6 +46,33 @@ function getPercentageColor(value) {
     const b = Math.round(255 + (255 - 255) * ratio);
     return `rgb(${r}, ${g}, ${b})`;
   }
+}
+
+// Render a compact z-score badge
+function ZBadge({ z, type }) {
+  const theme = useTheme();
+  if (typeof z !== 'number') return null;
+  const isBullish = (type || '').toUpperCase() === 'BULLISH' || z >= 0;
+  const color = isBullish ? theme.palette.success.main : theme.palette.error.main;
+  const bg = alpha(color, 0.12);
+  return (
+    <Tooltip title={`Z-score: ${z.toFixed(2)}${type ? ` • ${type}` : ''}`}> 
+      <Chip
+        label={`z ${z.toFixed(2)}`}
+        size="small"
+        variant="outlined"
+        sx={{
+          height: 22,
+          fontSize: '0.7rem',
+          fontWeight: 700,
+          color,
+          borderColor: color,
+          backgroundColor: bg,
+          '& .MuiChip-label': { px: 1 }
+        }}
+      />
+    </Tooltip>
+  );
 }
 
 function descendingComparator(a, b, orderBy) {
@@ -145,7 +172,9 @@ export default function CollapsibleTable({
   // Filter exchanges to only include allowed ones and those with data
   const filteredExchanges = React.useMemo(() => {
     // First format all exchanges with their full names
-    const formatted = exchanges.map(exchange => {
+    const formatted = exchanges
+      .filter(ex => !REMOVED_EXCHANGE_CODES.includes((ex.includes(' - ') ? ex.split(' - ')[0] : ex).trim()))
+      .map(exchange => {
       // If the exchange is already formatted (contains " - "), just use it as is
       if (exchange.includes(" - ")) {
         return exchange;
@@ -164,8 +193,9 @@ export default function CollapsibleTable({
       if (!isIncluded) return false;
 
       // Check if this exchange has any data in the current filtered results
-      const hasData = filteredFuturesData?.some(row => {
+       const hasData = filteredFuturesData?.some(row => {
         const rowMarketCode = row.market_code?.trim() || '';
+         if (REMOVED_EXCHANGE_CODES.includes(rowMarketCode)) return false;
         
         // Special handling for ICE exchanges
         if (code === 'ICE') {
@@ -188,54 +218,19 @@ export default function CollapsibleTable({
 
   // Get commercial tracker data
   const commercialTrackerData = React.useMemo(() => {
-    // Log input data
-    console.log('\n🔄 Starting commercial tracker calculation');
     
     // Validate input data
     const hasValidData = filteredFuturesData && filteredFuturesData.length > 0;
     const hasValidExtremes = commercialExtremes && Object.keys(commercialExtremes).length > 0;
     
     if (!hasValidData || !hasValidExtremes) {
-      console.log('⚠️ Missing required data:', {
-        hasValidData,
-        hasValidExtremes,
-        dataLength: filteredFuturesData?.length || 0,
-        extremesCount: Object.keys(commercialExtremes || {}).length
-      });
       return [];
     }
 
-    try {
-      // Log sample data before processing
-      const sampleItem = filteredFuturesData[0];
-      if (sampleItem) {
-        console.log('📊 Sample data:', {
-          commodity: sampleItem.commodity,
-          positions: {
-            long: sampleItem.commercial_long,
-            short: sampleItem.commercial_short,
-            net: parseInt(sampleItem.commercial_long) - parseInt(sampleItem.commercial_short)
-          },
-          extremes: commercialExtremes[sampleItem.contract_code]
-        });
-      }
-
+    try { 
       // Use the imported function
       const data = getCommercialTrackerData(filteredFuturesData, commercialExtremes);
-      
-      // Log results
-      console.log('✅ Commercial tracker results:', {
-        inputCount: filteredFuturesData.length,
-        trackedCount: data.length,
-        trackedItems: data.map(item => ({
-          commodity: item.commodity,
-          positions: {
-            long: item.commercial_long,
-            short: item.commercial_short,
-            net: parseInt(item.commercial_long) - parseInt(item.commercial_short)
-          }
-        }))
-      });
+  
 
       return data;
     } catch (error) {
@@ -339,7 +334,7 @@ export default function CollapsibleTable({
     } else if (selectedTab === 1 && shouldShowCommercialTracker) {
       currentExchange = 'Commercial Tracker';
     } else {
-      const exchangeIndex = (shouldShowFavorites ? selectedTab - 1 : selectedTab) - (shouldShowCommercialTracker ? 1 : 0);
+       const exchangeIndex = (shouldShowFavorites ? selectedTab - 1 : selectedTab) - (shouldShowCommercialTracker ? 1 : 0);
       currentExchange = filteredExchanges[exchangeIndex];
     }
         
@@ -347,11 +342,29 @@ export default function CollapsibleTable({
     return data;
   }, [futuresData, filteredFuturesData, filteredExchanges, selectedTab, favorites, commercialTrackerData]);
 
+  // Determine if Commercial Tracker is selected
+  const isCommercialTrackerSelected = React.useMemo(() => {
+    const favoritesInSearch = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
+    const shouldShowFavorites = favoritesInSearch.length > 0;
+    const shouldShowCommercialTracker = commercialTrackerData.length > 0;
+    return selectedTab === (shouldShowFavorites ? 1 : 0) && shouldShowCommercialTracker;
+  }, [selectedTab, filteredFuturesData, favorites, commercialTrackerData]);
+
   // Sort the current exchange's data
   const sortedData = React.useMemo(() => {
-    const sorted = [...currentExchangeData].sort(getComparator(order, orderBy));
+    const sorted = [...currentExchangeData]
+      .filter(r => !REMOVED_EXCHANGE_CODES.includes((r.market_code || '').trim()))
+      .sort(getComparator(order, orderBy));
     return sorted;
   }, [currentExchangeData, order, orderBy]);
+
+  // If user leaves tracker while sorting by zScore, reset to commodity
+  React.useEffect(() => {
+    if (!isCommercialTrackerSelected && orderBy === 'zScore') {
+      setOrderBy('commodity');
+      setOrder('asc');
+    }
+  }, [isCommercialTrackerSelected]);
 
   const handleRowClick = (commodity) => {
     // Find the selected commodity's data
@@ -492,6 +505,9 @@ export default function CollapsibleTable({
           >
             {r.commodity}
           </Typography>
+          {!isCommercialTrackerSelected && (
+            <ZBadge z={r.zScore} type={r.extremeType} />
+          )}
         </Box>
       </TableCell>
 
@@ -553,6 +569,9 @@ export default function CollapsibleTable({
               >
                 Commodity
               </TableCell>
+              {isCommercialTrackerSelected && (
+                <TableCell align="center">zScore</TableCell>
+              )}
               <TableCell colSpan={2} align="center">OI</TableCell>
               <TableCell colSpan={3} align="center">NC</TableCell>
               <TableCell colSpan={3} align="center">C</TableCell>
@@ -567,6 +586,18 @@ export default function CollapsibleTable({
                   zIndex: 2
                 }}
               ></TableCell>
+              {isCommercialTrackerSelected && (
+                <TableCell align="center">
+                  <TableSortLabel
+                    active={orderBy === 'zScore'}
+                    direction={orderBy === 'zScore' ? order : 'asc'}
+                    onClick={() => handleRequestSort('zScore')}
+                    sx={{ justifyContent: 'center' }}
+                  >
+                    zScore
+                  </TableSortLabel>
+                </TableCell>
+              )}
               <TableCell align="center">Total</TableCell>
               <TableCell align="center">Chg</TableCell>
               <TableCell align="center">Long</TableCell>
@@ -612,8 +643,16 @@ export default function CollapsibleTable({
                       }}
                     />
                     <Typography noWrap>{row.commodity}</Typography>
+                    {!isCommercialTrackerSelected && (
+                      <ZBadge z={row.zScore} type={row.extremeType} />
+                    )}
                   </Box>
                 </TableCell>
+                {isCommercialTrackerSelected && (
+                  <TableCell align="center">
+                    <ZBadge z={row.zScore} type={row.extremeType} />
+                  </TableCell>
+                )}
                 
                 {/* Open Interest */}
                 <TableCell align="right">{fmt.format(row.open_interest_all)}</TableCell>
@@ -753,7 +792,7 @@ export default function CollapsibleTable({
         })
       }}>
         <TableHead>
-          <TableRow sx={{ 
+            <TableRow sx={{ 
             backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
             '& th': {
               border: 'none',
@@ -800,6 +839,16 @@ export default function CollapsibleTable({
                 Commodity
               </TableSortLabel>
             </TableCell>
+            {isCommercialTrackerSelected && (
+              <TableCell
+                align="center"
+                sx={{
+                  color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                  backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                  minWidth: '90px'
+                }}
+              />
+            )}
             <TableCell colSpan={2} align="center" sx={{ 
               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
@@ -830,6 +879,31 @@ export default function CollapsibleTable({
             }
           }}>
             {/* Open Interest Headers */}
+            {isCommercialTrackerSelected && (
+              <TableCell
+                align="center"
+                sx={{
+                  color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                  minWidth: '70px',
+                  maxWidth: '80px',
+                  backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                  padding: '8px 4px',
+                  fontSize: '0.75rem',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
+                <TableSortLabel
+                  active={orderBy === 'zScore'}
+                  direction={orderBy === 'zScore' ? order : 'asc'}
+                  onClick={() => handleRequestSort('zScore')}
+                  sx={{ justifyContent: 'center' }}
+                >
+                  zScore
+                </TableSortLabel>
+              </TableCell>
+            )}
             <TableCell
               align="center"
               sx={{
@@ -1039,9 +1113,14 @@ export default function CollapsibleTable({
                     </Typography>
                   </>
                 ) : (
-                  // Original desktop layout
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Typography sx={{ pr: 1, fontSize: '0.75rem' }}>{r.commodity}</Typography>
+                  // Original desktop layout with z-score badge when available
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+                      <Typography sx={{ pr: 1, fontSize: '0.75rem' }} noWrap>{r.commodity}</Typography>
+                      {!isCommercialTrackerSelected && (
+                        <ZBadge z={r.zScore} type={r.extremeType} />
+                      )}
+                    </Box>
                     <FavoriteButton
                       initial={favorites.includes(r.commodity)}
                       onToggle={() => onToggleFavorite(r.commodity)}
@@ -1049,39 +1128,28 @@ export default function CollapsibleTable({
                   </Box>
                 )}
               </TableCell>
+              {isCommercialTrackerSelected && (
+                <TableCell align="center" sx={{ 
+                  padding: '8px 4px',
+                  fontSize: '0.75rem',
+                  borderLeft: `2px solid ${theme.palette.divider}`
+                }}>
+                  <ZBadge z={r.zScore} type={r.extremeType} />
+                </TableCell>
+              )}
               
               {/* Open Interest */}
               <TableCell align="center" sx={{ 
                 padding: '8px 4px 8px 10px', 
                 fontSize: '0.75rem',
-                borderLeft: `2px solid ${theme.palette.divider}`,
-                position: 'relative',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  left: 0,
-                  top: '10%',
-                  height: '80%',
-                  width: '1px',
-                  backgroundColor: theme.palette.divider
-                }
+                borderLeft: `2px solid ${theme.palette.divider}`
               }}>
                 {r.open_interest_all !== undefined && r.open_interest_all !== null ? fmt.format(r.open_interest_all) : '-'}
               </TableCell>
               <TableCell align="center" sx={{ 
                 color: r.change_in_open_interest_all < 0 ? 'red' : 'green', 
                 padding: '8px 4px', 
-                fontSize: '0.75rem',
-                position: 'relative',
-                '&::after': {
-                  content: '""',
-                  position: 'absolute',
-                  right: 0,
-                  top: '10%',
-                  height: '80%',
-                  width: '1px',
-                  backgroundColor: theme.palette.divider
-                }
+                fontSize: '0.75rem'
               }}>
                 {r.change_in_open_interest_all !== undefined && r.change_in_open_interest_all !== null ? fmt.format(r.change_in_open_interest_all) : '-'}
               </TableCell>
@@ -1090,17 +1158,7 @@ export default function CollapsibleTable({
               <TableCell align="center" sx={{ 
                 padding: '8px 4px 8px 10px', 
                 fontSize: '0.75rem',
-                borderLeft: `2px solid ${theme.palette.divider}`,
-                position: 'relative',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  left: 0,
-                  top: '10%',
-                  height: '80%',
-                  width: '1px',
-                  backgroundColor: theme.palette.divider
-                }
+                borderLeft: `2px solid ${theme.palette.divider}`
               }}>{fmt.format(r.non_commercial_long)}</TableCell>
               <TableCell align="center" sx={{ color: r.non_commercial_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
                 {fmt.format(r.non_commercial_long_change)}
@@ -1121,23 +1179,13 @@ export default function CollapsibleTable({
               <TableCell align="center" sx={{ 
                 color: getPercentageColor(r.pct_of_oi_noncomm_short_all), 
                 padding: '8px 4px', 
-                fontSize: '0.75rem',
-                position: 'relative',
-                '&::after': {
-                  content: '""',
-                  position: 'absolute',
-                  right: 0,
-                  top: '10%',
-                  height: '80%',
-                  width: '1px',
-                  backgroundColor: theme.palette.divider
-                }
+                fontSize: '0.75rem'
               }}>
                 {formatPercentage(r.pct_of_oi_noncomm_short_all)}
               </TableCell>
 
               {/* Commercial */}
-              <TableCell align="center" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem' }}>{fmt.format(r.commercial_long)}</TableCell>
+              <TableCell align="center" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem', borderLeft: `2px solid ${theme.palette.divider}` }}>{fmt.format(r.commercial_long)}</TableCell>
               <TableCell align="center" sx={{ color: r.commercial_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
                 {fmt.format(r.commercial_long_change)}
               </TableCell>
@@ -1155,23 +1203,13 @@ export default function CollapsibleTable({
               <TableCell align="center" sx={{ 
                 color: getPercentageColor(r.pct_of_oi_comm_short_all), 
                 padding: '8px 4px', 
-                fontSize: '0.75rem',
-                position: 'relative',
-                '&::after': {
-                  content: '""',
-                  position: 'absolute',
-                  right: 0,
-                  top: '10%',
-                  height: '80%',
-                  width: '1px',
-                  backgroundColor: theme.palette.divider
-                }
+                fontSize: '0.75rem'
               }}>
                 {formatPercentage(r.pct_of_oi_comm_short_all)}
               </TableCell>
 
               {/* Non-reportable */}
-              <TableCell align="center" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_long)}</TableCell>
+              <TableCell align="center" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem', borderLeft: `2px solid ${theme.palette.divider}` }}>{fmt.format(r.non_reportable_long)}</TableCell>
               <TableCell align="center" sx={{ color: r.non_reportable_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
                 {fmt.format(r.non_reportable_long_change)}
               </TableCell>
