@@ -29,7 +29,7 @@ import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
-import { getCommercialExtremes } from './services/cftcService';
+import { getCommercialExtremes, getRetailExtremes } from './services/cftcService';
 
 // Context to expose toggle function for theme switch
 export const ColorModeContext = createContext({ toggleColorMode: () => {} });
@@ -286,6 +286,7 @@ export default function App() {
   const [selectedTab, setSelectedTab] = useState(0);
   const [isChartLoading, setIsChartLoading] = useState(false);  // New state for chart loading
   const [commercialExtremes, setCommercialExtremes] = useState({});
+  const [retailExtremes, setRetailExtremes] = useState({});
   const [isLoadingExtremes, setIsLoadingExtremes] = useState(false);
 
   useEffect(() => {
@@ -378,13 +379,17 @@ export default function App() {
           // Load favorites
           await loadFavorites();
 
-          // Load commercial extremes
+          // Load extremes (commercial + retail) in parallel
           setIsLoadingExtremes(true);
           try {
-            const historicalData = await getCommercialExtremes(result.data);
-            setCommercialExtremes(historicalData);
+            const [commHist, retailHist] = await Promise.all([
+              getCommercialExtremes(result.data),
+              getRetailExtremes(result.data)
+            ]);
+            setCommercialExtremes(commHist);
+            setRetailExtremes(retailHist);
           } catch (error) {
-            console.error('❌ Error loading commercial extremes:', error);
+            console.error('❌ Error loading extremes:', error);
           } finally {
             setIsLoadingExtremes(false);
           }
@@ -404,13 +409,14 @@ export default function App() {
   const forceRefresh = async () => {    
     // Clear localStorage
     Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('commercialExtremes_')) {
+      if (key.startsWith('commercialExtremes_') || key.startsWith('retailExtremes_')) {
         localStorage.removeItem(key);
       }
     });
 
     // Clear state
     setCommercialExtremes({});
+    setRetailExtremes({});
     setFuturesData([]);
     setFilteredData([]);
     
@@ -474,13 +480,17 @@ export default function App() {
         // Load favorites
         await loadFavorites();
 
-        // Load commercial extremes
+        // Load extremes (commercial + retail) in parallel
         setIsLoadingExtremes(true);
         try {
-          const historicalData = await getCommercialExtremes(result.data);
-          setCommercialExtremes(historicalData);
+          const [commHist, retailHist] = await Promise.all([
+            getCommercialExtremes(result.data),
+            getRetailExtremes(result.data)
+          ]);
+          setCommercialExtremes(commHist);
+          setRetailExtremes(retailHist);
         } catch (error) {
-          console.error('❌ Error loading commercial extremes:', error);
+          console.error('❌ Error loading extremes:', error);
         } finally {
           setIsLoadingExtremes(false);
         }
@@ -765,8 +775,11 @@ export default function App() {
     }
   };
 
-  const handleCommoditySelect = async (marketCode, commodityName) => {
+  const [preferredChartSeries, setPreferredChartSeries] = useState(null);
+
+  const handleCommoditySelect = async (marketCode, commodityName, preferredSeries) => {
     setSelectedCommodity(commodityName);
+    setPreferredChartSeries(preferredSeries || null);
     await getChartData(marketCode);
   };
 
@@ -849,6 +862,7 @@ export default function App() {
                 selectedTab={selectedTab}
                 onTabChange={setSelectedTab}
                 commercialExtremes={commercialExtremes}
+                retailExtremes={retailExtremes}
                 isLoadingExtremes={isLoadingExtremes}
               />
             )}
@@ -884,6 +898,7 @@ export default function App() {
                   nonReportableChartData={nonReportableChartData} 
                   chartDates={chartDates}
                   selectedCommodity={selectedCommodity}
+                  preferredSeries={preferredChartSeries}
                 />
               </Box>
             )}

@@ -21,6 +21,13 @@ export default function LineChartWithReferenceLines(props) {
   // State to track which series is selected
   const [selectedSeries, setSelectedSeries] = React.useState('Commercials');
 
+  // Auto-select a preferred series if provided (e.g., when clicking Retail Tracker row)
+  React.useEffect(() => {
+    if (props.preferredSeries && SERIES_OPTIONS.includes(props.preferredSeries)) {
+      setSelectedSeries(props.preferredSeries);
+    }
+  }, [props.preferredSeries]);
+
   // Memoize reversed data arrays
   const reversedData = React.useMemo(() => ({
     dates: [...props.chartDates].reverse(),

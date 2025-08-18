@@ -17,7 +17,7 @@ import Typography from '@mui/material/Typography';
 import { ALLOWED_EXCHANGES, isValidExchange, EXCHANGE_CODE_MAP, REMOVED_EXCHANGE_CODES } from '../constants';
 import Skeleton from '@mui/material/Skeleton';
 import { useMediaQuery, Tooltip, Chip } from '@mui/material';
-import { getCommercialTrackerData } from '../services/cftcService';
+import { getCommercialTrackerData, getRetailTrackerData } from '../services/cftcService';
 import CircularProgress from '@mui/material/CircularProgress';
 
 function formatPercentage(value) {
@@ -144,6 +144,7 @@ export default function CollapsibleTable({
   selectedTab,
   onTabChange,
   commercialExtremes,
+  retailExtremes,
   isLoadingExtremes
 }) {
   
@@ -243,22 +244,50 @@ export default function CollapsibleTable({
     }
   }, [filteredFuturesData, commercialExtremes]);
 
+  // Get retail tracker data (non-reportable)
+  const retailTrackerData = React.useMemo(() => {
+    const hasValidData = filteredFuturesData && filteredFuturesData.length > 0;
+    const hasValidExtremes = retailExtremes && Object.keys(retailExtremes).length > 0;
+    if (!hasValidData || !hasValidExtremes) {
+      return [];
+    }
+    try {
+      const data = getRetailTrackerData(filteredFuturesData, retailExtremes);
+      return data;
+    } catch (error) {
+      console.error('❌ Error in retail tracker:', error);
+      return [];
+    }
+  }, [filteredFuturesData, retailExtremes]);
+
+  // Compute tab indices consistently
+  const favoritesTabVisible = favorites.length > 0;
+  const hasCommercialTracker = commercialTrackerData.length > 0;
+  const hasRetailTracker = retailTrackerData.length > 0;
+  const favoritesTabIndex = favoritesTabVisible ? 0 : null;
+  const commercialTabIndex = hasCommercialTracker ? (favoritesTabVisible ? 1 : 0) : null;
+  const retailTabIndex = hasRetailTracker ? ((favoritesTabVisible ? 1 : 0) + (hasCommercialTracker ? 1 : 0)) : null;
+  const exchangeStartIndex = (favoritesTabVisible ? 1 : 0) + (hasCommercialTracker ? 1 : 0) + (hasRetailTracker ? 1 : 0);
+
   // Initialize selected tab
   React.useEffect(() => {
     if (!initialLoadDone.current && futuresData?.length > 0 && (filteredExchanges.length > 0 || favorites.length > 0)) {
       // Check if favorites tab should be shown
       const favoritesInSearch = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
       const shouldShowFavorites = favoritesInSearch.length > 0;
-      const shouldShowCommercialTracker = commercialTrackerData.length > 0;
+      const shouldShowCommercialTracker = hasCommercialTracker;
+      const shouldShowRetailTracker = hasRetailTracker;
       
       // Determine initial tab
       let initialTab;
       if (shouldShowFavorites) {
-        initialTab = 0; // Favorites tab
+        initialTab = favoritesTabIndex; // Favorites tab
       } else if (shouldShowCommercialTracker) {
-        initialTab = 1; // Commercial Tracker tab
+        initialTab = commercialTabIndex; // Commercial Tracker tab
+      } else if (shouldShowRetailTracker) {
+        initialTab = retailTabIndex; // Retail Tracker tab
       } else if (filteredExchanges.length > 0) {
-        initialTab = 2; // First exchange tab
+        initialTab = exchangeStartIndex; // First exchange tab
       } else {
         return; // No tabs available
       }
@@ -267,12 +296,14 @@ export default function CollapsibleTable({
       
       // Select first commodity in the current tab
       let currentData;
-      if (initialTab === 0) {
+      if (favoritesTabVisible && initialTab === favoritesTabIndex) {
         currentData = favoritesInSearch;
-      } else if (initialTab === 1) {
+      } else if (hasCommercialTracker && initialTab === commercialTabIndex) {
         currentData = commercialTrackerData;
+      } else if (hasRetailTracker && initialTab === retailTabIndex) {
+        currentData = retailTrackerData;
       } else {
-        const currentExchange = filteredExchanges[initialTab - 2];
+        const currentExchange = filteredExchanges[initialTab - exchangeStartIndex];
         currentData = getFilteredData(currentExchange);
       }
       
@@ -291,7 +322,7 @@ export default function CollapsibleTable({
 
       initialLoadDone.current = true;
     }
-  }, [futuresData, filteredExchanges, favorites, commercialTrackerData]);
+  }, [futuresData, filteredExchanges, favorites, commercialTrackerData, retailTrackerData, favoritesTabIndex, commercialTabIndex, retailTabIndex, exchangeStartIndex, favoritesTabVisible, hasCommercialTracker, hasRetailTracker]);
 
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -311,6 +342,8 @@ export default function CollapsibleTable({
       result = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
     } else if (exchange === 'Commercial Tracker') {
       result = commercialTrackerData;
+    } else if (exchange === 'Retail Tracker') {
+      result = retailTrackerData;
     } else {
       const exchangeCode = exchange.split(' - ')[0];
       result = filteredFuturesData?.filter(row => {
@@ -330,29 +363,35 @@ export default function CollapsibleTable({
     // Check if favorites tab should be shown
     const favoritesInSearch = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
     const shouldShowFavorites = favoritesInSearch.length > 0;
-    const shouldShowCommercialTracker = commercialTrackerData.length > 0;
+    const shouldShowCommercialTracker = hasCommercialTracker;
+    const shouldShowRetailTracker = hasRetailTracker;
 
     let currentExchange;
-    if (selectedTab === 0 && shouldShowFavorites) {
+    if (favoritesTabVisible && selectedTab === favoritesTabIndex) {
       currentExchange = 'Favorites';
-    } else if (selectedTab === 1 && shouldShowCommercialTracker) {
+    } else if (hasCommercialTracker && selectedTab === commercialTabIndex) {
       currentExchange = 'Commercial Tracker';
+    } else if (hasRetailTracker && selectedTab === retailTabIndex) {
+      currentExchange = 'Retail Tracker';
     } else {
-       const exchangeIndex = (shouldShowFavorites ? selectedTab - 1 : selectedTab) - (shouldShowCommercialTracker ? 1 : 0);
+       const exchangeIndex = selectedTab - exchangeStartIndex;
       currentExchange = filteredExchanges[exchangeIndex];
     }
         
     const data = getFilteredData(currentExchange);
     return data;
-  }, [futuresData, filteredFuturesData, filteredExchanges, selectedTab, favorites, commercialTrackerData]);
+  }, [futuresData, filteredFuturesData, filteredExchanges, selectedTab, favorites, commercialTrackerData, retailTrackerData, favoritesTabIndex, commercialTabIndex, retailTabIndex, exchangeStartIndex, favoritesTabVisible, hasCommercialTracker, hasRetailTracker]);
 
   // Determine if Commercial Tracker is selected
   const isCommercialTrackerSelected = React.useMemo(() => {
-    const favoritesInSearch = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
-    const shouldShowFavorites = favoritesInSearch.length > 0;
-    const shouldShowCommercialTracker = commercialTrackerData.length > 0;
-    return selectedTab === (shouldShowFavorites ? 1 : 0) && shouldShowCommercialTracker;
-  }, [selectedTab, filteredFuturesData, favorites, commercialTrackerData]);
+    if (!hasCommercialTracker || commercialTabIndex == null) return false;
+    return selectedTab === commercialTabIndex;
+  }, [selectedTab, commercialTabIndex, hasCommercialTracker]);
+
+  const isRetailTrackerSelected = React.useMemo(() => {
+    if (!hasRetailTracker || retailTabIndex == null) return false;
+    return selectedTab === retailTabIndex;
+  }, [selectedTab, retailTabIndex, hasRetailTracker]);
 
   // Sort the current exchange's data
   const sortedData = React.useMemo(() => {
@@ -364,17 +403,19 @@ export default function CollapsibleTable({
 
   // If user leaves tracker while sorting by zScore, reset to commodity
   React.useEffect(() => {
-    if (!isCommercialTrackerSelected && orderBy === 'zScore') {
+    if (!(isCommercialTrackerSelected || isRetailTrackerSelected) && orderBy === 'zScore') {
       setOrderBy('commodity');
       setOrder('asc');
     }
-  }, [isCommercialTrackerSelected]);
+  }, [isCommercialTrackerSelected, isRetailTrackerSelected]);
 
   const handleRowClick = (commodity) => {
     // Find the selected commodity's data
     const selectedData = futuresData.find(r => r.commodity === commodity);
     if (selectedData && onCommoditySelect) {
-      onCommoditySelect(selectedData.contract_code, selectedData.commodity);
+      // Auto-select chart series based on tab: Retail => Non-Reportables, else Commercials
+      const preferredSeries = isRetailTrackerSelected ? 'Non-Reportables' : 'Commercials';
+      onCommoditySelect(selectedData.contract_code, selectedData.commodity, preferredSeries);
     }
   };
 
@@ -383,32 +424,37 @@ export default function CollapsibleTable({
     // Check if favorites tab should be shown
     const favoritesInSearch = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
     const shouldShowFavorites = favoritesInSearch.length > 0;
-    const shouldShowCommercialTracker = commercialTrackerData.length > 0;
+    const shouldShowCommercialTracker = hasCommercialTracker;
+    const shouldShowRetailTracker = hasRetailTracker;
     
     // Check if current tab is still valid
     let isCurrentTabValid = false;
     
-    if (selectedTab === 0) {
+    if (favoritesTabVisible && selectedTab === (favoritesTabIndex ?? 0)) {
       // Always consider favorites tab valid if there are any favorites, even if they don't match the search
       isCurrentTabValid = favorites.length > 0;
-    } else if (selectedTab === 1) {
+    } else if (hasCommercialTracker && selectedTab === commercialTabIndex) {
       isCurrentTabValid = shouldShowCommercialTracker;
+    } else if (hasRetailTracker && selectedTab === retailTabIndex) {
+      isCurrentTabValid = shouldShowRetailTracker;
     } else {
-      const exchangeIndex = (shouldShowFavorites ? selectedTab - 1 : selectedTab) - (shouldShowCommercialTracker ? 1 : 0);
+      const exchangeIndex = selectedTab - exchangeStartIndex;
       isCurrentTabValid = exchangeIndex >= 0 && exchangeIndex < filteredExchanges.length;
     }
     
     // If current tab is not valid, switch to first available tab
     if (!isCurrentTabValid) {
       if (favorites.length > 0) {
-        onTabChange(0); // Switch to favorites tab if there are any favorites
-      } else if (shouldShowCommercialTracker) {
-        onTabChange(1); // Switch to Commercial Tracker tab
+        onTabChange(favoritesTabIndex ?? 0);
+      } else if (hasCommercialTracker) {
+        onTabChange(commercialTabIndex ?? 0);
+      } else if (hasRetailTracker) {
+        onTabChange(retailTabIndex ?? 0);
       } else if (filteredExchanges.length > 0) {
-        onTabChange(0); // Switch to first exchange tab
+        onTabChange(exchangeStartIndex);
       }
     }
-  }, [displayExchanges, filteredExchanges, selectedTab, futuresData, filteredFuturesData, favorites, commercialTrackerData]);
+  }, [displayExchanges, filteredExchanges, selectedTab, futuresData, filteredFuturesData, favorites, commercialTrackerData, retailTrackerData, favoritesTabVisible, hasCommercialTracker, hasRetailTracker, favoritesTabIndex, commercialTabIndex, retailTabIndex, exchangeStartIndex]);
 
   // Add this at the start of the component
   React.useEffect(() => {
@@ -509,7 +555,7 @@ export default function CollapsibleTable({
           >
             {r.commodity}
           </Typography>
-          {!isCommercialTrackerSelected && (
+          {!(isCommercialTrackerSelected || isRetailTrackerSelected) && (
             <ZBadge z={r.zScore} type={r.extremeType} />
           )}
         </Box>
@@ -573,7 +619,7 @@ export default function CollapsibleTable({
               >
                 Commodity
               </TableCell>
-              {isCommercialTrackerSelected && (
+              {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
                 <TableCell align="center">zScore</TableCell>
               )}
               <TableCell colSpan={2} align="center">OI</TableCell>
@@ -590,7 +636,7 @@ export default function CollapsibleTable({
                   zIndex: 2
                 }}
               ></TableCell>
-              {isCommercialTrackerSelected && (
+              {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
                 <TableCell align="center">
                   <TableSortLabel
                     active={orderBy === 'zScore'}
@@ -647,12 +693,12 @@ export default function CollapsibleTable({
                       }}
                     />
                     <Typography noWrap>{row.commodity}</Typography>
-                    {!isCommercialTrackerSelected && (
+                    {!(isCommercialTrackerSelected || isRetailTrackerSelected) && (
                       <ZBadge z={row.zScore} type={row.extremeType} />
                     )}
                   </Box>
                 </TableCell>
-                {isCommercialTrackerSelected && (
+                {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
                   <TableCell align="center">
                     <ZBadge z={row.zScore} type={row.extremeType} />
                   </TableCell>
@@ -745,7 +791,7 @@ export default function CollapsibleTable({
                   Commodity
                 </TableSortLabel>
               </TableCell>
-              {isCommercialTrackerSelected && (
+              {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
                 <TableCell align="center">
                   <TableSortLabel
                     active={orderBy === 'zScore'}
@@ -764,7 +810,7 @@ export default function CollapsibleTable({
             </TableRow>
             <TableRow>
               <TableCell sx={{ position: 'sticky', left: 0, backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5', zIndex: 1 }} />
-              {isCommercialTrackerSelected && (
+              {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
                 <TableCell align="center">zScore</TableCell>
               )}
               <TableCell align="center">Total</TableCell>
@@ -809,7 +855,7 @@ export default function CollapsibleTable({
                     <Typography noWrap sx={{ fontWeight: 600 }}>{row.commodity}</Typography>
                   </Box>
                 </TableCell>
-                {isCommercialTrackerSelected && (
+                {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
                   <TableCell align="center"><ZBadge z={row.zScore} type={row.extremeType} /></TableCell>
                 )}
                 {/* Open Interest */}
@@ -971,7 +1017,7 @@ export default function CollapsibleTable({
                 Commodity
               </TableSortLabel>
             </TableCell>
-            {isCommercialTrackerSelected && (
+            {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
               <TableCell
                 align="center"
                 sx={{
@@ -1011,7 +1057,7 @@ export default function CollapsibleTable({
             }
           }}>
             {/* Open Interest Headers */}
-            {isCommercialTrackerSelected && (
+            {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
               <TableCell
                 align="center"
                 sx={{
@@ -1249,7 +1295,7 @@ export default function CollapsibleTable({
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
                       <Typography sx={{ pr: 1, fontSize: '0.75rem' }} noWrap>{r.commodity}</Typography>
-                      {!isCommercialTrackerSelected && (
+                      {!(isCommercialTrackerSelected || isRetailTrackerSelected) && (
                         <ZBadge z={r.zScore} type={r.extremeType} />
                       )}
                     </Box>
@@ -1260,7 +1306,7 @@ export default function CollapsibleTable({
                   </Box>
                 )}
               </TableCell>
-              {isCommercialTrackerSelected && (
+              {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
                 <TableCell align="center" sx={{ 
                   padding: '8px 4px',
                   fontSize: '0.75rem',
@@ -1441,42 +1487,80 @@ export default function CollapsibleTable({
             id="tab-0" 
           />
         )}
-        <Tab 
-          key="commercial-tracker" 
-          label={
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1,
-              opacity: commercialTrackerData.length === 0 ? 0.5 : 1
-            }}>
-              <span>Commercial Tracker</span>
-              {isLoadingExtremes ? (
-                <CircularProgress size={16} />
-              ) : (
-                <Box
-                  sx={{
-                    backgroundColor: theme.palette.mode === 'dark' 
-                      ? 'rgba(255, 255, 255, 0.12)' 
-                      : 'rgba(0, 0, 0, 0.08)',
-                    color: theme.palette.text.primary,
-                    borderRadius: '12px',
-                    padding: '2px 8px',
-                    fontSize: '0.75rem',
-                    lineHeight: 1,
-                    fontWeight: 500
-                  }}
-                >
-                  {commercialTrackerData.length}
-                </Box>
-              )}
-            </Box>
-          } 
-          id="tab-1" 
-        />
+        {commercialTrackerData.length > 0 && (
+          <Tab 
+            key="commercial-tracker" 
+            label={
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1
+              }}>
+                <span>Commercial Tracker</span>
+                {isLoadingExtremes ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <Box
+                    sx={{
+                      backgroundColor: theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.12)' 
+                        : 'rgba(0, 0, 0, 0.08)',
+                      color: theme.palette.text.primary,
+                      borderRadius: '12px',
+                      padding: '2px 8px',
+                      fontSize: '0.75rem',
+                      lineHeight: 1,
+                      fontWeight: 500
+                    }}
+                  >
+                    {commercialTrackerData.length}
+                  </Box>
+                )}
+              </Box>
+            } 
+            id="tab-1" 
+          />
+        )}
+        {/* Retail Tracker Tab follows Commercial if present, otherwise takes its place */}
+        {(retailTrackerData.length > 0) && (
+          <Tab 
+            key="retail-tracker" 
+            label={
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                opacity: retailTrackerData.length === 0 ? 0.5 : 1
+              }}>
+                <span>Retail Tracker</span>
+                {isLoadingExtremes ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <Box
+                    sx={{
+                      backgroundColor: theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.12)' 
+                        : 'rgba(0, 0, 0, 0.08)',
+                      color: theme.palette.text.primary,
+                      borderRadius: '12px',
+                      padding: '2px 8px',
+                      fontSize: '0.75rem',
+                      lineHeight: 1,
+                      fontWeight: 500
+                    }}
+                  >
+                    {retailTrackerData.length}
+                  </Box>
+                )}
+              </Box>
+            } 
+            id="tab-2"
+          />
+        )}
         {filteredExchanges.map((exchange, index) => {
           const code = normalizeCode(exchange.split(' - ')[0]);
-          const tabIndex = (shouldShowFavorites ? index + 2 : index + 1);
+          const preTabsCount = (shouldShowFavorites ? 1 : 0) + (commercialTrackerData.length > 0 ? 1 : 0) + (retailTrackerData.length > 0 ? 1 : 0);
+          const tabIndex = index + preTabsCount;
           return (
             <Tab 
               key={exchange} 
