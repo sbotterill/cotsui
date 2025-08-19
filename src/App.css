@@ -1,3 +1,7 @@
+/* Set Dashboard sidebar width to 250px */
+.MuiDrawer-paper {
+  width: 250px;
+}
 html {
   overflow: hidden;
 }

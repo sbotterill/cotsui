@@ -7,6 +7,7 @@ import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import DrawerAppBar from './components/AppBar';
+import HeaderActions from './components/HeaderActions';
 import CollapsibleTable, { CollapsableTableSkeleton } from './components/CollapsableTable';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import SignUpPage from './components/SignUpPage';
@@ -15,11 +16,17 @@ import SubscriptionPage from './components/SubscriptionPage';
 import SubscriptionGuard from './components/SubscriptionGuard';
 import ForgotPassword from './components/ForgotPassword';
 import LandingPage from './components/LandingPage';
-import { Box, CircularProgress } from '@mui/material';
+import { Box, CircularProgress, Typography } from '@mui/material';
 import { API_BASE_URL } from './config';
 import TradingViewIndicator from './components/TradingView';
 import LineChartWithReferenceLines from './components/LineGraph';
 import { CssBaseline } from '@mui/material';
+import { AppProvider } from '@toolpad/core/AppProvider';
+import { DashboardLayout } from '@toolpad/core/DashboardLayout';
+import SidebarFooter from './components/SidebarFooter';
+import SummarizeIcon from '@mui/icons-material/Summarize';
+import WbSunnyIcon from '@mui/icons-material/WbSunny';
+import BarChartIcon from '@mui/icons-material/BarChart';
 import { EXCHANGE_CODE_MAP, REMOVED_EXCHANGE_CODES } from './constants';
 import SigninPage from './components/SigninPage';
 import Profile from './components/Profile';
@@ -1132,6 +1139,12 @@ export default function App() {
     );
   };
 
+  const NAVIGATION = [
+    { segment: 'cots-report', title: 'Reports', icon: <SummarizeIcon /> },
+    { segment: 'chart', title: 'Chart', icon: <ShowChartIcon /> },
+    { segment: 'seasonality', title: 'Seasonality', icon: <WbSunnyIcon /> },
+  ];
+
   return (
     <Router>
       <Routes>
@@ -1149,36 +1162,49 @@ export default function App() {
                 <ColorModeContext.Provider value={colorMode}>
                   <ThemeProvider theme={theme}>
                     <CssBaseline />
-                    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-                      <DrawerAppBar
-                        futuresData={futuresData}
-                        setFilteredData={setFilteredDataWithLogging}
-                        exchanges={exchanges}
-                        displayExchanges={displayExchanges}
-                        onExchangeFilterChange={handleExchangeFilterChange}
-                        lastUpdated={lastUpdated}
-                        selectedDate={selectedDate}
-                        onDateChange={handleDateChange}
-                        isDateLoading={isDateLoading}
-                        availableDates={availableDates}
-                        isLatestData={isLatestData}
-                        lastChecked={lastChecked}
-                        selectedTab={selectedTab}
-                        onTabChange={setSelectedTab}
-                        favorites={favorites}
-                      />
-                      <Box
-                        component="main"
+                    <AppProvider
+                      navigation={NAVIGATION}
+                      theme={theme}
+                      branding={{
+                        title: 'COTS UI',
+                        homeUrl: '/dashboard',
+                      }}
+                    >
+                      <DashboardLayout
                         sx={{
-                          flexGrow: 1,
-                          pt: { xs: '56px', sm: '64px' },
-                          width: '100%',
-                          overflow: 'hidden'
+                          '& .MuiDrawer-paper': {
+                            width: 250,
+                          }
+                        }}
+                        slots={{
+                          appTitle: () => (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <BarChartIcon sx={{ color: '#fff' }} />
+                              <Typography variant="h6" sx={{ color: '#fff', fontWeight: 700 }}>COTS UI</Typography>
+                            </Box>
+                          ),
+                          toolbarActions: () => (
+                            <HeaderActions
+                              futuresData={futuresData}
+                              userExchanges={userExchanges}
+                              setFilteredData={setFilteredDataWithLogging}
+                              exchanges={exchanges}
+                              displayExchanges={displayExchanges}
+                              onExchangeFilterChange={handleExchangeFilterChange}
+                              selectedDate={selectedDate}
+                              onDateChange={handleDateChange}
+                              isDateLoading={isDateLoading}
+                              availableDates={availableDates}
+                            />
+                          ),
+                          sidebarFooter: SidebarFooter,
                         }}
                       >
-                        {renderCollapsibleTable()}
-                      </Box>
-                    </Box>
+                        <Box sx={{ flexGrow: 1, width: '100%', overflow: 'hidden' }}>
+                          {renderCollapsibleTable()}
+                        </Box>
+                      </DashboardLayout>
+                    </AppProvider>
                   </ThemeProvider>
                 </ColorModeContext.Provider>
               </SubscriptionGuard>
