@@ -22,11 +22,12 @@ import TradingViewIndicator from './components/TradingView';
 import LineChartWithReferenceLines from './components/LineGraph';
 import { CssBaseline } from '@mui/material';
 import { AppProvider } from '@toolpad/core/AppProvider';
-import { DashboardLayout } from '@toolpad/core/DashboardLayout';
+import { DashboardLayout, DashboardSidebarPageItem } from '@toolpad/core/DashboardLayout';
 import SidebarFooter from './components/SidebarFooter';
 import SummarizeIcon from '@mui/icons-material/Summarize';
 import WbSunnyIcon from '@mui/icons-material/WbSunny';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import TradingViewAdvancedChart from './components/TradingViewAdvancedChart';
 import { EXCHANGE_CODE_MAP, REMOVED_EXCHANGE_CODES } from './constants';
 import SigninPage from './components/SigninPage';
 import Profile from './components/Profile';
@@ -1145,6 +1146,36 @@ export default function App() {
     { segment: 'seasonality', title: 'Seasonality', icon: <WbSunnyIcon /> },
   ];
 
+  const [activeSection, setActiveSection] = useState('cots-report');
+  const [chartAssetId, setChartAssetId] = useState(26);
+  const [routerPath, setRouterPath] = useState('/cots-report');
+
+  const router = useMemo(() => ({
+    pathname: routerPath,
+    navigate: (path) => {
+      setRouterPath(path);
+      const seg = (path || '').split('/').filter(Boolean).pop();
+      if (seg) setActiveSection(seg);
+    }
+  }), [routerPath]);
+
+  const renderSidebarItem = React.useCallback((item) => {
+    const selected = item.segment === activeSection;
+    return (
+      <DashboardSidebarPageItem
+        item={item}
+        selected={selected}
+        onClick={(event) => {
+          event.preventDefault();
+          if (item.segment) {
+            setActiveSection(item.segment);
+            router.navigate(`/${item.segment}`);
+          }
+        }}
+      />
+    );
+  }, [activeSection, router]);
+
   return (
     <Router>
       <Routes>
@@ -1165,6 +1196,7 @@ export default function App() {
                     <AppProvider
                       navigation={NAVIGATION}
                       theme={theme}
+                      router={router}
                       branding={{
                         title: 'COTS UI',
                         homeUrl: '/dashboard',
@@ -1176,7 +1208,9 @@ export default function App() {
                             width: 250,
                           }
                         }}
+                        defaultSidebarCollapsed
                         slots={{
+                          renderPageItem: renderSidebarItem,
                           appTitle: () => (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <BarChartIcon sx={{ color: '#fff' }} />
@@ -1195,13 +1229,43 @@ export default function App() {
                               onDateChange={handleDateChange}
                               isDateLoading={isDateLoading}
                               availableDates={availableDates}
+                              activeSection={activeSection}
+                              chartAssetId={chartAssetId}
+                              onChartAssetChange={setChartAssetId}
                             />
                           ),
                           sidebarFooter: SidebarFooter,
                         }}
+                        onPageChange={(page) => {
+                          if (page?.segment) setActiveSection(page.segment);
+                        }}
                       >
                         <Box sx={{ flexGrow: 1, width: '100%', overflow: 'hidden' }}>
-                          {renderCollapsibleTable()}
+                          {activeSection === 'cots-report' && renderCollapsibleTable()}
+                          {activeSection === 'chart' && (
+                            <Box sx={{ p: 2, height: 'calc(100vh - 120px)', display: 'grid', gridTemplateRows: '1fr 1fr', gap: 2 }}>
+                              <Box sx={{ minHeight: 0 }}>
+                                <TradingViewAdvancedChart
+                                  assetId={chartAssetId}
+                                  height="100%"
+                                  interval="D"
+                                  cotSeries={{
+                                    dates: chartDates,
+                                    commercial: commercialChartData,
+                                    nonCommercial: nonCommercialChartData,
+                                    nonReportable: nonReportableChartData,
+                                  }}
+                                />
+                              </Box>
+                              <Box sx={{ minHeight: 0 }} />
+                            </Box>
+                          )}
+                          {activeSection === 'seasonality' && (
+                            <Box sx={{ p: 2 }}>
+                              {/* Placeholder for Seasonality until implementation */}
+                              <Typography variant="body1">Seasonality coming soon.</Typography>
+                            </Box>
+                          )}
                         </Box>
                       </DashboardLayout>
                     </AppProvider>
