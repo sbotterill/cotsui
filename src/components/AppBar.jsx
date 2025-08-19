@@ -101,20 +101,31 @@ export default function DrawerAppBar(props) {
       // Check if there are any matches in favorites
       const favoritesInSearch = filtered.some(item => props.favorites.includes(item.commodity));
 
-      // Only switch tabs if:
-      // 1. We're in the favorites tab (index 0)
-      // 2. There are search results
-      // 3. None of the search results are in favorites
+      // If search was initiated from favorites and no favs match, switch to the first matching group tab
       if (filtered.length > 0 && props.selectedTab === 0 && !favoritesInSearch) {
-        // Find the first exchange that has matches
-        const firstMatchExchange = filtered[0].market_code;
-        const exchangeIndex = props.exchanges.findIndex(e => {
-          const code = e.includes(' - ') ? e.split(' - ')[0].trim() : e.trim();
-          if (REMOVED_EXCHANGE_CODES.includes(code)) return false;
-          return code === firstMatchExchange;
-        });
-        if (exchangeIndex !== -1) {
-          props.onTabChange(exchangeIndex + 1); // +1 because exchange tabs start at index 1
+        // Determine group for first match via simple keyword checks used in CollapsableTable/App
+        const commodityName = (filtered[0].commodity || '').toUpperCase();
+        const GROUP_DEFS = [
+          ['Currencies', ['DOLLAR','EURO','YEN','FRANC','POUND','PESO','REAL','RAND','KRONA','KRONE','LIRA','RUBLE','RUBEL','DOLLAR INDEX','USD INDEX','CURRENCY','SWISS','BRITISH','AUSTRALIAN','CANADIAN','NEW ZEALAND']],
+          ['Energies', ['CRUDE','WTI','BRENT','GASOLINE','HEATING OIL','NATURAL GAS','PROPANE','ETHANOL']],
+          ['Grains', ['CORN','SOYBEAN','SOYBEANS','SOYBEAN OIL','SOYBEAN MEAL','WHEAT','OATS','ROUGH RICE','RICE','CANOLA']],
+          ['Meats', ['LIVE CATTLE','FEEDER CATTLE','LEAN HOG','LEAN HOGS','CATTLE','HOGS']],
+          ['Metals', ['GOLD','SILVER','COPPER','PLATINUM','PALLADIUM','ALUMINUM','NICKEL','ZINC']],
+          ['Softs', ['COFFEE','COCOA','SUGAR','COTTON','ORANGE JUICE','OJ','RUBBER','LUMBER']],
+          ['Stock Indices', ['S&P','SP 500','E-MINI S&P','NASDAQ','DOW','RUSSELL','NIKKEI','FTSE','DAX']],
+          ['Interest Rates', ['TREASURY','BOND','NOTE','SOFR','EURODOLLAR','FED FUNDS','BOBL','BUND','SCHATZ','GILT','EURIBOR']],
+          ['Dairy', ['MILK','BUTTER','CHEESE']]
+        ];
+        let matchGroup = 'Other';
+        outer: for (const [g, kws] of GROUP_DEFS) {
+          for (const kw of kws) {
+            if (commodityName.includes(kw)) { matchGroup = g; break outer; }
+          }
+        }
+        const groupIndex = props.exchanges.findIndex(g => g === matchGroup);
+        if (groupIndex !== -1) {
+          // +1 because group tabs start after favorites/commercial/retail tabs; those offsets are handled in CollapsableTable
+          props.onTabChange(groupIndex + 1);
         }
       }
     } catch (error) {
@@ -127,13 +138,8 @@ export default function DrawerAppBar(props) {
     setSearchTerm('');
     props.setFilteredData(props.futuresData);
     
-    // When clearing search, restore all exchanges from the original list
-    const allExchanges = props.userExchanges.map(exchange => {
-      // Handle both formats: either "CODE - NAME" or just "CODE"
-      const parts = exchange.includes(' - ') ? exchange.split(' - ') : [exchange];
-      const code = normalizeCode(parts[0]);
-      return code;
-    });
+    // When clearing search, restore all groups from the original list
+    const allExchanges = props.userExchanges.map(groupName => normalizeCode(groupName));
     
     // Pass false to prevent saving to server - only UI state update
     props.onExchangeFilterChange(allExchanges, false);

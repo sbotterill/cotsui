@@ -8,7 +8,7 @@ import { useTheme } from '@mui/material/styles';
 import { Typography, Box, Checkbox, FormControlLabel } from '@mui/material';
 import CustomSnackbar from './Snackbar';
 import { API_BASE_URL } from '../config';
-import { EXCHANGE_CODE_MAP, REMOVED_EXCHANGE_CODES } from '../constants';
+import { REMOVED_EXCHANGE_CODES } from '../constants';
 import { ListItemIcon } from '@mui/material';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
@@ -16,8 +16,8 @@ import { Divider } from '@mui/material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
 export default function BasicMenu({
-  commodities,    // full list of sections
-  selected = [],  // currently‐checked ones
+  commodities,    // full list of group names
+  selected = [],  // currently‐checked group names
   onFilterChange, // (newSelected: string[]) => void
 }) {
   const theme = useTheme();
@@ -26,31 +26,10 @@ export default function BasicMenu({
   const [showSnackbar, setShowSnackbar] = React.useState(false);
   const open = Boolean(anchorEl);
 
-  // Normalize exchange code by trimming and ensuring consistent format
+  // Normalize label by trimming
   const normalizeCode = (code) => {
     if (!code) return '';
     return code.trim();
-  };
-
-  // Format exchange code to include full name
-  const formatExchange = (code) => {
-    if (!code) return '';
-    const cleanCode = normalizeCode(code);
-    const fullName = EXCHANGE_CODE_MAP[cleanCode] || cleanCode;
-    return `${cleanCode} - ${fullName}`;
-  };
-
-  // Convert raw code to formatted string
-  const getFormattedExchange = (code) => {
-    const cleanCode = normalizeCode(code);
-    return formatExchange(cleanCode);
-  };
-
-  // Convert formatted string back to raw code
-  const getRawCode = (formatted) => {
-    if (!formatted) return '';
-    const cleanCode = formatted.split(' - ')[0];
-    return normalizeCode(cleanCode);
   };
 
   // Update local state when parent state changes
@@ -67,24 +46,18 @@ export default function BasicMenu({
     setAnchorEl(null);
   };
 
-  const handleToggle = (formattedExchange) => {
-    const rawCode = getRawCode(formattedExchange);
+  const handleToggle = (groupName) => {
+    const clean = normalizeCode(groupName);
     const normalizedSelected = selected.map(code => normalizeCode(code));
-    const isCurrentlySelected = normalizedSelected.includes(rawCode);
+    const isCurrentlySelected = normalizedSelected.includes(clean);
 
     // Create new list based on selection
     const newSelected = isCurrentlySelected
-      ? normalizedSelected.filter(code => code !== rawCode)
-      : [...normalizedSelected, rawCode];
+      ? normalizedSelected.filter(code => code !== clean)
+      : [...normalizedSelected, clean];
 
-    // Sort the new list by full names
-    const sorted = [...newSelected].sort((a, b) => {
-      const aFormatted = getFormattedExchange(a);
-      const bFormatted = getFormattedExchange(b);
-      const aName = aFormatted.split(' - ')[1] || aFormatted;
-      const bName = bFormatted.split(' - ')[1] || bFormatted;
-      return aName.localeCompare(bName);
-    });
+    // Sort the new list alphabetically by group name
+    const sorted = [...newSelected].sort((a, b) => a.localeCompare(b));
 
     // Pass false to prevent saving to server - only UI state update
     onFilterChange(sorted, false);
@@ -133,17 +106,12 @@ export default function BasicMenu({
     }
   };
 
-  // Format and sort commodities list for display
+  // Sorted selected groups for potential future display (not shown in button)
   const formattedCommodities = React.useMemo(() => {
     return selected
       .map(code => normalizeCode(code))
       .filter(code => !REMOVED_EXCHANGE_CODES.includes(code))
-      .map(code => getFormattedExchange(code))
-      .sort((a, b) => {
-      const aName = a.split(' - ')[1];
-      const bName = b.split(' - ')[1];
-      return aName.localeCompare(bName);
-    });
+      .sort((a, b) => a.localeCompare(b));
   }, [selected]);
 
   // Render menu items
@@ -152,14 +120,12 @@ export default function BasicMenu({
       .map((code) => normalizeCode(code))
       .filter(cleanCode => !REMOVED_EXCHANGE_CODES.includes(cleanCode))
       .map((cleanCode) => {
-      const name = EXCHANGE_CODE_MAP[cleanCode] || cleanCode;
-      const formattedExchange = `${cleanCode} - ${name}`;
       const normalizedSelected = selected.map(s => normalizeCode(s));
       const isChecked = normalizedSelected.includes(cleanCode);
 
       return (
         <Box
-          key={formattedExchange}
+          key={cleanCode}
           sx={{
             borderBottom: 1,
             borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
@@ -182,7 +148,7 @@ export default function BasicMenu({
             control={
               <Checkbox 
                 checked={isChecked}
-                onChange={() => handleToggle(formattedExchange)}
+                onChange={() => handleToggle(cleanCode)}
                 size="small"
                 sx={{
                   py: 0.5,
@@ -206,19 +172,6 @@ export default function BasicMenu({
                 >
                   {cleanCode}
                 </Typography>
-                {name && (
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      color: theme.palette.text.secondary, 
-                      fontSize: '0.75rem',
-                      mt: 0.25,
-                      lineHeight: 1.2
-                    }}
-                  >
-                    {name}
-                  </Typography>
-                )}
               </Box>
             }
           />
@@ -244,7 +197,7 @@ export default function BasicMenu({
           }
         }}
       >
-        Filter Exchanges
+        Filter Groups
       </Button>
       <Menu
         id="basic-menu"

@@ -43,6 +43,263 @@ function formatDate(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} 00:00:00.000`;
 }
 
+// Group definitions for categorizing commodities
+const GROUP_DEFINITIONS = [
+  { name: 'Currencies', keywords: ['DOLLAR', 'EURO', 'YEN', 'FRANC', 'POUND', 'PESO', 'REAL', 'RAND', 'KRONA', 'KRONE', 'LIRA', 'RUBLE', 'RUBEL', 'DOLLAR INDEX', 'USD INDEX', 'CURRENCY', 'SWISS', 'BRITISH', 'AUSTRALIAN', 'CANADIAN', 'NEW ZEALAND'] },
+  { name: 'Energies', keywords: ['CRUDE', 'WTI', 'BRENT', 'GASOLINE', 'HEATING OIL', 'NATURAL GAS', 'PROPANE', 'ETHANOL'] },
+  { name: 'Grains', keywords: ['CORN', 'SOYBEAN', 'SOYBEANS', 'SOYBEAN OIL', 'SOYBEAN MEAL', 'WHEAT', 'OATS', 'ROUGH RICE', 'RICE', 'CANOLA'] },
+  { name: 'Meats', keywords: ['LIVE CATTLE', 'FEEDER CATTLE', 'LEAN HOG', 'LEAN HOGS', 'CATTLE', 'HOGS'] },
+  { name: 'Metals', keywords: ['GOLD', 'SILVER', 'COPPER', 'PLATINUM', 'PALLADIUM', 'ALUMINUM', 'NICKEL', 'ZINC'] },
+  { name: 'Softs', keywords: ['COFFEE', 'COCOA', 'SUGAR', 'COTTON', 'ORANGE JUICE', 'OJ', 'RUBBER', 'LUMBER'] },
+  { name: 'Stock Indices', keywords: ['S&P', 'SP 500', 'E-MINI S&P', 'NASDAQ', 'DOW', 'RUSSELL', 'NIKKEI', 'FTSE', 'DAX'] },
+  { name: 'Interest Rates', keywords: ['TREASURY', 'BOND', 'NOTE', 'SOFR', 'EURODOLLAR', 'FED FUNDS', 'BOBL', 'BUND', 'SCHATZ', 'GILT', 'EURIBOR'] },
+  { name: 'Dairy', keywords: ['MILK', 'BUTTER', 'CHEESE'] },
+];
+
+const getGroupForRow = (row) => {
+  const name = (row?.commodity || '').toUpperCase();
+  // Overrides first
+  if (OVERRIDE_GROUPS_EXACT[name]) return OVERRIDE_GROUPS_EXACT[name];
+  for (const { pattern, group } of OVERRIDE_GROUPS_CONTAINS) {
+    if (name.includes(pattern)) return group;
+  }
+  for (const group of GROUP_DEFINITIONS) {
+    for (const kw of group.keywords) {
+      if (name.includes(kw)) return group.name;
+    }
+  }
+  return 'Other';
+};
+
+const getGroupsFromData = (data) => {
+  const present = new Set();
+  (data || []).forEach(row => present.add(getGroupForRow(row)));
+  const ordered = GROUP_DEFINITIONS.map(g => g.name).filter(n => present.has(n));
+  if (present.has('Other')) ordered.push('Other');
+  return ordered;
+};
+
+// Removal and overrides based on user list
+const REMOVED_COMMODITY_EXACT = new Set([
+  'ARGUS CIF ARA LG FINL PROPANE',
+  'ARGUS PROPANE FAR EAST INDEX',
+  'CRUDE DIFF-WCS HOUSTON/WTI 1ST',
+  'ETHANOL T2 FOB INCL DUTY',
+  'MISO INDIANA OFF-PEAK',
+  'MARINE .5% FOB USGC/BRENT 1ST',
+  'WTI MIDLAND ARGUS VS WTI TRADE',
+  'MISO INDIANA OFF-PEAK',
+  'ALUMINIUM EURO PREM DUTY-PAID',
+  'NIKKEI STOCK AVERAGE YEN DENOM',
+  'NORTH EURO HOT-ROLL COIL STEEL',
+  'PROPANE OPIS CONWAY INWELL FP',
+  'PROPANE OPIS MT BELV NONTET FP',
+  'USGC HSFO-PLATTS/BRENT 1ST LN',
+  'E-MINI S&P COMMUNICATION INDEX',
+  'S&P 500 CONSOLIDATED',
+  'CIG ROCKIES FINANCIAL INDEX',
+  'CONDENSATE DIF-TMX C5 1A INDEX',
+  'FUEL OIL-3% USGC/3.5% FOB RDAM',
+  'GULF COAST CBOB GAS A2 PL RBOB',
+  'HOUSTON SHIP CHANNEL (INDEX)',
+  'MISO INDIANA OFF-PEAK',
+  '10 YEAR ERIS SOFR SWAP',
+  '2 YEAR ERIS SOFR SWAP',
+  '5 YEAR ERIS SOFR SWAP',
+  'DJIA CONSOLIDATED',
+  'DJIA X $5',
+  'DOW JONES U.S. REAL ESTATE IDX',
+  'MICRO 10 YEAR YIELD',
+  'MICRO E-MINI DJIA (X$0.5)',
+  'ALUMINIUM EURO PREM DUTY-PAI',
+  'ERCOT N 345KV REAL T PK DALY M',
+  'EURO FX/BRITISH POUND XRATE',
+  'EURO SHORT TERM RATE',
+  'MISO IN. REAL-TIME OFF-PEAK',
+  'NIKKEI STOCK AVERAGE YEN DEN',
+  'NORTH EURO HOT-ROLL COIL STE',
+  'PJM WEST HUB REAL TIME PK MI',
+  'SO AFRICAN RAND',
+  'MT BELV NAT GASOLINE OPIS',
+  'PROPANE ARGUS CIF ARA MINI',
+  'PROPANE ARGUS FAR EAST MINI',
+  'PROPANE ARGUS SAUDI CP FP',
+  'PROPANE ARGUS SAUDI CP MINI',
+  'PROPANE NON-LDH MT BEL',
+  'PROPANE OPIS CONWAY INWELL',
+  'PROPANE OPIS MT BELV NONTET',
+  'PROPANE OPIS MT BELVIEU TET FP',
+  'USD MALAYSIAN CRUDE PALM OIL C',
+  'ARGUS FAR EAST PROPANE',
+  'CONWAY PROPANE (OPIS)',
+  'CRUDE DIFF-TMX SW 1A INDEX',
+  'CRUDE DIFF-TMX WCS 1A INDEX',
+  'CRUDE DIFF-WCS HOUSTON/WTI',
+  'GASOLINE CRK-RBOB/BRENT 1ST',
+  'E-MINI S&P 400 STOCK INDEX',
+  'E-MINI S&P COMMUNICATION IND',
+  'E-MINI S&P CONSU STAPLES INDEX',
+  'E-MINI S&P ENERGY INDEX',
+  'UP DOWN GC ULSD VS HO SPR',
+  'S&P 500 QUARTERLY DIVIDEND IND',
+  'S&P 500 ANNUAL DIVIDEND INDEX',
+  'RUSSELL 2000 ANNUAL DIVIDEND',
+  'NASDAQ-100 CONSOLIDATED',
+  'EMINI RUSSELL 1000 VALUE INDEX',
+  'E-MINI S&P UTILITIES INDEX',
+  'E-MINI S&P TECHNOLOGY INDEX',
+  'E-MINI S&P INDUSTRIAL INDEX',
+  'E-MINI S&P HEALTH CARE INDEX',
+  'E-MINI S&P FINANCIAL INDEX',
+  'E-MINI S&P ENERGY INDEX',
+  'E-MINI S&P CONSU STAPLES INDEX',
+  'E-MINI S&P COMMUNICATION IND',
+  'AEP DAYTON HUB DA PEAK DAILY',
+  'ALGONQUIN CITYGATES BASIS',
+  'ALGONQUIN CITYGATES INDEX',
+  'BBG COMMODITY',
+  'BUTANE OPIS MT BELV NONTET FP',
+  'CG MAINLINE BASIS',
+  'CG-MAINLINE FINANCIAL INDEX',
+  'CHICAGO CITYGATE (INDEX)',
+  'CHICAGO FIN BASIS',
+  'CIG ROCKIES BASIS',
+  'COBALT',
+  'CONDENSATE DIF-TMX C5 1A IND',
+  'CT RECS CLASS 1',
+  'D4 BIODIESEL RINS OPIS CURR YR',
+  'D6 RINS OPIS CURRENT YEAR',
+  'DOMINION - SOUTH POINT',
+  'DOMINION - SOUTH POINT (BASIS)',
+  'EP SAN JUAN BASIS',
+  'ETHANE, MT. BELV-ENTERPRISE',
+  'ETHER CASH SETTLED',
+  'FUEL OIL-3% USGC/3.5% FOB RDA',
+  'GULF JET NY HEAT OIL SPR',
+  'GULF COAST CBOB GAS A2 PL RB',
+  'GULF # 6 FUEL OIL CRACK',
+  'HENRY HUB BASIS',
+  'HENRY HUB INDEX',
+  'HENRY HUB LAST DAY FIN',
+  'HENRY HUB PENULTIMATE FIN',
+  'HENRY HUB PENULTIMATE NAT G',
+  'HSC FIN BASIS',
+  'ISO NE MASS HUB DA OFF-PK FIXD',
+  'ISO NE MASS HUB DA PEAK',
+  'LITHIUM HYDROXIDE',
+  'MALIN (BASIS)',
+  'MARYLAND COMPLIANCE REC TIER1',
+  'MASS COMPLIANCE RECS CLASS 1',
+  'MICHCON BASIS',
+  'MICHCON FINANCIAL INDEX',
+  'MID-C DAY-AHEAD OFF-PEAK',
+  'MID-C DAY-AHEAD PEAK',
+  'MISO ARKANSAS DA PEAK FIXED',
+  'MISO IN. DAY-AHEAD PEAK',
+  'MISO INDIANA OFF-PEAK',
+  'MISO INDIANA HUB RT PEAK',
+  'MSCI EAFE',
+  'MSCI EM INDEX',
+  'MT BELV NORM BUTANE OPIS',
+  'MT BELVIEU ETHANE OPIS',
+  'NAT GAS ICE PEN',
+  'NAT GAS LD1 FOR GDD -TEXOK',
+  'NAT GASLNE OPIS MT B NONTET FP',
+  'NEPOOL DUAL RECS CLASS 1',
+  'NGPL MIDCONT BASIS',
+  'NGPL TXOK BASIS',
+  'NJ SRECS',
+  'NNG VENTURA BASIS',
+  'NWP ROCKIES FIN BASIS',
+  'NY HARBOR ULSD',
+  'NYISO ZONE A DA OFF-PK FIX PR',
+  'NYISO ZONE A DA PEAK',
+  'NYISO ZONE G DA OFF-PK',
+  'NYISO ZONE G DA PEAK',
+  'NYISO ZONE J DA OFF-PK FIXED',
+  'NYISO ZONE J DA PEAK',
+  'ONEOK GAS TRANSPORTATION BASIS',
+  'PA COMPLIANCE AECS TIER1',
+  'PA SOLAR ALTER ENERGY CREDIT',
+  'PALO VERDE DA OFF-PK FIXED PR',
+  'PALO VERDE DA PEAK',
+  'PANHANDLE BASIS',
+  'PG&E CITYGATE FIN BASIS',
+  'PGP PROPYLENE (PCW) CAL',
+  'PJM AEP DAYTON DA PEAK',
+  'PJM AEP DAYTON HUB DA OFF-PK',
+  'PJM AEP DAYTON RT OFF-PK FIXED',
+  'PJM AEP DAYTON RT PEAK FIXED',
+  'PJM N. IL HUB DA OFF-PK',
+  'PJM N. IL HUB DA PEAK',
+  'PJM N. IL HUB RT PEAK',
+  'PJM NI HUB RT OFF-PK FIXED',
+  'PJM PSEG DAY-AHEAD PEAK',
+  'PJM TRI-RECS CLASS 1',
+  'PJM WESTERN HUB DA OFF-PK',
+  'PJM WESTERN HUB DA PEAK',
+  'PJM WESTERN HUB RT OFF',
+  'PJM WESTERN HUB RT PEAK MINI',
+  'REX ZONE 3 BASIS',
+  'REX ZONE 3 INDEX',
+  'RGGI V2025',
+  'SOCAL (INDEX)',
+  'SOCAL BORDER FIN BASIS',
+  'SOCAL CITYGATE FINANCIAL BASIS',
+  'SONAT - TIER 1 POOL (ZONE 0)',
+  'SP15 FIN DA PEAK FIXED',
+  'STEEL-HRC',
+  'TCO BASIS',
+  'TETCO M2 BASIS (RECEIPTS)',
+  'TETCO M2 INDEX (RECEIPTS)',
+  'TETCO M3 BASIS',
+  'TETCO M3 INDEX',
+  'TETCO WLA BASIS',
+  'TGT ZONE 1 BASIS',
+  'TRANSCO LEIDY BASIS',
+  'TRANSCO STATION 85-ZONE 4 BASI',
+  'TRANSCO STN 85 MONTHLY INDEX',
+  'TRANSCO ZONE 6 BASIS',
+  'TRANSCO ZONE 6 MONTHLY INDEX',
+  'TRANSCO ZONE 5 SOUTH BASIS',
+  'USGC HSFO (PLATTS)',
+  'WAHA FIN BASIS',
+  'WAHA INDEX',
+  'WASHINGTON CARBON ALL V2025',
+]);
+
+const REMOVED_COMMODITY_CONTAINS = ['CAISO', 'CALIF', 'ERCOT', 'PJM'];
+
+const OVERRIDE_GROUPS_EXACT = {
+  'BITCOIN': 'Currencies',
+  'MICRO BITCOIN': 'Currencies',
+  'MICRO ETHER': 'Currencies',
+  'XRP': 'Currencies',
+  'SOL': 'Currencies',
+  'ULTRA UST 10Y': 'Interest Rates',
+};
+
+const OVERRIDE_GROUPS_CONTAINS = [
+  { pattern: 'AECO', group: 'Energies' },
+  { pattern: 'HENRY HUB', group: 'Energies' },
+  { pattern: 'NAT GAS ICE LD1', group: 'Energies' },
+  { pattern: 'NAT GAS NYME', group: 'Energies' },
+];
+
+const normalizeTitle = (s) => (s || '')
+  .toUpperCase()
+  .replace(/[–—]/g, '-') // normalize en/em dashes to hyphen
+  .replace(/\s+/g, ' ')  // collapse whitespace
+  .trim();
+
+const shouldRemoveRow = (row) => {
+  const raw = row?.commodity || '';
+  const name = raw.toUpperCase();
+  const normalized = normalizeTitle(raw);
+  if (REMOVED_COMMODITY_EXACT.has(name) || REMOVED_COMMODITY_EXACT.has(normalized)) return true;
+  return REMOVED_COMMODITY_CONTAINS.some(p => name.includes(p) || normalized.includes(p));
+};
+
 // Check data availability for a specific date
 async function checkLatestDataAvailability() {
   try {
@@ -215,8 +472,8 @@ async function fetchData(selectedDate = null) {
         total_short: (processedData.nonrept_positions_short_all || 0) + (processedData.tot_rept_positions_short || 0)
       };
 
-      // Skip any rows belonging to removed exchanges
-      if (!REMOVED_EXCHANGE_CODES.includes(obj.market_code)) {
+      // Skip any rows belonging to removed exchanges or explicit removals
+      if (!REMOVED_EXCHANGE_CODES.includes(obj.market_code) && !shouldRemoveRow(obj)) {
         dataMap.push(obj);
         exchangeSet.add(obj.market_code);
       }
@@ -335,15 +592,18 @@ export default function App() {
           // Load data for the latest date
           const result = await fetchData(latestDate);
           
-          // Load table filters
+          // Build groups and load table filters (now interpreted as groups)
+          const groupsList = getGroupsFromData(result.data);
           const email = localStorage.getItem('userEmail');
-          let filteredExchanges = result.exchanges.map(code => code.trim()).filter(code => !REMOVED_EXCHANGE_CODES.includes(code));
-          
+          let filteredGroups = [...groupsList];
           if (email) {
             try {
               const response = await axios.get(`${API_BASE_URL}/preferences/table_filters?email=${email}`);
               if (response.data.success && response.data.table_filters && response.data.table_filters.selected) {
-                filteredExchanges = response.data.table_filters.selected.map(code => code.trim()).filter(code => !REMOVED_EXCHANGE_CODES.includes(code));
+                const selectedGroups = response.data.table_filters.selected.map(s => (s || '').trim());
+                // Keep only groups that exist in current dataset; preserve order by groupsList
+                filteredGroups = groupsList.filter(g => selectedGroups.includes(g));
+                if (filteredGroups.length === 0) filteredGroups = [...groupsList];
               }
             } catch (error) {
               console.error('Error loading table filters:', error);
@@ -352,26 +612,16 @@ export default function App() {
 
           // Set the complete data first
           setFuturesData(result.data);
-          setExchanges(result.exchanges);
-          setDisplayExchanges(filteredExchanges);
-          setUserExchanges(filteredExchanges);
+          setExchanges(groupsList);
+          setDisplayExchanges(filteredGroups);
+          setUserExchanges(filteredGroups);
           setLastUpdated(result.reportDate);
           setIsLatestData(result.isLatestData);
           setLastChecked(result.lastChecked);
           setSelectedDate(latestDate);
 
           // Then filter from the complete dataset
-          const newFilteredData = result.data.filter(item => {
-            const marketCode = item.market_code;
-            if (REMOVED_EXCHANGE_CODES.includes(marketCode)) return false;
-            // Special handling for ICE exchanges
-            if (filteredExchanges.includes('ICE')) {
-              if (marketCode === 'ICEU' || marketCode === 'ICUS' || marketCode === 'IFED' || marketCode === 'ICE') {
-                return true;
-              }
-            }
-            return filteredExchanges.includes(marketCode);
-          });
+          const newFilteredData = result.data.filter(item => filteredGroups.includes(getGroupForRow(item)));
 
           // Set filtered data after
           setFilteredData(newFilteredData);
@@ -436,15 +686,17 @@ export default function App() {
         // Load data for the latest date
         const result = await fetchData(latestDate);
         
-        // Load table filters
+        // Build groups and load table filters (as groups)
+        const groupsList = getGroupsFromData(result.data);
         const email = localStorage.getItem('userEmail');
-        let filteredExchanges = result.exchanges.map(code => code.trim()).filter(code => !REMOVED_EXCHANGE_CODES.includes(code));
-        
-        if (email) {
+        let filteredGroups = (displayExchanges.length > 0 ? displayExchanges : groupsList);
+        if (email && displayExchanges.length === 0) {
           try {
             const response = await axios.get(`${API_BASE_URL}/preferences/table_filters?email=${email}`);
             if (response.data.success && response.data.table_filters && response.data.table_filters.selected) {
-              filteredExchanges = response.data.table_filters.selected.map(code => code.trim()).filter(code => !REMOVED_EXCHANGE_CODES.includes(code));
+              const selectedGroups = response.data.table_filters.selected.map(s => (s || '').trim());
+              filteredGroups = groupsList.filter(g => selectedGroups.includes(g));
+              if (filteredGroups.length === 0) filteredGroups = [...groupsList];
             }
           } catch (error) {
             console.error('Error loading table filters:', error);
@@ -453,26 +705,16 @@ export default function App() {
 
         // Set the complete data first
         setFuturesData(result.data);
-        setExchanges(result.exchanges);
-        setDisplayExchanges(filteredExchanges);
-        setUserExchanges(filteredExchanges);
+        setExchanges(groupsList);
+        setDisplayExchanges(filteredGroups);
+        setUserExchanges(filteredGroups);
         setLastUpdated(result.reportDate);
         setIsLatestData(result.isLatestData);
         setLastChecked(result.lastChecked);
         setSelectedDate(latestDate);
 
         // Then filter from the complete dataset
-        const newFilteredData = result.data.filter(item => {
-          const marketCode = item.market_code;
-          if (REMOVED_EXCHANGE_CODES.includes(marketCode)) return false;
-          // Special handling for ICE exchanges
-          if (filteredExchanges.includes('ICE')) {
-            if (marketCode === 'ICEU' || marketCode === 'ICUS' || marketCode === 'IFED' || marketCode === 'ICE') {
-              return true;
-            }
-          }
-          return filteredExchanges.includes(marketCode);
-        });
+        const newFilteredData = result.data.filter(item => filteredGroups.includes(getGroupForRow(item)));
 
         // Set filtered data after
         setFilteredData(newFilteredData);
@@ -518,15 +760,17 @@ export default function App() {
         setIsDateLoading(true);
         const result = await fetchData(selectedDate);
         
-        // Load table filters
+        // Build groups and load table filters (as groups)
+        const groupsList = getGroupsFromData(result.data);
         const email = localStorage.getItem('userEmail');
-        let filteredExchanges = (displayExchanges.length > 0 ? displayExchanges : result.exchanges).filter(code => !REMOVED_EXCHANGE_CODES.includes(code));
-        
+        let filteredGroups = (displayExchanges.length > 0 ? displayExchanges : groupsList);
         if (email && displayExchanges.length === 0) {
           try {
             const response = await axios.get(`${API_BASE_URL}/preferences/table_filters?email=${email}`);
             if (response.data.success && response.data.table_filters && response.data.table_filters.selected) {
-              filteredExchanges = response.data.table_filters.selected.map(code => code.trim()).filter(code => !REMOVED_EXCHANGE_CODES.includes(code));
+              const selectedGroups = response.data.table_filters.selected.map(s => (s || '').trim());
+              filteredGroups = groupsList.filter(g => selectedGroups.includes(g));
+              if (filteredGroups.length === 0) filteredGroups = [...groupsList];
             }
           } catch (error) {
             console.error('Error loading table filters:', error);
@@ -535,24 +779,14 @@ export default function App() {
 
         // Set complete data first
         setFuturesData(result.data);
-        setExchanges(result.exchanges);
-        setDisplayExchanges(filteredExchanges);
+        setExchanges(groupsList);
+        setDisplayExchanges(filteredGroups);
         setLastUpdated(result.reportDate);
         setIsLatestData(result.isLatestData);
         setLastChecked(result.lastChecked);
 
         // Then filter from complete dataset
-        const newFilteredData = result.data.filter(item => {
-          const marketCode = item.market_code;
-          if (REMOVED_EXCHANGE_CODES.includes(marketCode)) return false;
-          // Special handling for ICE exchanges
-          if (filteredExchanges.includes('ICE')) {
-            if (marketCode === 'ICEU' || marketCode === 'ICUS' || marketCode === 'IFED' || marketCode === 'ICE') {
-              return true;
-            }
-          }
-          return filteredExchanges.includes(marketCode);
-        });
+        const newFilteredData = result.data.filter(item => filteredGroups.includes(getGroupForRow(item)));
 
         // Set filtered data after
         setFilteredData(newFilteredData);
@@ -715,18 +949,8 @@ export default function App() {
   const handleExchangeFilterChange = async (newList, shouldSaveToServer = true) => {
     setDisplayExchanges(newList);
 
-    // Always filter from the complete data set
-    const newFilteredData = futuresData.filter(item => {
-      const marketCode = item.market_code;
-      if (REMOVED_EXCHANGE_CODES.includes(marketCode)) return false;
-      // Special handling for ICE exchanges
-      if (newList.includes('ICE')) {
-        if (marketCode === 'ICEU' || marketCode === 'ICUS' || marketCode === 'IFED' || marketCode === 'ICE') {
-          return true;
-        }
-      }
-      return newList.includes(marketCode);
-    });
+    // Now newList is a list of group names
+    const newFilteredData = futuresData.filter(item => newList.includes(getGroupForRow(item)));
     setFilteredData(newFilteredData);
 
     if (shouldSaveToServer) {
@@ -948,7 +1172,6 @@ export default function App() {
                         sx={{
                           flexGrow: 1,
                           pt: { xs: '56px', sm: '64px' },
-                          px: 2,
                           width: '100%',
                           overflow: 'hidden'
                         }}

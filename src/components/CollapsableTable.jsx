@@ -162,6 +162,52 @@ export default function CollapsibleTable({
   // Commercial Tracker threshold - commodities with commercial percentage over this will be tracked
   const COMMERCIAL_THRESHOLD = 0.7; // 70%
 
+  // Group definitions based on commodity name keywords (fallback to Other)
+  const GROUP_DEFINITIONS = React.useMemo(() => ([
+    { name: 'Currencies', keywords: ['DOLLAR', 'EURO', 'YEN', 'FRANC', 'POUND', 'PESO', 'REAL', 'RAND', 'KRONA', 'KRONE', 'LIRA', 'RUBLE', 'RUBEL', 'DOLLAR INDEX', 'USD INDEX', 'CURRENCY', 'SWISS', 'BRITISH', 'AUSTRALIAN', 'CANADIAN', 'NEW ZEALAND'] },
+    { name: 'Energies', keywords: ['CRUDE', 'WTI', 'BRENT', 'GASOLINE', 'HEATING OIL', 'NATURAL GAS', 'PROPANE', 'ETHANOL'] },
+    { name: 'Grains', keywords: ['CORN', 'SOYBEAN', 'SOYBEANS', 'SOYBEAN OIL', 'SOYBEAN MEAL', 'WHEAT', 'OATS', 'ROUGH RICE', 'RICE', 'CANOLA'] },
+    { name: 'Meats', keywords: ['LIVE CATTLE', 'FEEDER CATTLE', 'LEAN HOG', 'LEAN HOGS', 'CATTLE', 'HOGS'] },
+    { name: 'Metals', keywords: ['GOLD', 'SILVER', 'COPPER', 'PLATINUM', 'PALLADIUM', 'ALUMINUM', 'NICKEL', 'ZINC'] },
+    { name: 'Softs', keywords: ['COFFEE', 'COCOA', 'SUGAR', 'COTTON', 'ORANGE JUICE', 'OJ', 'RUBBER', 'LUMBER'] },
+    { name: 'Stock Indices', keywords: ['S&P', 'SP 500', 'E-MINI S&P', 'NASDAQ', 'DOW', 'RUSSELL', 'NIKKEI', 'FTSE', 'DAX'] },
+    { name: 'Interest Rates', keywords: ['TREASURY', 'BOND', 'NOTE', 'SOFR', 'EURODOLLAR', 'FED FUNDS', 'BOBL', 'BUND', 'SCHATZ', 'GILT', 'EURIBOR'] },
+    { name: 'Dairy', keywords: ['MILK', 'BUTTER', 'CHEESE'] },
+  ]), []);
+
+  // Overrides to force specific instruments into desired groups
+  const OVERRIDE_GROUPS_EXACT = React.useMemo(() => ({
+    'BITCOIN': 'Currencies',
+    'MICRO BITCOIN': 'Currencies',
+    'MICRO ETHER': 'Currencies',
+    'XRP': 'Currencies',
+    'SOL': 'Currencies',
+    'ULTRA UST 10Y': 'Interest Rates',
+  }), []);
+
+  const OVERRIDE_GROUPS_CONTAINS = React.useMemo(() => ([
+    { pattern: 'AECO', group: 'Energies' },
+    { pattern: 'HENRY HUB', group: 'Energies' },
+    { pattern: 'NAT GAS ICE LD1', group: 'Energies' },
+    { pattern: 'NAT GAS NYME', group: 'Energies' },
+  ]), []);
+
+  const getGroupForRow = React.useCallback((row) => {
+    const name = (row?.commodity || '').toUpperCase();
+    if (OVERRIDE_GROUPS_EXACT[name]) return OVERRIDE_GROUPS_EXACT[name];
+    for (const { pattern, group } of OVERRIDE_GROUPS_CONTAINS) {
+      if (name.includes(pattern)) return group;
+    }
+    for (const group of GROUP_DEFINITIONS) {
+      for (const kw of group.keywords) {
+        if (name.includes(kw)) {
+          return group.name;
+        }
+      }
+    }
+    return 'Other';
+  }, [GROUP_DEFINITIONS, OVERRIDE_GROUPS_EXACT, OVERRIDE_GROUPS_CONTAINS]);
+
   // Normalize exchange code by trimming and ensuring consistent format
   const normalizeCode = (code) => {
     if (!code) return '';
@@ -174,52 +220,23 @@ export default function CollapsibleTable({
     return upper;
   };
 
-  // Filter exchanges to only include allowed ones and those with data
-  const filteredExchanges = React.useMemo(() => {
-    // First format all exchanges with their full names
-    const formatted = exchanges
-      .filter(ex => !REMOVED_EXCHANGE_CODES.includes((ex.includes(' - ') ? ex.split(' - ')[0] : ex).trim()))
-      .map(exchange => {
-      // If the exchange is already formatted (contains " - "), just use it as is
-      if (exchange.includes(" - ")) {
-        return exchange;
-      }
-      const code = normalizeCode(exchange);
-      const fullName = EXCHANGE_CODE_MAP[code] || code;
-      return `${code} - ${fullName}`;
+  // Build group list based on available data; include 'Other' last when present
+  const filteredGroups = React.useMemo(() => {
+    const presentGroupsSet = new Set();
+    const rows = filteredFuturesData?.filter(r => !REMOVED_EXCHANGE_CODES.includes((r.market_code || '').trim())) || [];
+    rows.forEach(r => {
+      presentGroupsSet.add(getGroupForRow(r));
     });
 
-    // Filter to only show exchanges that are in displayExchanges AND have data
-    const filtered = formatted.filter(exchange => {
-      const code = normalizeCode(exchange.split(' - ')[0]);
-      const isIncluded = displayExchanges.some(d => normalizeCode(d) === code);
+    // Preserve a stable group ordering based on GROUP_DEFINITIONS
+    const ordered = GROUP_DEFINITIONS.map(g => g.name).filter(name => presentGroupsSet.has(name));
 
-      // If not in displayExchanges, exclude
-      if (!isIncluded) return false;
-
-      // Check if this exchange has any data in the current filtered results
-       const hasData = filteredFuturesData?.some(row => {
-        const rowMarketCode = row.market_code?.trim() || '';
-         if (REMOVED_EXCHANGE_CODES.includes(rowMarketCode)) return false;
-        
-        // Special handling for ICE exchanges
-        if (code === 'ICE') {
-          return rowMarketCode === 'ICEU' || rowMarketCode === 'ICUS' || rowMarketCode === 'IFED' || rowMarketCode === 'ICE';
-        }
-        
-        return rowMarketCode === code;
-      });
-
-      return hasData;
-    });
-
-    // Sort by the exchange code
-    return filtered.sort((a, b) => {
-      const aCode = normalizeCode(a.split(' - ')[0]);
-      const bCode = normalizeCode(b.split(' - ')[0]);
-      return aCode.localeCompare(bCode);
-    });
-  }, [exchanges, displayExchanges, filteredFuturesData]);
+    // Handle Other at the end
+    if (presentGroupsSet.has('Other')) {
+      ordered.push('Other');
+    }
+    return ordered;
+  }, [filteredFuturesData, getGroupForRow, GROUP_DEFINITIONS]);
 
   // Get commercial tracker data
   const commercialTrackerData = React.useMemo(() => {
@@ -267,11 +284,11 @@ export default function CollapsibleTable({
   const favoritesTabIndex = favoritesTabVisible ? 0 : null;
   const commercialTabIndex = hasCommercialTracker ? (favoritesTabVisible ? 1 : 0) : null;
   const retailTabIndex = hasRetailTracker ? ((favoritesTabVisible ? 1 : 0) + (hasCommercialTracker ? 1 : 0)) : null;
-  const exchangeStartIndex = (favoritesTabVisible ? 1 : 0) + (hasCommercialTracker ? 1 : 0) + (hasRetailTracker ? 1 : 0);
+  const groupStartIndex = (favoritesTabVisible ? 1 : 0) + (hasCommercialTracker ? 1 : 0) + (hasRetailTracker ? 1 : 0);
 
   // Initialize selected tab
   React.useEffect(() => {
-    if (!initialLoadDone.current && futuresData?.length > 0 && (filteredExchanges.length > 0 || favorites.length > 0)) {
+    if (!initialLoadDone.current && futuresData?.length > 0 && (filteredGroups.length > 0 || favorites.length > 0)) {
       // Check if favorites tab should be shown
       const favoritesInSearch = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
       const shouldShowFavorites = favoritesInSearch.length > 0;
@@ -286,8 +303,8 @@ export default function CollapsibleTable({
         initialTab = commercialTabIndex; // Commercial Tracker tab
       } else if (shouldShowRetailTracker) {
         initialTab = retailTabIndex; // Retail Tracker tab
-      } else if (filteredExchanges.length > 0) {
-        initialTab = exchangeStartIndex; // First exchange tab
+      } else if (filteredGroups.length > 0) {
+        initialTab = groupStartIndex; // First group tab
       } else {
         return; // No tabs available
       }
@@ -303,8 +320,8 @@ export default function CollapsibleTable({
       } else if (hasRetailTracker && initialTab === retailTabIndex) {
         currentData = retailTrackerData;
       } else {
-        const currentExchange = filteredExchanges[initialTab - exchangeStartIndex];
-        currentData = getFilteredData(currentExchange);
+        const currentGroup = filteredGroups[initialTab - groupStartIndex];
+        currentData = getFilteredData(currentGroup);
       }
       
       if (currentData.length > 0) {
@@ -322,7 +339,7 @@ export default function CollapsibleTable({
 
       initialLoadDone.current = true;
     }
-  }, [futuresData, filteredExchanges, favorites, commercialTrackerData, retailTrackerData, favoritesTabIndex, commercialTabIndex, retailTabIndex, exchangeStartIndex, favoritesTabVisible, hasCommercialTracker, hasRetailTracker]);
+  }, [futuresData, filteredGroups, favorites, commercialTrackerData, retailTrackerData, favoritesTabIndex, commercialTabIndex, retailTabIndex, groupStartIndex, favoritesTabVisible, hasCommercialTracker, hasRetailTracker]);
 
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -334,53 +351,46 @@ export default function CollapsibleTable({
     onTabChange(newValue);
   };
 
-  const getFilteredData = (exchange) => {    
-    if (!exchange) return [];
+  const getFilteredData = (groupLabel) => {    
+    if (!groupLabel) return [];
 
     let result;
-    if (exchange === 'Favorites') {
+    if (groupLabel === 'Favorites') {
       result = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
-    } else if (exchange === 'Commercial Tracker') {
+    } else if (groupLabel === 'Commercial Tracker') {
       result = commercialTrackerData;
-    } else if (exchange === 'Retail Tracker') {
+    } else if (groupLabel === 'Retail Tracker') {
       result = retailTrackerData;
     } else {
-      const exchangeCode = exchange.split(' - ')[0];
-      result = filteredFuturesData?.filter(row => {
-        const rowMarketCode = row.market_code?.trim() || '';
-        if (exchangeCode === 'ICE') {
-          return rowMarketCode === 'ICEU' || rowMarketCode === 'ICUS' || rowMarketCode === 'IFED' || rowMarketCode === 'ICE';
-        }
-        return rowMarketCode === exchangeCode;
-      }) || [];
+      result = filteredFuturesData?.filter(row => getGroupForRow(row) === groupLabel) || [];
     }
     
     return result;
   };
 
   // Get the current exchange's data
-  const currentExchangeData = React.useMemo(() => {
+  const currentGroupData = React.useMemo(() => {
     // Check if favorites tab should be shown
     const favoritesInSearch = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
     const shouldShowFavorites = favoritesInSearch.length > 0;
     const shouldShowCommercialTracker = hasCommercialTracker;
     const shouldShowRetailTracker = hasRetailTracker;
 
-    let currentExchange;
+    let currentGroup;
     if (favoritesTabVisible && selectedTab === favoritesTabIndex) {
-      currentExchange = 'Favorites';
+      currentGroup = 'Favorites';
     } else if (hasCommercialTracker && selectedTab === commercialTabIndex) {
-      currentExchange = 'Commercial Tracker';
+      currentGroup = 'Commercial Tracker';
     } else if (hasRetailTracker && selectedTab === retailTabIndex) {
-      currentExchange = 'Retail Tracker';
+      currentGroup = 'Retail Tracker';
     } else {
-       const exchangeIndex = selectedTab - exchangeStartIndex;
-      currentExchange = filteredExchanges[exchangeIndex];
+      const groupIndex = selectedTab - groupStartIndex;
+      currentGroup = filteredGroups[groupIndex];
     }
         
-    const data = getFilteredData(currentExchange);
+    const data = getFilteredData(currentGroup);
     return data;
-  }, [futuresData, filteredFuturesData, filteredExchanges, selectedTab, favorites, commercialTrackerData, retailTrackerData, favoritesTabIndex, commercialTabIndex, retailTabIndex, exchangeStartIndex, favoritesTabVisible, hasCommercialTracker, hasRetailTracker]);
+  }, [futuresData, filteredFuturesData, filteredGroups, selectedTab, favorites, commercialTrackerData, retailTrackerData, favoritesTabIndex, commercialTabIndex, retailTabIndex, groupStartIndex, favoritesTabVisible, hasCommercialTracker, hasRetailTracker]);
 
   // Determine if Commercial Tracker is selected
   const isCommercialTrackerSelected = React.useMemo(() => {
@@ -395,11 +405,11 @@ export default function CollapsibleTable({
 
   // Sort the current exchange's data
   const sortedData = React.useMemo(() => {
-    const sorted = [...currentExchangeData]
+    const sorted = [...currentGroupData]
       .filter(r => !REMOVED_EXCHANGE_CODES.includes((r.market_code || '').trim()))
       .sort(getComparator(order, orderBy));
     return sorted;
-  }, [currentExchangeData, order, orderBy]);
+  }, [currentGroupData, order, orderBy]);
 
   // If user leaves tracker while sorting by zScore, reset to commodity
   React.useEffect(() => {
@@ -438,8 +448,8 @@ export default function CollapsibleTable({
     } else if (hasRetailTracker && selectedTab === retailTabIndex) {
       isCurrentTabValid = shouldShowRetailTracker;
     } else {
-      const exchangeIndex = selectedTab - exchangeStartIndex;
-      isCurrentTabValid = exchangeIndex >= 0 && exchangeIndex < filteredExchanges.length;
+      const groupIndex = selectedTab - groupStartIndex;
+      isCurrentTabValid = groupIndex >= 0 && groupIndex < filteredGroups.length;
     }
     
     // If current tab is not valid, switch to first available tab
@@ -450,11 +460,11 @@ export default function CollapsibleTable({
         onTabChange(commercialTabIndex ?? 0);
       } else if (hasRetailTracker) {
         onTabChange(retailTabIndex ?? 0);
-      } else if (filteredExchanges.length > 0) {
-        onTabChange(exchangeStartIndex);
+      } else if (filteredGroups.length > 0) {
+        onTabChange(groupStartIndex);
       }
     }
-  }, [displayExchanges, filteredExchanges, selectedTab, futuresData, filteredFuturesData, favorites, commercialTrackerData, retailTrackerData, favoritesTabVisible, hasCommercialTracker, hasRetailTracker, favoritesTabIndex, commercialTabIndex, retailTabIndex, exchangeStartIndex]);
+  }, [filteredGroups, selectedTab, futuresData, filteredFuturesData, favorites, commercialTrackerData, retailTrackerData, favoritesTabVisible, hasCommercialTracker, hasRetailTracker, favoritesTabIndex, commercialTabIndex, retailTabIndex, groupStartIndex]);
 
   // Add this at the start of the component
   React.useEffect(() => {
@@ -1557,19 +1567,18 @@ export default function CollapsibleTable({
             id="tab-2"
           />
         )}
-        {filteredExchanges.map((exchange, index) => {
-          const code = normalizeCode(exchange.split(' - ')[0]);
+        {filteredGroups.map((groupName, index) => {
           const preTabsCount = (shouldShowFavorites ? 1 : 0) + (commercialTrackerData.length > 0 ? 1 : 0) + (retailTrackerData.length > 0 ? 1 : 0);
           const tabIndex = index + preTabsCount;
           return (
             <Tab 
-              key={exchange} 
+              key={groupName} 
               label={
                 <Box sx={{ 
                   display: 'flex', 
                   alignItems: 'center'
                 }}>
-                  <span className="market-code">{code}</span>
+                  <span className="market-code">{groupName}</span>
                 </Box>
               } 
               id={`tab-${tabIndex}`}
