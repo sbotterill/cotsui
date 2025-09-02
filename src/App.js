@@ -28,6 +28,7 @@ import SummarizeIcon from '@mui/icons-material/Summarize';
 import WbSunnyIcon from '@mui/icons-material/WbSunny';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import TradingViewAdvancedChart from './components/TradingViewAdvancedChart';
+import SeasonalityChart from './components/SeasonalityChart';
 import { EXCHANGE_CODE_MAP, REMOVED_EXCHANGE_CODES } from './constants';
 import SigninPage from './components/SigninPage';
 import Profile from './components/Profile';
@@ -1142,12 +1143,17 @@ export default function App() {
 
   const NAVIGATION = [
     { segment: 'cots-report', title: 'Reports', icon: <SummarizeIcon /> },
-    { segment: 'chart', title: 'Chart', icon: <ShowChartIcon /> },
+    // { segment: 'chart', title: 'Chart', icon: <ShowChartIcon /> }, // Hidden for now
     { segment: 'seasonality', title: 'Seasonality', icon: <WbSunnyIcon /> },
   ];
 
   const [activeSection, setActiveSection] = useState('cots-report');
   const [chartAssetId, setChartAssetId] = useState(26);
+  const [seasonalityLookback, setSeasonalityLookback] = useState(15);
+  const [seasonalityCycle, setSeasonalityCycle] = useState('all'); // 'all' | 'pre' | 'election' | 'post' | 'midterm'
+  const [seasonalityStartDate, setSeasonalityStartDate] = useState(null);
+  const [seasonalityEndDate, setSeasonalityEndDate] = useState(null);
+  const [seasonalityEffectiveRange, setSeasonalityEffectiveRange] = useState(null);
   const [routerPath, setRouterPath] = useState('/cots-report');
 
   const router = useMemo(() => ({
@@ -1232,6 +1238,20 @@ export default function App() {
                               activeSection={activeSection}
                               chartAssetId={chartAssetId}
                               onChartAssetChange={setChartAssetId}
+                              onChartSelectionChange={({ assetId }) => {
+                                if (typeof assetId === 'number') setChartAssetId(assetId);
+                              }}
+                              seasonalityLookback={seasonalityLookback}
+                              onSeasonalityLookbackChange={setSeasonalityLookback}
+                              seasonalityCycle={seasonalityCycle}
+                              onSeasonalityCycleChange={setSeasonalityCycle}
+                              seasonalityStartDate={seasonalityStartDate}
+                              seasonalityEndDate={seasonalityEndDate}
+                              onSeasonalityCustomRangeChange={({ start, end }) => {
+                                setSeasonalityStartDate(start);
+                                setSeasonalityEndDate(end);
+                              }}
+                              seasonalityEffectiveRange={seasonalityEffectiveRange}
                             />
                           ),
                           sidebarFooter: SidebarFooter,
@@ -1242,28 +1262,17 @@ export default function App() {
                       >
                         <Box sx={{ flexGrow: 1, width: '100%', overflow: 'hidden' }}>
                           {activeSection === 'cots-report' && renderCollapsibleTable()}
-                          {activeSection === 'chart' && (
-                            <Box sx={{ p: 2, height: 'calc(100vh - 120px)', display: 'grid', gridTemplateRows: '1fr 1fr', gap: 2 }}>
-                              <Box sx={{ minHeight: 0 }}>
-                                <TradingViewAdvancedChart
-                                  assetId={chartAssetId}
-                                  height="100%"
-                                  interval="D"
-                                  cotSeries={{
-                                    dates: chartDates,
-                                    commercial: commercialChartData,
-                                    nonCommercial: nonCommercialChartData,
-                                    nonReportable: nonReportableChartData,
-                                  }}
-                                />
-                              </Box>
-                              <Box sx={{ minHeight: 0 }} />
-                            </Box>
-                          )}
+                          {/* Chart section hidden for now */}
                           {activeSection === 'seasonality' && (
-                            <Box sx={{ p: 2 }}>
-                              {/* Placeholder for Seasonality until implementation */}
-                              <Typography variant="body1">Seasonality coming soon.</Typography>
+                            <Box sx={{ p: 2, height: 'calc(100vh - 120px)' }}>
+                              <SeasonalityChart 
+                                assetId={chartAssetId} 
+                                lookbackYears={seasonalityLookback}
+                                cycleFilter={seasonalityCycle}
+                                startDate={seasonalityStartDate}
+                                endDate={seasonalityEndDate}
+                                onEffectiveRange={(range) => setSeasonalityEffectiveRange(range)}
+                              />
                             </Box>
                           )}
                         </Box>

@@ -113,7 +113,7 @@ export default function HeaderActions(props) {
   const theme = useTheme();
   const [searchTerm, setSearchTerm] = React.useState('');
   const [showNoResults, setShowNoResults] = React.useState(false);
-  const isChart = props.activeSection === 'chart';
+  const isChart = props.activeSection === 'chart' || props.activeSection === 'seasonality';
 
   const displayOnlyName = (label) => {
     if (!label) return '';
@@ -129,6 +129,14 @@ export default function HeaderActions(props) {
       if (found) return displayOnlyName(found.label);
     }
     return '';
+  };
+
+  const getSymbolById = (id) => {
+    for (const g of CHART_SYMBOL_OPTIONS) {
+      const found = g.items.find(it => it.asset_id === id);
+      if (found) return found.value;
+    }
+    return undefined;
   };
 
   const formatDateOption = (dateStr) => {
@@ -195,7 +203,12 @@ export default function HeaderActions(props) {
             labelId="chart-symbol-label"
             value={props.chartAssetId || 26}
             label="Symbol"
-            onChange={(e) => props.onChartAssetChange?.(Number(e.target.value))}
+            onChange={(e) => {
+              const id = Number(e.target.value);
+              props.onChartAssetChange?.(id);
+              const sym = getSymbolById(id);
+              props.onChartSelectionChange?.({ assetId: id, symbol: sym });
+            }}
             renderValue={(val) => getLabelById(val)}
           >
             {CHART_SYMBOL_OPTIONS.map(group => (
@@ -245,6 +258,61 @@ export default function HeaderActions(props) {
             selected={props.displayExchanges}
             onFilterChange={props.onExchangeFilterChange}
           />
+        </>
+      )}
+      {props.activeSection === 'seasonality' && (
+        <>
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel id="seasonality-lookback-label">Lookback</InputLabel>
+            <Select
+              labelId="seasonality-lookback-label"
+              value={props.seasonalityLookback || 15}
+              label="Lookback"
+              onChange={(e) => props.onSeasonalityLookbackChange?.(Number(e.target.value))}
+            >
+              <MenuItem value={15}>15 years</MenuItem>
+              <MenuItem value={10}>10 years</MenuItem>
+              <MenuItem value={5}>5 years</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <InputLabel id="seasonality-cycle-label">Cycle</InputLabel>
+            <Select
+              labelId="seasonality-cycle-label"
+              value={props.seasonalityCycle || 'all'}
+              label="Cycle"
+              onChange={(e) => props.onSeasonalityCycleChange?.(e.target.value)}
+            >
+              <MenuItem value={'all'}>All years</MenuItem>
+              <MenuItem value={'pre'}>Pre-election year</MenuItem>
+              <MenuItem value={'election'}>Election year</MenuItem>
+              <MenuItem value={'post'}>Post-election year</MenuItem>
+              <MenuItem value={'midterm'}>Midterm year</MenuItem>
+            </Select>
+          </FormControl>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <TextField
+              size="small"
+              type="date"
+              label="Start"
+              InputLabelProps={{ shrink: true }}
+              value={props.seasonalityStartDate || ''}
+              onChange={(e) => props.onSeasonalityCustomRangeChange?.({ start: e.target.value || null, end: props.seasonalityEndDate || null })}
+            />
+            <TextField
+              size="small"
+              type="date"
+              label="End"
+              InputLabelProps={{ shrink: true }}
+              value={props.seasonalityEndDate || ''}
+              onChange={(e) => props.onSeasonalityCustomRangeChange?.({ start: props.seasonalityStartDate || null, end: e.target.value || null })}
+            />
+          </Box>
+          {props.seasonalityEffectiveRange?.from && props.seasonalityEffectiveRange?.to && (
+            <Typography variant="body2" sx={{ ml: 1, color: 'text.secondary' }}>
+              Using: {props.seasonalityEffectiveRange.from} – {props.seasonalityEffectiveRange.to}
+            </Typography>
+          )}
         </>
       )}
     </Box>
