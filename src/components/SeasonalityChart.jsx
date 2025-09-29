@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Box, CircularProgress, Stack, Typography, useTheme } from '@mui/material';
-import { LineChartPro } from '@mui/x-charts-pro';
+import { LineChartPro, BarChartPro } from '@mui/x-charts-pro';
 import { LicenseInfo } from '@mui/x-license';
 import { fetchDailyCandlesByAsset, fetchAllCandlesByAsset } from '../services/priceService';
 
@@ -81,27 +81,25 @@ function computeSeasonality(candles) {
   };
 }
 
-export default function SeasonalityChart({ assetId, lookbackYears = 15, cycleFilter = 'all', startDate, endDate, onEffectiveRange }) {
+export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilter = 'all', startDate, endDate, onEffectiveRange }) {
   const theme = useTheme();
   const [loading, setLoading] = React.useState(false);
   const [seriesData, setSeriesData] = React.useState(null);
   const [error, setError] = React.useState(null);
+  const [avgByWeekday, setAvgByWeekday] = React.useState(null);
+  const [avgByMonth, setAvgByMonth] = React.useState(null);
 
   React.useEffect(() => {
     let cancelled = false;
     async function run() {
-      if (!assetId) return;
+      if (!symbol) return;
       setLoading(true);
       setError(null);
       try {
-        let candles = await fetchDailyCandlesByAsset(assetId);
+        let candles = await fetchDailyCandlesByAsset(symbol);
         if (!candles || candles.length === 0) {
           // Debug: fetch all rows ignoring date filters
-          const raw = await fetchAllCandlesByAsset(assetId);
-          try {
-            // eslint-disable-next-line no-console
-            console.log('[SeasonalityChart] RAW rows (all by asset):', raw);
-          } catch (_) {}
+          const raw = await fetchAllCandlesByAsset(symbol);
           // Normalize for computation path
           candles = (raw || []).map(r => ({
             time: Math.floor(new Date(r.time).getTime() / 1000),
@@ -109,16 +107,7 @@ export default function SeasonalityChart({ assetId, lookbackYears = 15, cycleFil
           })).filter(x => isFinite(x.time) && isFinite(x.close)).sort((a,b) => a.time - b.time);
         }
         if (cancelled) return;
-        try {
-          // Temporary debug logs so you can inspect payload
-          // eslint-disable-next-line no-console
-          console.log('[SeasonalityChart] fetched candles sample:', {
-            assetId,
-            total: candles.length,
-            first5: candles.slice(0, 5),
-            last5: candles.slice(-5),
-          });
-        } catch (_) {}
+       
         // Determine end date as the latest candle on or before today
         const now = new Date();
         const nowSec = Math.floor(now.getTime() / 1000);
@@ -215,19 +204,59 @@ export default function SeasonalityChart({ assetId, lookbackYears = 15, cycleFil
             filtered = filtered.filter(c => allowedYears.has(new Date(c.time * 1000).getUTCFullYear()));
           }
         }
-        const computed = computeSeasonality(
-          filtered.map(c => ({ time: c.time, close: c.close }))
-        );
+        const mapped = filtered.map(c => ({ time: c.time, open: c.open, close: c.close }));
+        const computed = computeSeasonality(mapped);
         if (!computed || !computed.dailySeasonality) {
           if (!cancelled) setError('Failed to compute seasonality data');
           return;
         }
-        try {
-          // eslint-disable-next-line no-console
-          console.log('[SeasonalityChart] computed daily seasonality:', {
-            dailyLen: computed?.dailySeasonality?.length,
-          });
-        } catch (_) {}
+        // Compute average same-day return by weekday and month using filtered candles
+        if (mapped.length > 0) {
+          // Weekday: (close - open)/open for each trading day, group by weekday Mon..Fri
+          const weekdayBuckets = new Array(7).fill(0).map(() => []);
+          for (let i = 0; i < mapped.length; i++) {
+            const d = new Date(mapped[i].time * 1000);
+            const wd = d.getUTCDay(); // 0..6
+            const o = mapped[i].open;
+            const c = mapped[i].close;
+            if (wd >= 1 && wd <= 5 && isFinite(o) && isFinite(c) && o !== 0) {
+              weekdayBuckets[wd].push(c / o - 1);
+            }
+          }
+          // Monthly: first day open to last day close for each month-year, then bucket by month
+          const monthlyFirstOpen = new Map(); // key: yyyy-mm -> open
+          const monthlyLastClose = new Map(); // key: yyyy-mm -> close
+          for (let i = 0; i < mapped.length; i++) {
+            const d = new Date(mapped[i].time * 1000);
+            const ym = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
+            if (!monthlyFirstOpen.has(ym)) monthlyFirstOpen.set(ym, mapped[i].open);
+            monthlyLastClose.set(ym, mapped[i].close);
+          }
+          const monthBuckets = new Array(12).fill(0).map(() => []);
+          for (const [ym, o] of monthlyFirstOpen.entries()) {
+            const c = monthlyLastClose.get(ym);
+            if (!isFinite(o) || !isFinite(c) || o === 0) continue;
+            const [y, m] = ym.split('-');
+            const mi = Number(m) - 1; // 0..11
+            monthBuckets[mi].push(c / o - 1);
+          }
+          const avg = (arr) => arr.length ? arr.reduce((s,v)=>s+v,0)/arr.length : 0;
+          const weekdays = [
+            { key: 'Mon', idx: 1 },
+            { key: 'Tue', idx: 2 },
+            { key: 'Wed', idx: 3 },
+            { key: 'Thu', idx: 4 },
+            { key: 'Fri', idx: 5 },
+          ];
+          const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+          const byWd = weekdays.map(({ key, idx }) => ({ label: key, value: avg(weekdayBuckets[idx]) }));
+          const byMo = months.map((m, i) => ({ label: m, value: avg(monthBuckets[i]) }));
+          setAvgByWeekday(byWd);
+          setAvgByMonth(byMo);
+        } else {
+          setAvgByWeekday(null);
+          setAvgByMonth(null);
+        }
         setSeriesData(computed);
       } catch (e) {
         if (!cancelled) setError('Failed to load seasonality');
@@ -237,7 +266,7 @@ export default function SeasonalityChart({ assetId, lookbackYears = 15, cycleFil
     }
     run();
     return () => { cancelled = true; };
-  }, [assetId, lookbackYears, cycleFilter]);
+  }, [symbol, lookbackYears, cycleFilter]);
 
   // Memoize series data similar to CFTC charts
   const series = React.useMemo(() => {
@@ -279,7 +308,7 @@ export default function SeasonalityChart({ assetId, lookbackYears = 15, cycleFil
   const monthStartSet = React.useMemo(() => new Set(seriesData?.monthStartIndices || []), [seriesData]);
 
   return (
-    <Box sx={{ width: '100%', height: '45vh', position: 'relative', mt: 2 }}>
+    <Box sx={{ width: '100%', height: '100%', position: 'relative', mt: 2, display: 'flex', flexDirection: 'column' }}>
       {loading && (
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
           <CircularProgress />
@@ -327,97 +356,149 @@ export default function SeasonalityChart({ assetId, lookbackYears = 15, cycleFil
               <Typography variant="body2">Historical Seasonality</Typography>
             </Box>
           </Stack>
-          <LineChartPro
-            sx={{ 
-              width: '100%', 
-              height: '100%',
-              '& .MuiChartsAxis-tickLabel': {
-                userSelect: 'none',
-              },
-              '& .MuiChartsAxis-label': {
-                userSelect: 'none',
-              },
-              '& .MuiChartsAxis-tick': {
-                userSelect: 'none',
-              },
-              '& .MuiAreaElement-root': {
-                fillOpacity: 0.3,
-              }
-            }}
-            hideLegend={true}
-            series={series}
-            xAxis={[{
-              data: xData,
-              scaleType: 'point',
-              valueFormatter: (index) => {
-                // Convert 0..364 index to a month/day label in a non-leap-year reference (UTC)
-                const monthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-                let remaining = index;
-                let month = 0;
-                while (month < 12 && remaining >= monthDays[month]) {
-                  remaining -= monthDays[month];
-                  month++;
-                }
-                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                const day = remaining + 1;
-                return `${monthNames[month]} ${day}`;
-              },
-              tickNumber: 12,
-              tickInterval: (index) => monthStartSet.has(index),
-              gridLines: {
-                style: {
-                  stroke: 'rgba(128, 128, 128, 0.06)',
-                  strokeWidth: 1,
+          <Box sx={{ flex: 1, minHeight: 0 }}>
+            <LineChartPro
+              sx={{ 
+                width: '100%', 
+                height: '100%',
+                '& .MuiChartsAxis-tickLabel': {
+                  userSelect: 'none',
                 },
-              },
-            }]}
-            yAxis={[{ 
-              min: minValue !== undefined ? (minValue - padding) : undefined,
-              max: maxValue !== undefined ? (maxValue + padding) : undefined,
-              scaleType: 'linear',
-              valueFormatter: formatNumber,
-              gridLines: {
-                style: {
-                  stroke: 'rgba(128, 128, 128, 0.06)',
-                  strokeWidth: 1,
+                '& .MuiChartsAxis-label': {
+                  userSelect: 'none',
                 },
-              },
-            }]}
-            grid={{
-              horizontal: true,
-              vertical: true,
-              style: {
-                stroke: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-                strokeWidth: 1,
-              }
-            }}
-            margin={{ right: 10, top: 50, bottom: 10, left: 10 }}
-            tooltip={{ 
-              trigger: 'axis',
-              axisPointer: {
-                type: 'cross',
-                animation: false,
-                label: {
-                  backgroundColor: theme.palette.mode === 'dark' ? '#6a7985' : '#8796A5'
+                '& .MuiChartsAxis-tick': {
+                  userSelect: 'none',
+                },
+                '& .MuiAreaElement-root': {
+                  fillOpacity: 0.3,
                 }
-              }
-            }}
-            axisHighlight={{
-              x: 'line',
-              y: 'line',
-              style: {
-                stroke: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
-                strokeWidth: 1,
-                strokeDasharray: '5 5',
-              }
-            }}
-            hover={{
-              mode: 'nearest',
-              intersect: true,
-              axis: 'x',
-              animationDuration: 200
-            }}
-          />
+              }}
+              hideLegend={true}
+              series={series}
+              xAxis={[{
+                data: xData,
+                scaleType: 'point',
+                valueFormatter: (index) => {
+                  // Convert 0..364 index to a month/day label in a non-leap-year reference (UTC)
+                  const monthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+                  let remaining = index;
+                  let month = 0;
+                  while (month < 12 && remaining >= monthDays[month]) {
+                    remaining -= monthDays[month];
+                    month++;
+                  }
+                  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                  const day = remaining + 1;
+                  return `${monthNames[month]} ${day}`;
+                },
+                tickNumber: 12,
+                tickInterval: (index) => monthStartSet.has(index),
+                gridLines: {
+                  style: {
+                    stroke: 'rgba(128, 128, 128, 0.06)',
+                    strokeWidth: 1,
+                  },
+                },
+              }]}
+              yAxis={[{ 
+                min: minValue !== undefined ? (minValue - padding) : undefined,
+                max: maxValue !== undefined ? (maxValue + padding) : undefined,
+                scaleType: 'linear',
+                valueFormatter: formatNumber,
+                gridLines: {
+                  style: {
+                    stroke: 'rgba(128, 128, 128, 0.06)',
+                    strokeWidth: 1,
+                  },
+                },
+              }]}
+              grid={{
+                horizontal: true,
+                vertical: true,
+                style: {
+                  stroke: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                  strokeWidth: 1,
+                }
+              }}
+              margin={{ right: 10, top: 50, bottom: 10, left: 10 }}
+              tooltip={{ 
+                trigger: 'axis',
+                axisPointer: {
+                  type: 'cross',
+                  animation: false,
+                  label: {
+                    backgroundColor: theme.palette.mode === 'dark' ? '#6a7985' : '#8796A5'
+                  }
+                }
+              }}
+              axisHighlight={{
+                x: 'line',
+                y: 'line',
+                style: {
+                  stroke: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
+                  strokeWidth: 1,
+                  strokeDasharray: '5 5',
+                }
+              }}
+              hover={{
+                mode: 'nearest',
+                intersect: true,
+                axis: 'x',
+                animationDuration: 200
+              }}
+            />
+          </Box>
+          <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="body2" sx={{ mb: 1 }}>Avg Return by Weekday</Typography>
+              {avgByWeekday && (
+                <BarChartPro
+                  xAxis={[{ scaleType: 'band', data: avgByWeekday.map(x => x.label) }]}
+                  series={[
+                    { 
+                      data: avgByWeekday.map(x => (x.value > 0 ? x.value : 0)), 
+                      color: '#2e7d32', 
+                      stack: 'ret',
+                      valueFormatter: (v) => `${(v * 100).toFixed(2)}%`,
+                    },
+                    { 
+                      data: avgByWeekday.map(x => (x.value < 0 ? x.value : 0)), 
+                      color: '#d32f2f', 
+                      stack: 'ret',
+                      valueFormatter: (v) => `${(v * 100).toFixed(2)}%`,
+                    },
+                  ]}
+                  yAxis={[{ valueFormatter: (v) => `${(v * 100).toFixed(2)}%` }]}
+                  height={220}
+                />
+              )}
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="body2" sx={{ mb: 1 }}>Avg Return by Month</Typography>
+              {avgByMonth && (
+                <BarChartPro
+                  xAxis={[{ scaleType: 'band', data: avgByMonth.map(x => x.label) }]}
+                  series={[
+                    { 
+                      data: avgByMonth.map(x => (x.value > 0 ? x.value : 0)), 
+                      color: '#2e7d32', 
+                      stack: 'ret',
+                      valueFormatter: (v) => `${(v * 100).toFixed(2)}%`,
+                    },
+                    { 
+                      data: avgByMonth.map(x => (x.value < 0 ? x.value : 0)), 
+                      color: '#d32f2f', 
+                      stack: 'ret',
+                      valueFormatter: (v) => `${(v * 100).toFixed(2)}%`,
+                    },
+                  ]}
+                  yAxis={[{ valueFormatter: (v) => `${(v * 100).toFixed(2)}%` }]}
+                  height={220}
+                />
+              )}
+            </Box>
+          </Stack>
         </>
       )}
     </Box>

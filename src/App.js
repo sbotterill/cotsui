@@ -1149,7 +1149,8 @@ export default function App() {
 
   const [activeSection, setActiveSection] = useState('cots-report');
   const [chartAssetId, setChartAssetId] = useState(26);
-  const [seasonalityLookback, setSeasonalityLookback] = useState(15);
+  const [selectedSymbol, setSelectedSymbol] = useState('CL');
+  const [seasonalityLookback, setSeasonalityLookback] = useState(10);
   const [seasonalityCycle, setSeasonalityCycle] = useState('all'); // 'all' | 'pre' | 'election' | 'post' | 'midterm'
   const [seasonalityStartDate, setSeasonalityStartDate] = useState(null);
   const [seasonalityEndDate, setSeasonalityEndDate] = useState(null);
@@ -1237,9 +1238,10 @@ export default function App() {
                               availableDates={availableDates}
                               activeSection={activeSection}
                               chartAssetId={chartAssetId}
+                              selectedSymbol={selectedSymbol}
                               onChartAssetChange={setChartAssetId}
-                              onChartSelectionChange={({ assetId }) => {
-                                if (typeof assetId === 'number') setChartAssetId(assetId);
+                              onChartSelectionChange={({ symbol }) => {
+                                if (symbol) setSelectedSymbol(symbol);
                               }}
                               seasonalityLookback={seasonalityLookback}
                               onSeasonalityLookbackChange={setSeasonalityLookback}
@@ -1266,7 +1268,7 @@ export default function App() {
                           {activeSection === 'seasonality' && (
                             <Box sx={{ p: 2, height: 'calc(100vh - 120px)' }}>
                               <SeasonalityChart 
-                                assetId={chartAssetId} 
+                                symbol={selectedSymbol} 
                                 lookbackYears={seasonalityLookback}
                                 cycleFilter={seasonalityCycle}
                                 startDate={seasonalityStartDate}

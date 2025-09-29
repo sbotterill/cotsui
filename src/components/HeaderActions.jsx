@@ -5,106 +5,67 @@ import CloseIcon from '@mui/icons-material/Close';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import BasicMenu from './ContextMenu';
 import { REMOVED_EXCHANGE_CODES } from '../constants';
+import Autocomplete from '@mui/material/Autocomplete';
 
 const CHART_SYMBOL_OPTIONS = [
   {
-    group: 'Energies',
+    group: 'All',
     items: [
-      { asset_id: 26, value: 'CL', label: 'CL — Crude Oil WTI' },
-      { asset_id: 31, value: 'ITCO', label: 'ITCO — Brent Crude' },
-      { asset_id: 29, value: 'NG', label: 'NG — Natural Gas' },
-      { asset_id: 27, value: 'HO', label: 'HO — NY Harbor ULSD (Heating Oil)' },
-      { asset_id: 30, value: 'RB', label: 'RB — RBOB Gasoline' },
-      { asset_id: 28, value: 'HU', label: 'HU — Unleaded Gasoline' },
-    ]
-  },
-  {
-    group: 'Grains',
-    items: [
-      { asset_id: 46, value: 'C', label: 'C — Corn' },
-      { asset_id: 50, value: 'S', label: 'S — Soybeans' },
-      { asset_id: 51, value: 'SM', label: 'SM — Soybean Meal' },
-      { asset_id: 45, value: 'BO', label: 'BO — Soybean Oil' },
-      { asset_id: 52, value: 'W', label: 'W — Wheat (Chicago SRW)' },
-      { asset_id: 47, value: 'KW', label: 'KW — Wheat (KC HRW)' },
-      { asset_id: 48, value: 'MW', label: 'MW — Wheat (Minneapolis HRS)' },
-      { asset_id: 49, value: 'O', label: 'O — Oats' },
-    ]
-  },
-  {
-    group: 'Softs',
-    items: [
-      { asset_id: 4, value: 'KC', label: 'KC — Coffee' },
-      { asset_id: 2, value: 'CC', label: 'CC — Cocoa' },
-      { asset_id: 3, value: 'CT', label: 'CT — Cotton' },
-      { asset_id: 6, value: 'JO', label: 'OJ — Orange Juice' },
-      { asset_id: 7, value: 'SB', label: 'SB — Sugar #11' },
-      { asset_id: 5, value: 'LB', label: 'LB — Lumber' },
-      { asset_id: 99, value: 'OJ', label: 'OJ — Orange Juice' },
-    ]
-  },
-  {
-    group: 'Meats & Dairy',
-    items: [
-      { asset_id: 8, value: 'FC', label: 'FC — Feeder Cattle' },
-      { asset_id: 9, value: 'LC', label: 'LC — Live Cattle' },
-      { asset_id: 10, value: 'HE', label: 'HE — Lean Hogs' },
-      { asset_id: 11, value: 'DA', label: 'DA — Milk Class III' },
-      { asset_id: 92, value: 'LH', label: 'LH — Lean Hogs' },
-    ]
-  },
-  {
-    group: 'Metals',
-    items: [
-      { asset_id: 70, value: 'GC', label: 'GC — Gold' },
-      { asset_id: 73, value: 'SI', label: 'SI — Silver' },
-      { asset_id: 71, value: 'HG', label: 'HG — Copper' },
-      { asset_id: 72, value: 'PL', label: 'PL — Platinum' },
-    ]
-  },
-  {
-    group: 'Currencies & Dollar',
-    items: [
-      { asset_id: 12, value: 'AD', label: 'AD — Australian Dollar' },
-      { asset_id: 13, value: 'BP', label: 'BP — British Pound' },
-      { asset_id: 14, value: 'CD', label: 'CD — Canadian Dollar' },
-      { asset_id: 16, value: 'EU', label: 'EU — Euro FX' },
-      { asset_id: 17, value: 'JY', label: 'JY — Japanese Yen' },
-      { asset_id: 18, value: 'SF', label: 'SF — Swiss Franc' },
-      { asset_id: 15, value: 'DX', label: 'DX — U.S. Dollar Index' },
-    ]
-  },
-  {
-    group: 'Stock Indices',
-    items: [
-      { asset_id: 58, value: 'SP', label: 'SP — S&P 500' },
-      { asset_id: 56, value: 'ND', label: 'ND — Nasdaq-100' },
-      { asset_id: 53, value: 'DJ', label: 'DJ — Dow Jones Industrials' },
-    ]
-  },
-  {
-    group: 'Rates',
-    items: [
-      { asset_id: 63, value: 'TU', label: 'TU — 2-Year T-Notes' },
-      { asset_id: 61, value: 'FV', label: 'FV — 5-Year T-Notes' },
-      { asset_id: 64, value: 'TY', label: 'TY — 10-Year T-Notes' },
-      { asset_id: 65, value: 'US', label: 'US — 30-Year T-Bonds' },
-      { asset_id: 60, value: 'ED', label: 'ED — Eurodollars' },
-    ]
-  },
-  {
-    group: 'Other',
-    items: [
-      { asset_id: 1, value: 'RR', label: 'RR — Rough Rice' },
-      { asset_id: 54, value: 'KV', label: 'KV — (KCBT Index)' },
-      { asset_id: 55, value: 'MV', label: 'MV — Value Line (Mini)' },
-      { asset_id: 57, value: 'RL', label: 'RL — (CME Index code)' },
-      { asset_id: 59, value: 'YU', label: 'YU — NYSE Composite (legacy NYFE)' },
-      { asset_id: 62, value: 'MB', label: 'MB — Municipal Bonds' },
-      { asset_id: 93, value: 'PB', label: 'PB — Pork Bellies (legacy)' },
-      { asset_id: 100, value: 'RS', label: 'RS — Canola' },
-      { asset_id: 101, value: 'LCC', label: 'LCC — London Cocoa (ICE EU)' },
-      { asset_id: 102, value: 'LSU', label: 'LSU — London Sugar (ICE EU)' },
+      { value: '10Y', label: '10Y — 10-Year Yield Futures' },
+      { value: '2YY', label: '2YY — 2-Year Yield Futures' },
+      { value: '6A', label: '6A — Australian Dollar Futures' },
+      { value: '6C', label: '6C — Canadian Dollar Futures' },
+      { value: '6E', label: '6E — Euro FX Futures' },
+      { value: '6J', label: '6J — Japanese Yen Futures' },
+      { value: '6L', label: '6L — Brazilian Real Futures' },
+      { value: '6M', label: '6M — Mexican Peso Futures' },
+      { value: '6N', label: '6N — New Zealand Dollar Futures' },
+      { value: '6S', label: '6S — Swiss Franc Futures' },
+      { value: 'ACS', label: 'ACS — WTI Annual Financial Futures' },
+      { value: 'ALI', label: 'ALI — Aluminum Futures' },
+      { value: 'BTC', label: 'BTC — Bitcoin Futures' },
+      { value: 'CB', label: 'CB — Cash-settled Butter Futures' },
+      { value: 'CJ', label: 'CJ — Cocoa Futures' },
+      { value: 'CL', label: 'CL — Crude Oil Futures' },
+      { value: 'CSC', label: 'CSC — Cash-Settled Cheese Futures' },
+      { value: 'DC', label: 'DC — Class III Milk Futures' },
+      { value: 'ES', label: 'ES — E-mini S&P 500 Futures' },
+      { value: 'ETH', label: 'ETH — Ether Futures' },
+      { value: 'GC', label: 'GC — Gold Futures' },
+      { value: 'GF', label: 'GF — Feeder Cattle Futures' },
+      { value: 'GNF', label: 'GNF — Nonfat Dry Milk Futures' },
+      { value: 'HE', label: 'HE — Lean Hog Futures' },
+      { value: 'HG', label: 'HG — Copper Futures' },
+      { value: 'HTT', label: 'HTT — WTI Houston (Argus) vs. WTI Trade Month Futures' },
+      { value: 'KE', label: 'KE — KC HRW Wheat Futures' },
+      { value: 'KT', label: 'KT — Coffee Futures' },
+      { value: 'LBR', label: 'LBR — Lumber Futures' },
+      { value: 'LE', label: 'LE — Live Cattle Futures' },
+      { value: 'NG', label: 'NG — Henry Hub Natural Gas Futures' },
+      { value: 'NQ', label: 'NQ — E-mini Nasdaq-100 Futures' },
+      { value: 'PA', label: 'PA — Palladium Futures' },
+      { value: 'PL', label: 'PL — Platinum Futures' },
+      { value: 'RB', label: 'RB — RBOB Gasoline Futures' },
+      { value: 'RTY', label: 'RTY — E-mini Russell 2000 Index Futures' },
+      { value: 'SI', label: 'SI — Silver Futures' },
+      { value: 'SOL', label: 'SOL — SOL Futures' },
+      { value: 'SR1', label: 'SR1 — One-Month SOFR Futures' },
+      { value: 'SR3', label: 'SR3 — Three-Month SOFR Futures' },
+      { value: 'TT', label: 'TT — Cotton Futures' },
+      { value: 'UB', label: 'UB — Ultra U.S. Treasury Bond Futures' },
+      { value: 'XRP', label: 'XRP — XRP Futures' },
+      { value: 'YM', label: 'YM — E-mini Dow Jones Industrial Average Index Futures' },
+      { value: 'YO', label: 'YO — No. 11 Sugar Futures' },
+      { value: 'ZB', label: 'ZB — U.S. Treasury Bond Futures' },
+      { value: 'ZC', label: 'ZC — Corn Futures' },
+      { value: 'ZL', label: 'ZL — Soybean Oil Futures' },
+      { value: 'ZM', label: 'ZM — Soybean Meal Futures' },
+      { value: 'ZO', label: 'ZO — Oats Futures' },
+      { value: 'ZQ', label: 'ZQ — 30 Day Federal Funds Futures' },
+      { value: 'ZR', label: 'ZR — Rough Rice Futures' },
+      { value: 'ZS', label: 'ZS — Soybean Futures' },
+      { value: 'ZT', label: 'ZT — 2-Year T-Note Futures' },
+      { value: 'ZW', label: 'ZW — Chicago SRW Wheat Futures' },
     ]
   }
 ];
@@ -122,21 +83,6 @@ export default function HeaderActions(props) {
     const hy = label.indexOf(' - ');
     if (hy !== -1) return label.slice(hy + 3).trim();
     return label;
-  };
-  const getLabelById = (id) => {
-    for (const g of CHART_SYMBOL_OPTIONS) {
-      const found = g.items.find(it => it.asset_id === id);
-      if (found) return displayOnlyName(found.label);
-    }
-    return '';
-  };
-
-  const getSymbolById = (id) => {
-    for (const g of CHART_SYMBOL_OPTIONS) {
-      const found = g.items.find(it => it.asset_id === id);
-      if (found) return found.value;
-    }
-    return undefined;
   };
 
   const formatDateOption = (dateStr) => {
@@ -176,6 +122,9 @@ export default function HeaderActions(props) {
     }
   };
 
+  const flatOptions = CHART_SYMBOL_OPTIONS[0].items;
+  const selectedOption = flatOptions.find(o => o.value === (props.selectedSymbol || 'CL')) || null;
+
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
       {!isChart && (
@@ -197,29 +146,22 @@ export default function HeaderActions(props) {
         }}
       />)}
       {isChart ? (
-        <FormControl size="small" sx={{ minWidth: 220 }}>
-          <InputLabel id="chart-symbol-label">Symbol</InputLabel>
-          <Select
-            labelId="chart-symbol-label"
-            value={props.chartAssetId || 26}
-            label="Symbol"
-            onChange={(e) => {
-              const id = Number(e.target.value);
-              props.onChartAssetChange?.(id);
-              const sym = getSymbolById(id);
-              props.onChartSelectionChange?.({ assetId: id, symbol: sym });
+        <FormControl size="small" sx={{ minWidth: 280 }}>
+          <Autocomplete
+            options={flatOptions}
+            autoHighlight
+            size="small"
+            getOptionLabel={(opt) => (opt?.label ? opt.label : '')}
+            value={selectedOption}
+            onChange={(_, opt) => {
+              const sym = opt?.value || null;
+              props.onChartSelectionChange?.({ symbol: sym });
             }}
-            renderValue={(val) => getLabelById(val)}
-          >
-            {CHART_SYMBOL_OPTIONS.map(group => (
-              [
-                <ListSubheader key={`h-${group.group}`}>{group.group}</ListSubheader>,
-                ...group.items.map(opt => (
-                  <MenuItem key={opt.asset_id} value={opt.asset_id}>{displayOnlyName(opt.label)}</MenuItem>
-                ))
-              ]
-            ))}
-          </Select>
+            renderInput={(params) => (
+              <TextField {...params} label="Symbol" placeholder="Type to search..." />
+            )}
+            isOptionEqualToValue={(o, v) => o?.value === v?.value}
+          />
         </FormControl>
       ) : (
         <>
@@ -266,11 +208,11 @@ export default function HeaderActions(props) {
             <InputLabel id="seasonality-lookback-label">Lookback</InputLabel>
             <Select
               labelId="seasonality-lookback-label"
-              value={props.seasonalityLookback || 15}
+              value={props.seasonalityLookback || 10}
               label="Lookback"
               onChange={(e) => props.onSeasonalityLookbackChange?.(Number(e.target.value))}
             >
-              <MenuItem value={15}>15 years</MenuItem>
+              <MenuItem value={10}>10 years</MenuItem>
               <MenuItem value={10}>10 years</MenuItem>
               <MenuItem value={5}>5 years</MenuItem>
             </Select>

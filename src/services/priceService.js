@@ -1,16 +1,12 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 
-export async function fetchDailyCandlesByAsset(assetId) {
+export async function fetchDailyCandlesByAsset(symbolName) {
   const params = {
-    asset_id: assetId,
+    symbol: symbolName,
   };
-  try {
-    // eslint-disable-next-line no-console
-    console.log('[priceService] GET', `${API_BASE_URL}/seasonality_data`, params);
-  } catch (_) {}
+ 
   const res = await axios.get(`${API_BASE_URL}/seasonality_data`, { params });
-  console.log(res)
   const rows = Array.isArray(res.data) ? res.data : [];
   return rows
     .map((r) => ({
@@ -24,24 +20,16 @@ export async function fetchDailyCandlesByAsset(assetId) {
     .sort((a, b) => a.time - b.time);
 }
 
-export async function fetchAllCandlesByAsset(assetId) {
+export async function fetchAllCandlesByAsset(symbolName) {
   const params = {
-    asset_id: assetId,
+    symbol: symbolName,
   };
-  try {
-    // eslint-disable-next-line no-console
-    console.log('[priceService] GET (ALL)', `${API_BASE_URL}/seasonality_data`, params);
-  } catch (_) {}
   const res = await axios.get(`${API_BASE_URL}/seasonality_data`, { params });
   const rows = Array.isArray(res.data) ? res.data : [];
   return rows;
 }
 
 export async function fetchAvailableAssets() {
-  try {
-    // eslint-disable-next-line no-console
-    console.log('[priceService] GET', `${API_BASE_URL}/seasonality_assets`);
-  } catch (_) {}
   const res = await axios.get(`${API_BASE_URL}/seasonality_assets`);
   return res.data.assets || [];
 }
