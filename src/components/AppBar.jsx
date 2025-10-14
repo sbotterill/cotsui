@@ -78,19 +78,21 @@ export default function DrawerAppBar(props) {
   };
 
   const handleFuturesFilter = (event) => {
+    const raw = event?.target?.value ?? '';
+    setSearchTerm(raw);
+    const searchValue = String(raw).toLowerCase();
+    
+    if (!searchValue) {
+      handleClearSearch();
+      return;
+    }
+    
     try {
-      const searchValue = event.target.value.toLowerCase();
-      setSearchTerm(event.target.value);
-      
-      if (!searchValue) {
-        handleClearSearch();
-        return;
-      }
-      
       // Filter data based on search term
-      const filtered = props.futuresData
-        .filter(row => !REMOVED_EXCHANGE_CODES.includes((row.market_code || '').trim()))
-        .filter(row => row.commodity.toLowerCase().includes(searchValue));
+      const source = Array.isArray(props.futuresData) ? props.futuresData : [];
+      const filtered = source
+        .filter(row => row && !REMOVED_EXCHANGE_CODES.includes((row.market_code || '').trim()))
+        .filter(row => (row.commodity || '').toLowerCase().includes(searchValue));
 
       // Update filtered data
       props.setFilteredData(filtered);
@@ -99,7 +101,7 @@ export default function DrawerAppBar(props) {
       setShowNoResults(filtered.length === 0);
 
       // Check if there are any matches in favorites
-      const favoritesInSearch = filtered.some(item => props.favorites.includes(item.commodity));
+      const favoritesInSearch = filtered.some(item => (props.favorites || []).includes(item.commodity));
 
       // If search was initiated from favorites and no favs match, switch to the first matching group tab
       if (filtered.length > 0 && props.selectedTab === 0 && !favoritesInSearch) {
@@ -122,24 +124,26 @@ export default function DrawerAppBar(props) {
             if (commodityName.includes(kw)) { matchGroup = g; break outer; }
           }
         }
-        const groupIndex = props.exchanges.findIndex(g => g === matchGroup);
+        const groupIndex = (props.exchanges || []).findIndex(g => g === matchGroup);
         if (groupIndex !== -1) {
           // +1 because group tabs start after favorites/commercial/retail tabs; those offsets are handled in CollapsableTable
           props.onTabChange(groupIndex + 1);
         }
       }
     } catch (error) {
-      console.error('Error in handleFuturesFilter:', error);
-      handleClearSearch();
+      // Do not clear user input on benign errors; just show all data
+      props.setFilteredData(Array.isArray(props.futuresData) ? props.futuresData : []);
+      setShowNoResults(false);
     }
   };
 
   const handleClearSearch = () => {
     setSearchTerm('');
-    props.setFilteredData(props.futuresData);
+    const fullData = Array.isArray(props.futuresData) ? props.futuresData : [];
+    props.setFilteredData(fullData);
     
     // When clearing search, restore all groups from the original list
-    const allExchanges = props.userExchanges.map(groupName => normalizeCode(groupName));
+    const allExchanges = (props.userExchanges || []).map(groupName => normalizeCode(groupName));
     
     // Pass false to prevent saving to server - only UI state update
     props.onExchangeFilterChange(allExchanges, false);

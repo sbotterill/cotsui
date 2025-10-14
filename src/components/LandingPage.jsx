@@ -10,21 +10,12 @@ import {
   AppBar,
   Toolbar,
 } from '@mui/material';
-import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
-import HowItWorksVideo from './HowItWorksVideo';
+ 
 
 export default function LandingPage() {
   const theme = useTheme();
   const navigate = useNavigate();
-  const [videoOpen, setVideoOpen] = React.useState(false);
-
-  const handleOpenVideo = () => {
-    setVideoOpen(true);
-  };
-
-  const handleCloseVideo = () => {
-    setVideoOpen(false);
-  };
+  
 
   return (
     <Box
@@ -57,19 +48,6 @@ export default function LandingPage() {
             }}
           />
           <Box sx={{ display: 'flex', gap: 2 }}>
-            <Button
-              variant="text"
-              onClick={handleOpenVideo}
-              startIcon={<PlayCircleOutlineIcon />}
-              sx={{
-                color: '#fff',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                }
-              }}
-            >
-              How It Works
-            </Button>
             <Button
               variant="contained"
               onClick={() => navigate('/sign-in')}
@@ -240,11 +218,7 @@ export default function LandingPage() {
         </Box>
       </Container>
 
-      {/* How It Works Video Dialog */}
-      <HowItWorksVideo 
-        open={videoOpen} 
-        onClose={handleCloseVideo} 
-      />
+      
     </Box>
   );
 } 

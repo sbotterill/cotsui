@@ -72,7 +72,17 @@ const CHART_SYMBOL_OPTIONS = [
 
 export default function HeaderActions(props) {
   const theme = useTheme();
-  const [searchTerm, setSearchTerm] = React.useState('');
+  // Support controlled search via props, fallback to internal state
+  const isControlled = Object.prototype.hasOwnProperty.call(props, 'searchTerm');
+  const [internalSearchTerm, setInternalSearchTerm] = React.useState('');
+  const searchTerm = isControlled ? (props.searchTerm ?? '') : internalSearchTerm;
+  const setSearch = (value) => {
+    if (isControlled) {
+      props.onSearchTermChange?.(value);
+    } else {
+      setInternalSearchTerm(value);
+    }
+  };
   const [showNoResults, setShowNoResults] = React.useState(false);
   const isChart = props.activeSection === 'chart' || props.activeSection === 'seasonality';
 
@@ -97,28 +107,36 @@ export default function HeaderActions(props) {
   };
 
   const handleClearSearch = () => {
-    setSearchTerm('');
-    props.setFilteredData(props.futuresData);
-    const all = props.userExchanges.map(g => (g || '').trim());
+    setSearch('');
+    // Restore full dataset without throwing if props are momentarily undefined
+    const fullData = Array.isArray(props.futuresData) ? props.futuresData : [];
+    props.setFilteredData(fullData);
+    const all = (props.userExchanges || []).map(g => (g || '').trim());
     props.onExchangeFilterChange(all, false);
     setShowNoResults(false);
   };
 
   const handleFuturesFilter = (event) => {
+    const raw = event?.target?.value ?? '';
+    setSearch(raw);
+    const searchValue = String(raw).toLowerCase();
+
+    if (!searchValue) {
+      handleClearSearch();
+      return;
+    }
+
     try {
-      const searchValue = event.target.value.toLowerCase();
-      setSearchTerm(event.target.value);
-      if (!searchValue) {
-        handleClearSearch();
-        return;
-      }
-      const filtered = props.futuresData
-        .filter(row => !REMOVED_EXCHANGE_CODES.includes((row.market_code || '').trim()))
-        .filter(row => row.commodity.toLowerCase().includes(searchValue));
+      const source = Array.isArray(props.futuresData) ? props.futuresData : [];
+      const filtered = source
+        .filter(row => row && !REMOVED_EXCHANGE_CODES.includes((row.market_code || '').trim()))
+        .filter(row => (row.commodity || '').toLowerCase().includes(searchValue));
       props.setFilteredData(filtered);
       setShowNoResults(filtered.length === 0);
     } catch (error) {
-      handleClearSearch();
+      // Do not clear user input on benign errors; just show all data
+      props.setFilteredData(Array.isArray(props.futuresData) ? props.futuresData : []);
+      setShowNoResults(false);
     }
   };
 
@@ -131,6 +149,7 @@ export default function HeaderActions(props) {
       <TextField
         onChange={handleFuturesFilter}
         value={searchTerm}
+        autoFocus={Boolean(searchTerm)}
         size="small"
         label="Search"
         variant="outlined"

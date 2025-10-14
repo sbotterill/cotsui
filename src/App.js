@@ -554,6 +554,7 @@ export default function App() {
   const [commercialExtremes, setCommercialExtremes] = useState({});
   const [retailExtremes, setRetailExtremes] = useState({});
   const [isLoadingExtremes, setIsLoadingExtremes] = useState(false);
+  const [reportSearchTerm, setReportSearchTerm] = useState('');
 
   useEffect(() => {
     document.documentElement.style.backgroundColor = theme.palette.background.default;
@@ -1243,6 +1244,8 @@ export default function App() {
                               onChartSelectionChange={({ symbol }) => {
                                 if (symbol) setSelectedSymbol(symbol);
                               }}
+                              searchTerm={reportSearchTerm}
+                              onSearchTermChange={setReportSearchTerm}
                               seasonalityLookback={seasonalityLookback}
                               onSeasonalityLookbackChange={setSeasonalityLookback}
                               seasonalityCycle={seasonalityCycle}

@@ -4,8 +4,9 @@ import axios from 'axios';
 const BATCH_SIZE = 50;
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const Z_SCORE_THRESHOLD = 1.5; // Z-score threshold for extreme positions
-const CACHE_KEY = `commercialStats_${Date.now()}`; // Dynamic cache key with timestamp
-const RETAIL_CACHE_KEY = `retailStats_${Date.now()}`; // Dynamic cache key with timestamp for retail
+// Use stable cache keys; manage freshness via stored timestamps
+const CACHE_KEY = 'commercialStatsCache';
+const RETAIL_CACHE_KEY = 'retailStatsCache';
 
 // Calculate mean of an array
 function calculateMean(values) {
@@ -118,30 +119,26 @@ export async function getCommercialExtremes(commodities) {
   
   const results = {};
   
-  for (let i = 0; i < marketCodes.length; i += BATCH_SIZE) {
-    const batch = marketCodes.slice(i, i + BATCH_SIZE);
-    
-    const batchPromises = batch.map(code => getHistoricalNetPositions(code));
-    
-    try {
-      const batchResults = await Promise.all(batchPromises);
-      
-      // Process each result
-      batch.forEach((marketCode, index) => {
-        const data = batchResults[index];
+  // Fire all requests in parallel with a concurrency cap to avoid locking the main thread
+  const CONCURRENCY = 8;
+  let index = 0;
+  const runNext = async () => {
+    while (index < marketCodes.length) {
+      const current = index++;
+      const code = marketCodes[current];
+      try {
+        const data = await getHistoricalNetPositions(code);
         if (data && data.stats) {
-          results[marketCode] = data;
+          results[code] = data;
         }
-      });
-
-      // Add delay between batches to respect rate limits
-      if (i + BATCH_SIZE < marketCodes.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (err) {
+        // Continue others even if one fails
       }
-    } catch (error) {
-      console.error(`❌ Error processing batch starting at index ${i}:`, error);
     }
-  }
+  };
+
+  // Launch workers
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, marketCodes.length) }, runNext));
 
 
   setCachedStats(results);
@@ -243,24 +240,25 @@ export async function getRetailExtremes(commodities) {
   const marketCodes = [...new Set(commodities.map(c => c.contract_code))];
   const results = {};
 
-  for (let i = 0; i < marketCodes.length; i += BATCH_SIZE) {
-    const batch = marketCodes.slice(i, i + BATCH_SIZE);
-    const batchPromises = batch.map(code => getHistoricalRetailNetPositions(code));
-    try {
-      const batchResults = await Promise.all(batchPromises);
-      batch.forEach((marketCode, index) => {
-        const data = batchResults[index];
+  // Parallel with concurrency cap
+  const CONCURRENCY = 8;
+  let index = 0;
+  const runNext = async () => {
+    while (index < marketCodes.length) {
+      const current = index++;
+      const code = marketCodes[current];
+      try {
+        const data = await getHistoricalRetailNetPositions(code);
         if (data && data.stats) {
-          results[marketCode] = data;
+          results[code] = data;
         }
-      });
-      if (i + BATCH_SIZE < marketCodes.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (err) {
+        // continue
       }
-    } catch (error) {
-      console.error(`❌ Error processing retail batch starting at index ${i}:`, error);
     }
-  }
+  };
+
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, marketCodes.length) }, runNext));
 
   setCachedRetailStats(results);
   return results;
