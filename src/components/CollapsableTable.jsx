@@ -55,10 +55,11 @@ function ZBadge({ z, type }) {
   const isBullish = (type || '').toUpperCase() === 'BULLISH' || z >= 0;
   const color = isBullish ? theme.palette.success.main : theme.palette.error.main;
   const bg = alpha(color, 0.12);
+  const display = Math.abs(z).toFixed(2); // remove '-' visually, keep color by sign
   return (
     <Tooltip title={`Z-score: ${z.toFixed(2)}${type ? ` • ${type}` : ''}`}> 
       <Chip
-        label={`z ${z.toFixed(2)}`}
+        label={`z ${display}`}
         size="small"
         variant="outlined"
         sx={{
