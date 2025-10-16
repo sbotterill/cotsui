@@ -281,8 +281,9 @@ export default function CollapsibleTable({
 
   // Compute tab indices consistently
   const favoritesTabVisible = favorites.length > 0;
-  const hasCommercialTracker = commercialTrackerData.length > 0;
-  const hasRetailTracker = retailTrackerData.length > 0;
+  // Always expose tracker tabs; counts may be 0 until data arrives
+  const hasCommercialTracker = true;
+  const hasRetailTracker = true;
   const favoritesTabIndex = favoritesTabVisible ? 0 : null;
   const commercialTabIndex = hasCommercialTracker ? (favoritesTabVisible ? 1 : 0) : null;
   const retailTabIndex = hasRetailTracker ? ((favoritesTabVisible ? 1 : 0) + (hasCommercialTracker ? 1 : 0)) : null;
@@ -532,7 +533,17 @@ export default function CollapsibleTable({
       sx={{
         cursor: 'pointer',
         '&:hover': {
-          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.04)'
+          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.04)',
+          '& td': {
+            borderTop: `2px solid ${theme.palette.primary.main}`,
+            borderBottom: `2px solid ${theme.palette.primary.main}`
+          },
+          '& td:first-of-type': {
+            borderLeft: `2px solid ${theme.palette.primary.main}`
+          },
+          '& td:last-of-type': {
+            borderRight: `2px solid ${theme.palette.primary.main}`
+          }
         }
       }}
     >
@@ -683,7 +694,17 @@ export default function CollapsibleTable({
                   '&:hover': {
                     backgroundColor: theme.palette.mode === 'dark' 
                       ? 'rgba(255,255,255,0.1)' 
-                      : 'rgba(0,0,0,0.04)'
+                      : 'rgba(0,0,0,0.04)',
+                    '& td': {
+                      borderTop: `2px solid ${theme.palette.primary.main}`,
+                      borderBottom: `2px solid ${theme.palette.primary.main}`
+                    },
+                    '& td:first-of-type': {
+                      borderLeft: `2px solid ${theme.palette.primary.main}`
+                    },
+                    '& td:last-of-type': {
+                      borderRight: `2px solid ${theme.palette.primary.main}`
+                    }
                   }
                 }}
               >
@@ -845,7 +866,22 @@ export default function CollapsibleTable({
               <TableRow
                 key={row.commodity}
                 onClick={() => handleRowClick(row.commodity)}
-                sx={{ cursor: 'pointer', '&:hover': { backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' } }}
+                sx={{ 
+                  cursor: 'pointer',
+                  '&:hover': { 
+                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
+                    '& td': {
+                      borderTop: `2px solid ${theme.palette.primary.main}`,
+                      borderBottom: `2px solid ${theme.palette.primary.main}`
+                    },
+                    '& td:first-of-type': {
+                      borderLeft: `2px solid ${theme.palette.primary.main}`
+                    },
+                    '& td:last-of-type': {
+                      borderRight: `2px solid ${theme.palette.primary.main}`
+                    }
+                  } 
+                }}
               >
                 <TableCell 
                   sx={{ 
@@ -1257,6 +1293,19 @@ export default function CollapsibleTable({
               onClick={() => handleRowClick(r.commodity)}
               sx={{
                 cursor: 'pointer',
+                '&:hover': {
+                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
+                  '& td': {
+                    borderTop: `2px solid ${theme.palette.primary.main}`,
+                    borderBottom: `2px solid ${theme.palette.primary.main}`
+                  },
+                  '& td:first-of-type': {
+                    borderLeft: `2px solid ${theme.palette.primary.main}`
+                  },
+                  '& td:last-of-type': {
+                    borderRight: `2px solid ${theme.palette.primary.main}`
+                  }
+                },
                 ...(isMobile && {
                   '&:active': {
                     backgroundColor: theme.palette.mode === 'dark'
@@ -1534,78 +1583,74 @@ export default function CollapsibleTable({
             id="tab-0" 
           />
         )}
-        {commercialTrackerData.length > 0 && (
-          <Tab 
-            key="commercial-tracker" 
-            label={
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1
-              }}>
-                <span>Commercial Tracker</span>
-                {isLoadingExtremes ? (
-                  <CircularProgress size={16} />
-                ) : (
-                  <Box
-                    sx={{
-                      backgroundColor: theme.palette.mode === 'dark' 
-                        ? 'rgba(255, 255, 255, 0.12)' 
-                        : 'rgba(0, 0, 0, 0.08)',
-                      color: theme.palette.text.primary,
-                      borderRadius: '12px',
-                      padding: '2px 8px',
-                      fontSize: '0.75rem',
-                      lineHeight: 1,
-                      fontWeight: 500
-                    }}
-                  >
-                    {commercialTrackerData.length}
-                  </Box>
-                )}
-              </Box>
-            } 
-            id="tab-1" 
-          />
-        )}
+        <Tab 
+          key="commercial-tracker" 
+          label={
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1
+            }}>
+              <span>Commercial Tracker</span>
+              {isLoadingExtremes ? (
+                <CircularProgress size={16} />
+              ) : (
+                <Box
+                  sx={{
+                    backgroundColor: theme.palette.mode === 'dark' 
+                      ? 'rgba(255, 255, 255, 0.12)' 
+                      : 'rgba(0, 0, 0, 0.08)',
+                    color: theme.palette.text.primary,
+                    borderRadius: '12px',
+                    padding: '2px 8px',
+                    fontSize: '0.75rem',
+                    lineHeight: 1,
+                    fontWeight: 500
+                  }}
+                >
+                  {commercialTrackerData.length}
+                </Box>
+              )}
+            </Box>
+          } 
+          id="tab-1" 
+        />
         {/* Retail Tracker Tab follows Commercial if present, otherwise takes its place */}
-        {(retailTrackerData.length > 0) && (
-          <Tab 
-            key="retail-tracker" 
-            label={
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                opacity: retailTrackerData.length === 0 ? 0.5 : 1
-              }}>
-                <span>Retail Tracker</span>
-                {isLoadingExtremes ? (
-                  <CircularProgress size={16} />
-                ) : (
-                  <Box
-                    sx={{
-                      backgroundColor: theme.palette.mode === 'dark' 
-                        ? 'rgba(255, 255, 255, 0.12)' 
-                        : 'rgba(0, 0, 0, 0.08)',
-                      color: theme.palette.text.primary,
-                      borderRadius: '12px',
-                      padding: '2px 8px',
-                      fontSize: '0.75rem',
-                      lineHeight: 1,
-                      fontWeight: 500
-                    }}
-                  >
-                    {retailTrackerData.length}
-                  </Box>
-                )}
-              </Box>
-            } 
-            id="tab-2"
-          />
-        )}
+        <Tab 
+          key="retail-tracker" 
+          label={
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1,
+              opacity: retailTrackerData.length === 0 ? 0.5 : 1
+            }}>
+              <span>Retail Tracker</span>
+              {isLoadingExtremes ? (
+                <CircularProgress size={16} />
+              ) : (
+                <Box
+                  sx={{
+                    backgroundColor: theme.palette.mode === 'dark' 
+                      ? 'rgba(255, 255, 255, 0.12)' 
+                      : 'rgba(0, 0, 0, 0.08)',
+                    color: theme.palette.text.primary,
+                    borderRadius: '12px',
+                    padding: '2px 8px',
+                    fontSize: '0.75rem',
+                    lineHeight: 1,
+                    fontWeight: 500
+                  }}
+                >
+                  {retailTrackerData.length}
+                </Box>
+              )}
+            </Box>
+          } 
+          id="tab-2"
+        />
         {filteredGroups.map((groupName, index) => {
-          const preTabsCount = (shouldShowFavorites ? 1 : 0) + (commercialTrackerData.length > 0 ? 1 : 0) + (retailTrackerData.length > 0 ? 1 : 0);
+          const preTabsCount = (shouldShowFavorites ? 1 : 0) + 1 + 1;
           const tabIndex = index + preTabsCount;
           return (
             <Tab 
