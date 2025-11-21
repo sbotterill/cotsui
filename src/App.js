@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, createContext } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, createContext } from 'react';
 import axios from 'axios';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
@@ -531,9 +531,9 @@ export default function App() {
   const [filteredData, setFilteredData] = useState([]);
   
   // Add logging to track filteredData changes
-  const setFilteredDataWithLogging = (newData) => {
+  const setFilteredDataWithLogging = useCallback((newData) => {
     setFilteredData(newData);
-  };
+  }, []);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isLatestData, setIsLatestData] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -554,7 +554,6 @@ export default function App() {
   const [commercialExtremes, setCommercialExtremes] = useState({});
   const [retailExtremes, setRetailExtremes] = useState({});
   const [isLoadingExtremes, setIsLoadingExtremes] = useState(false);
-  const [reportSearchTerm, setReportSearchTerm] = useState('');
 
   useEffect(() => {
     document.documentElement.style.backgroundColor = theme.palette.background.default;
@@ -956,7 +955,7 @@ export default function App() {
   };
 
   // Exchange filter handler
-  const handleExchangeFilterChange = async (newList, shouldSaveToServer = true) => {
+  const handleExchangeFilterChange = useCallback(async (newList, shouldSaveToServer = true) => {
     setDisplayExchanges(newList);
 
     // Now newList is a list of group names
@@ -986,7 +985,7 @@ export default function App() {
       } catch (error) {
       }
     }
-  };
+  }, [futuresData]);
 
   // Refresh data handler
   const handleRefresh = async () => {
@@ -1017,9 +1016,20 @@ export default function App() {
     await getChartData(marketCode);
   };
 
-  const handleDateChange = async (newDate) => {
+  const handleDateChange = useCallback(async (newDate) => {
     setSelectedDate(newDate);
-  };
+  }, []);
+
+  const handleChartSelectionChange = useCallback(({ symbol }) => {
+    if (symbol) {
+      setSelectedSymbol(symbol);
+    }
+  }, []);
+
+  const handleSeasonalityCustomRangeChange = useCallback(({ start, end }) => {
+    setSeasonalityStartDate(start);
+    setSeasonalityEndDate(end);
+  }, []);
 
   const handleMobileViewChange = (event, newView) => {
     if (newView !== null) {
@@ -1184,6 +1194,58 @@ export default function App() {
     );
   }, [activeSection, router]);
 
+  const toolbarActions = useCallback(() => (
+    <HeaderActions
+      futuresData={futuresData}
+      userExchanges={userExchanges}
+      setFilteredData={setFilteredDataWithLogging}
+      exchanges={exchanges}
+      displayExchanges={displayExchanges}
+      onExchangeFilterChange={handleExchangeFilterChange}
+      selectedDate={selectedDate}
+      onDateChange={handleDateChange}
+      isDateLoading={isDateLoading}
+      availableDates={availableDates}
+      activeSection={activeSection}
+      chartAssetId={chartAssetId}
+      selectedSymbol={selectedSymbol}
+      onChartAssetChange={setChartAssetId}
+      onChartSelectionChange={handleChartSelectionChange}
+      seasonalityLookback={seasonalityLookback}
+      onSeasonalityLookbackChange={setSeasonalityLookback}
+      seasonalityCycle={seasonalityCycle}
+      onSeasonalityCycleChange={setSeasonalityCycle}
+      seasonalityStartDate={seasonalityStartDate}
+      seasonalityEndDate={seasonalityEndDate}
+      onSeasonalityCustomRangeChange={handleSeasonalityCustomRangeChange}
+      seasonalityEffectiveRange={seasonalityEffectiveRange}
+    />
+  ), [
+    futuresData,
+    userExchanges,
+    displayExchanges,
+    handleExchangeFilterChange,
+    selectedDate,
+    handleDateChange,
+    isDateLoading,
+    availableDates,
+    activeSection,
+    chartAssetId,
+    selectedSymbol,
+    setChartAssetId,
+    handleChartSelectionChange,
+    seasonalityLookback,
+    setSeasonalityLookback,
+    seasonalityCycle,
+    setSeasonalityCycle,
+    seasonalityStartDate,
+    seasonalityEndDate,
+    handleSeasonalityCustomRangeChange,
+    seasonalityEffectiveRange,
+    setFilteredDataWithLogging,
+    exchanges
+  ]);
+
   return (
     <Router>
       <Routes>
@@ -1225,40 +1287,7 @@ export default function App() {
                               <Typography variant="h6" sx={{ color: '#fff', fontWeight: 700 }}>COTS UI</Typography>
                             </Box>
                           ),
-                          toolbarActions: () => (
-                            <HeaderActions
-                              futuresData={futuresData}
-                              userExchanges={userExchanges}
-                              setFilteredData={setFilteredDataWithLogging}
-                              exchanges={exchanges}
-                              displayExchanges={displayExchanges}
-                              onExchangeFilterChange={handleExchangeFilterChange}
-                              selectedDate={selectedDate}
-                              onDateChange={handleDateChange}
-                              isDateLoading={isDateLoading}
-                              availableDates={availableDates}
-                              activeSection={activeSection}
-                              chartAssetId={chartAssetId}
-                              selectedSymbol={selectedSymbol}
-                              onChartAssetChange={setChartAssetId}
-                              onChartSelectionChange={({ symbol }) => {
-                                if (symbol) setSelectedSymbol(symbol);
-                              }}
-                              searchTerm={reportSearchTerm}
-                              onSearchTermChange={setReportSearchTerm}
-                              seasonalityLookback={seasonalityLookback}
-                              onSeasonalityLookbackChange={setSeasonalityLookback}
-                              seasonalityCycle={seasonalityCycle}
-                              onSeasonalityCycleChange={setSeasonalityCycle}
-                              seasonalityStartDate={seasonalityStartDate}
-                              seasonalityEndDate={seasonalityEndDate}
-                              onSeasonalityCustomRangeChange={({ start, end }) => {
-                                setSeasonalityStartDate(start);
-                                setSeasonalityEndDate(end);
-                              }}
-                              seasonalityEffectiveRange={seasonalityEffectiveRange}
-                            />
-                          ),
+                          toolbarActions,
                           sidebarFooter: SidebarFooter,
                         }}
                         onPageChange={(page) => {

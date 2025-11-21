@@ -70,7 +70,7 @@ const CHART_SYMBOL_OPTIONS = [
   }
 ];
 
-export default function HeaderActions(props) {
+function HeaderActions(props) {
   const theme = useTheme();
   // Support controlled search via props, fallback to internal state
   const isControlled = Object.prototype.hasOwnProperty.call(props, 'searchTerm');
@@ -111,8 +111,6 @@ export default function HeaderActions(props) {
     // Restore full dataset without throwing if props are momentarily undefined
     const fullData = Array.isArray(props.futuresData) ? props.futuresData : [];
     props.setFilteredData(fullData);
-    const all = (props.userExchanges || []).map(g => (g || '').trim());
-    props.onExchangeFilterChange(all, false);
     setShowNoResults(false);
   };
 
@@ -149,7 +147,6 @@ export default function HeaderActions(props) {
       <TextField
         onChange={handleFuturesFilter}
         value={searchTerm}
-        autoFocus={Boolean(searchTerm)}
         size="small"
         label="Search"
         variant="outlined"
@@ -280,4 +277,4 @@ export default function HeaderActions(props) {
   );
 }
 
-
+export default React.memo(HeaderActions);

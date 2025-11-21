@@ -156,7 +156,7 @@ export default function CollapsibleTable({
   const isTabletLandscape = isTablet && isLandscape;
   const [order, setOrder] = React.useState('asc');
   const [orderBy, setOrderBy] = React.useState('commodity');
-  const [showDetails, setShowDetails] = React.useState(true);
+  const [showDetails, setShowDetails] = React.useState(false);
   const initialLoadDone = React.useRef(false);
   const fmt = new Intl.NumberFormat('en-US');
   const fmtCompact = new Intl.NumberFormat('en-US', { notation: 'compact' });
@@ -354,7 +354,7 @@ export default function CollapsibleTable({
     onTabChange(newValue);
   };
 
-  const getFilteredData = (groupLabel) => {    
+  const getFilteredData = React.useCallback((groupLabel) => {    
     if (!groupLabel) return [];
 
     let result;
@@ -369,12 +369,12 @@ export default function CollapsibleTable({
     }
     
     return result;
-  };
+  }, [filteredFuturesData, favorites, commercialTrackerData, retailTrackerData, getGroupForRow]);
 
   // Get the current exchange's data
   const currentGroupData = React.useMemo(() => {
     // Check if favorites tab should be shown
-    const favoritesInSearch = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
+    const favoritesInSearch = getFilteredData('Favorites');
     const shouldShowFavorites = favoritesInSearch.length > 0;
     const shouldShowCommercialTracker = hasCommercialTracker;
     const shouldShowRetailTracker = hasRetailTracker;
@@ -393,7 +393,70 @@ export default function CollapsibleTable({
         
     const data = getFilteredData(currentGroup);
     return data;
-  }, [futuresData, filteredFuturesData, filteredGroups, selectedTab, favorites, commercialTrackerData, retailTrackerData, favoritesTabIndex, commercialTabIndex, retailTabIndex, groupStartIndex, favoritesTabVisible, hasCommercialTracker, hasRetailTracker]);
+  }, [futuresData, filteredFuturesData, filteredGroups, selectedTab, favorites, commercialTrackerData, retailTrackerData, favoritesTabIndex, commercialTabIndex, retailTabIndex, groupStartIndex, favoritesTabVisible, hasCommercialTracker, hasRetailTracker, getFilteredData]);
+
+  const currentGroupDataLength = currentGroupData.length;
+  const commercialTrackerCount = commercialTrackerData.length;
+  const retailTrackerCount = retailTrackerData.length;
+
+  React.useEffect(() => {
+    if (!filteredFuturesData) return;
+
+    const tabCandidates = [];
+
+    if (favoritesTabVisible && favoritesTabIndex != null) {
+      tabCandidates.push({
+        index: favoritesTabIndex,
+        length: getFilteredData('Favorites').length,
+      });
+    }
+
+    if (hasCommercialTracker && commercialTabIndex != null) {
+      tabCandidates.push({
+        index: commercialTabIndex,
+        length: commercialTrackerCount,
+      });
+    }
+
+    if (hasRetailTracker && retailTabIndex != null) {
+      tabCandidates.push({
+        index: retailTabIndex,
+        length: retailTrackerCount,
+      });
+    }
+
+    filteredGroups.forEach((groupName, idx) => {
+      tabCandidates.push({
+        index: groupStartIndex + idx,
+        length: getFilteredData(groupName).length,
+      });
+    });
+
+    const firstTabWithData = tabCandidates.find(tab => tab.length > 0);
+    if (!firstTabWithData) {
+      return;
+    }
+
+    if (currentGroupDataLength === 0 && selectedTab !== firstTabWithData.index) {
+      onTabChange(firstTabWithData.index);
+    }
+  }, [
+    filteredFuturesData,
+    favoritesTabVisible,
+    favoritesTabIndex,
+    hasCommercialTracker,
+    commercialTabIndex,
+    hasRetailTracker,
+    retailTabIndex,
+    filteredGroups,
+    groupStartIndex,
+    getFilteredData,
+    currentGroupDataLength,
+    selectedTab,
+    onTabChange,
+    commercialTrackerCount,
+    retailTrackerCount,
+  ]);
 
   // Determine if Commercial Tracker is selected
   const isCommercialTrackerSelected = React.useMemo(() => {
