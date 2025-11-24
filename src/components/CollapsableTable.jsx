@@ -16,7 +16,15 @@ import FavoriteButton from './FavoriteButton';
 import Typography from '@mui/material/Typography';
 import { ALLOWED_EXCHANGES, isValidExchange, EXCHANGE_CODE_MAP, REMOVED_EXCHANGE_CODES } from '../constants';
 import Skeleton from '@mui/material/Skeleton';
-import { useMediaQuery, Tooltip, Chip, Switch, FormControlLabel } from '@mui/material';
+import {
+  useMediaQuery,
+  Tooltip,
+  Chip,
+  Switch,
+  FormControlLabel
+} from '@mui/material';
+import LinearProgress from '@mui/material/LinearProgress';
+import Divider from '@mui/material/Divider';
 import { getCommercialTrackerData, getRetailTrackerData } from '../services/cftcService';
 import CircularProgress from '@mui/material/CircularProgress';
 
@@ -28,6 +36,14 @@ function formatPercentage(value) {
   // If value is already in percentage form (> 1), don't multiply by 100
   const finalValue = numValue > 1 ? numValue : numValue * 100;
   return `${finalValue.toFixed(1)}%`;
+}
+
+// Convert stored ratio values (0-1 or already %) to 0-100 scale for progress bars
+function toPercentValue(value) {
+  const numValue = Number(value);
+  if (!isFinite(numValue)) return 0;
+  const normalized = numValue > 1 ? numValue : numValue * 100;
+  return Math.max(0, Math.min(100, normalized));
 }
 
 function getPercentageColor(value) {
@@ -543,315 +559,194 @@ export default function CollapsibleTable({
     });
   }, [futuresData]);
 
-  const renderMobileHeaders = () => (
-    <>
-      <TableRow>
-        <TableCell rowSpan={2} sx={{ 
-          position: 'sticky',
-          left: 0,
-          zIndex: 3,
-          backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-          minWidth: '180px'
-        }}>
-          Commodity
-        </TableCell>
-        <TableCell colSpan={2} align="center">Open Interest</TableCell>
-        <TableCell colSpan={3} align="center">Non-Commercial</TableCell>
-        <TableCell colSpan={3} align="center">Commercial</TableCell>
-        <TableCell colSpan={3} align="center">Non-Reportable</TableCell>
-      </TableRow>
-      <TableRow sx={{ 
-        '& th': { 
-          fontSize: '0.75rem',
-          whiteSpace: 'nowrap',
-          padding: '8px 4px'
-        }
-      }}>
-        {/* Open Interest Headers */}
-        <TableCell align="center">Total</TableCell>
-        <TableCell align="center">Change</TableCell>
-        
-        {/* Non-Commercial Headers */}
-        <TableCell align="center">Long</TableCell>
-        <TableCell align="center">Short</TableCell>
-        <TableCell align="center">% Long</TableCell>
-        
-        {/* Commercial Headers */}
-        <TableCell align="center">Long</TableCell>
-        <TableCell align="center">Short</TableCell>
-        <TableCell align="center">% Long</TableCell>
-        
-        {/* Non-Reportable Headers */}
-        <TableCell align="center">Long</TableCell>
-        <TableCell align="center">Short</TableCell>
-        <TableCell align="center">% Long</TableCell>
-      </TableRow>
-    </>
-  );
+  const renderPositionSection = (label, longValue, shortValue, percentageValue, color) => {
+    const safeLong = longValue ?? 0;
+    const safeShort = shortValue ?? 0;
+    const net = safeLong - safeShort;
+    const netColor = net >= 0 ? theme.palette.success.main : theme.palette.error.main;
 
-  const renderMobileRow = (r) => (
-    <TableRow
-      key={r.commodity}
-      onClick={() => handleRowClick(r.commodity)}
-      sx={{
-        cursor: 'pointer',
-        '&:hover': {
-          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.04)',
-          '& td': {
-            borderTop: `2px solid ${theme.palette.primary.main}`,
-            borderBottom: `2px solid ${theme.palette.primary.main}`
-          },
-          '& td:first-of-type': {
-            borderLeft: `2px solid ${theme.palette.primary.main}`
-          },
-          '& td:last-of-type': {
-            borderRight: `2px solid ${theme.palette.primary.main}`
-          }
-        }
-      }}
-    >
-      {/* Commodity Column */}
-      <TableCell sx={{ 
-        position: 'sticky',
-        left: 0,
-        backgroundColor: theme.palette.background.paper,
-        zIndex: 2,
-        borderRight: `1px solid ${theme.palette.divider}`,
-        minWidth: '180px'
-      }}>
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center',
-          gap: 1
-        }}>
-          <FavoriteButton
-            initial={favorites.includes(r.commodity)}
-            onToggle={(e) => {
-              e.stopPropagation();
-              onToggleFavorite(r.commodity);
-            }}
-          />
-          <Typography 
-            variant="body2"
-            sx={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {r.commodity}
+    return (
+      <Box
+        key={label}
+        sx={{
+          borderRadius: 2,
+          p: 1.25,
+          backgroundColor: alpha(color, 0.08),
+          border: `1px solid ${alpha(color, 0.18)}`
+        }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75 }}>
+          <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>{label}</Typography>
+          <Typography variant="caption" color="text.secondary">
+            {formatPercentage(percentageValue)}
           </Typography>
-          {!(isCommercialTrackerSelected || isRetailTrackerSelected) && (
-            <ZBadge z={r.zScore} type={r.extremeType} />
-          )}
         </Box>
-      </TableCell>
+        <LinearProgress
+          variant="determinate"
+          value={toPercentValue(percentageValue)}
+          sx={{
+            height: 6,
+            borderRadius: 4,
+            backgroundColor: alpha(color, 0.15),
+            '& .MuiLinearProgress-bar': {
+              borderRadius: 4,
+              backgroundColor: color
+            }
+          }}
+        />
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.75 }}>
+          <Typography variant="caption" color="text.secondary">
+            Long {fmtCompact.format(safeLong)}
+          </Typography>
+          <Typography variant="caption" sx={{ fontWeight: 600, color: netColor }}>
+            Net {net >= 0 ? '+' : ''}{fmtCompact.format(net)}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Short {fmtCompact.format(safeShort)}
+          </Typography>
+        </Box>
+      </Box>
+    );
+  };
 
-      {/* Open Interest */}
-      <TableCell align="center">{fmt.format(r.open_interest_all)}</TableCell>
-      <TableCell align="center" sx={{ 
-        color: r.change_in_open_interest_all < 0 ? 'red' : 'green'
-      }}>
-        {fmt.format(r.change_in_open_interest_all)}
-      </TableCell>
-
-      {/* Non-Commercial */}
-      <TableCell align="center">{fmt.format(r.non_commercial_long)}</TableCell>
-      <TableCell align="center">{fmt.format(r.non_commercial_short)}</TableCell>
-      <TableCell align="center" sx={{ fontWeight: 500 }}>
-        {formatPercentage(r.non_commercial_percentage_long)}
-      </TableCell>
-
-      {/* Commercial */}
-      <TableCell align="center">{fmt.format(r.commercial_long)}</TableCell>
-      <TableCell align="center">{fmt.format(r.commercial_short)}</TableCell>
-      <TableCell align="center" sx={{ fontWeight: 500 }}>
-        {formatPercentage(r.commercial_percentage_long)}
-      </TableCell>
-
-      {/* Non-Reportable */}
-      <TableCell align="center">{fmt.format(r.non_reportable_long)}</TableCell>
-      <TableCell align="center">{fmt.format(r.non_reportable_short)}</TableCell>
-      <TableCell align="center" sx={{ fontWeight: 500 }}>
-        {formatPercentage(r.non_reportable_percentage_long)}
-      </TableCell>
-    </TableRow>
-  );
-
-  const renderTable = () => {    
-    if (isMobile) {
+  const renderMobileCards = () => {
+    if (sortedData.length === 0) {
       return (
-        <Table size="small" aria-label="futures data mobile" sx={{ 
-          borderCollapse: 'collapse',
-          tableLayout: 'fixed',
-          width: '100%',
-          border: `1px solid ${theme.palette.divider}`,
-          '& .MuiTableCell-root': {
-            padding: '12px 8px',
-            fontSize: '0.85rem',
-            whiteSpace: 'nowrap'
-          }
-        }}>
-          <TableHead>
-            <TableRow>
-              <TableCell 
-                sx={{ 
-                  position: 'sticky',
-                  left: 0,
-                  backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                  zIndex: 2,
-                  minWidth: '160px'
-                }}
-              >
-                Commodity
-              </TableCell>
-              {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
-                <TableCell align="center">zScore</TableCell>
-              )}
-              <TableCell colSpan={2} align="center">OI</TableCell>
-              <TableCell colSpan={3} align="center">NC</TableCell>
-              <TableCell colSpan={3} align="center">C</TableCell>
-              <TableCell colSpan={3} align="center">NR</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell 
-                sx={{ 
-                  position: 'sticky',
-                  left: 0,
-                  backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                  zIndex: 2
-                }}
-              ></TableCell>
-              {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
-                <TableCell align="center">
-                  <TableSortLabel
-                    active={orderBy === 'zScore'}
-                    direction={orderBy === 'zScore' ? order : 'asc'}
-                    onClick={() => handleRequestSort('zScore')}
-                    sx={{ justifyContent: 'center' }}
-                  >
-                    zScore
-                  </TableSortLabel>
-                </TableCell>
-              )}
-              <TableCell align="center">Total</TableCell>
-              <TableCell align="center">Chg</TableCell>
-              <TableCell align="center">Long</TableCell>
-              <TableCell align="center">Short</TableCell>
-              <TableCell align="center">%L</TableCell>
-              <TableCell align="center">Long</TableCell>
-              <TableCell align="center">Short</TableCell>
-              <TableCell align="center">%L</TableCell>
-              <TableCell align="center">Long</TableCell>
-              <TableCell align="center">Short</TableCell>
-              <TableCell align="center">%L</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {sortedData.map((row) => (
-              <TableRow
-                key={row.commodity}
-                onClick={() => handleRowClick(row.commodity)}
-                sx={{ 
-                  cursor: 'pointer',
-                  '&:hover': {
-                    backgroundColor: theme.palette.mode === 'dark' 
-                      ? 'rgba(255,255,255,0.1)' 
-                      : 'rgba(0,0,0,0.04)',
-                    '& td': {
-                      borderTop: `2px solid ${theme.palette.primary.main}`,
-                      borderBottom: `2px solid ${theme.palette.primary.main}`
-                    },
-                    '& td:first-of-type': {
-                      borderLeft: `2px solid ${theme.palette.primary.main}`
-                    },
-                    '& td:last-of-type': {
-                      borderRight: `2px solid ${theme.palette.primary.main}`
-                    }
-                  }
-                }}
-              >
-                <TableCell 
-                  sx={{ 
-                    position: 'sticky',
-                    left: 0,
-                    backgroundColor: theme.palette.background.paper,
-                    zIndex: 1,
-                    borderRight: `1px solid ${theme.palette.divider}`
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <FavoriteButton
-                      initial={favorites.includes(row.commodity)}
-                      onToggle={(e) => {
-                        e.stopPropagation();
-                        onToggleFavorite(row.commodity);
-                      }}
+        <Paper
+          elevation={0}
+          sx={{
+            p: 3,
+            borderRadius: 3,
+            textAlign: 'center',
+            border: `1px dashed ${alpha(theme.palette.text.primary, 0.2)}`
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+            No contracts to show
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Try a different group or search to see matching positions.
+          </Typography>
+        </Paper>
+      );
+    }
+
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+        {sortedData.map((row) => {
+          const sectionConfigs = [
+            {
+              label: 'Non-commercial',
+              long: row.non_commercial_long,
+              short: row.non_commercial_short,
+              pct: row.non_commercial_percentage_long,
+              color: theme.palette.info.main,
+            },
+            {
+              label: 'Commercial',
+              long: row.commercial_long,
+              short: row.commercial_short,
+              pct: row.commercial_percentage_long,
+              color: theme.palette.success.main,
+            },
+            {
+              label: 'Non-reportable',
+              long: row.non_reportable_long,
+              short: row.non_reportable_short,
+              pct: row.non_reportable_percentage_long,
+              color: theme.palette.warning.main,
+            }
+          ];
+
+          const netCommercial = (row.commercial_long || 0) - (row.commercial_short || 0);
+
+          return (
+            <Paper
+              key={row.commodity}
+              elevation={0}
+              onClick={() => handleRowClick(row.commodity)}
+              sx={{
+                p: 2,
+                borderRadius: 3,
+                border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+                backgroundColor: alpha(theme.palette.background.paper, 0.95),
+                boxShadow: `0 12px 30px ${alpha('#000', theme.palette.mode === 'dark' ? 0.4 : 0.08)}`,
+                cursor: 'pointer',
+                transition: 'transform 120ms ease, border-color 120ms ease',
+                '&:active': {
+                  transform: 'scale(0.995)'
+                },
+                '&:hover': {
+                  borderColor: theme.palette.primary.main
+                }
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.25 }} noWrap>
+                    {row.commodity}
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                    <Chip
+                      size="small"
+                      label={getGroupForRow(row)}
+                      sx={{ fontWeight: 600 }}
                     />
-                    <Typography noWrap>{row.commodity}</Typography>
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={row.market_code || '—'}
+                    />
                     {!(isCommercialTrackerSelected || isRetailTrackerSelected) && (
                       <ZBadge z={row.zScore} type={row.extremeType} />
                     )}
                   </Box>
-                </TableCell>
-                {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
-                  <TableCell align="center">
-                    <ZBadge z={row.zScore} type={row.extremeType} />
-                  </TableCell>
-                )}
-                
-                {/* Open Interest */}
-                <TableCell align="right">{fmt.format(row.open_interest_all)}</TableCell>
-                <TableCell 
-                  align="right"
-                  sx={{ 
-                    color: row.change_in_open_interest_all < 0 ? 'red' : 'green',
-                    borderRight: `1px solid ${theme.palette.divider}`
+                </Box>
+                <FavoriteButton
+                  initial={favorites.includes(row.commodity)}
+                  onToggle={(e) => {
+                    e.stopPropagation();
+                    onToggleFavorite(row.commodity);
                   }}
-                >
-                  {fmt.format(row.change_in_open_interest_all)}
-                </TableCell>
+                />
+              </Box>
 
-                {/* Non-Commercial */}
-                <TableCell align="right">{fmt.format(row.non_commercial_long)}</TableCell>
-                <TableCell align="right">{fmt.format(row.non_commercial_short)}</TableCell>
-                <TableCell 
-                  align="right" 
-                  sx={{ 
-                    fontWeight: 500,
-                    borderRight: `1px solid ${theme.palette.divider}`
-                  }}
-                >
-                  {formatPercentage(row.non_commercial_percentage_long)}
-                </TableCell>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.5 }}>
+                <Chip
+                  size="small"
+                  color="primary"
+                  label={`OI ${fmt.format(row.open_interest_all)}`}
+                />
+                <Chip
+                  size="small"
+                  color={row.change_in_open_interest_all >= 0 ? 'success' : 'error'}
+                  label={`Δ ${fmt.format(row.change_in_open_interest_all)}`}
+                />
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  label={`Comm Net ${fmtCompact.format(netCommercial)}`}
+                  sx={{ fontWeight: 600 }}
+                />
+              </Box>
 
-                {/* Commercial */}
-                <TableCell align="right">{fmt.format(row.commercial_long)}</TableCell>
-                <TableCell align="right">{fmt.format(row.commercial_short)}</TableCell>
-                <TableCell 
-                  align="right"
-                  sx={{ 
-                    fontWeight: 500,
-                    borderRight: `1px solid ${theme.palette.divider}`
-                  }}
-                >
-                  {formatPercentage(row.commercial_percentage_long)}
-                </TableCell>
+              <Divider sx={{ my: 1.25 }} />
 
-                {/* Non-Reportable */}
-                <TableCell align="right">{fmt.format(row.non_reportable_long)}</TableCell>
-                <TableCell align="right">{fmt.format(row.non_reportable_short)}</TableCell>
-                <TableCell 
-                  align="right"
-                  sx={{ fontWeight: 500 }}
-                >
-                  {formatPercentage(row.non_reportable_percentage_long)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      );
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {sectionConfigs.map(section => (
+                  renderPositionSection(section.label, section.long, section.short, section.pct, section.color)
+                ))}
+              </Box>
+            </Paper>
+          );
+        })}
+      </Box>
+    );
+  };
+
+  const renderTable = () => {    
+    if (isMobile) {
+      return renderMobileCards();
     }
 
     if (isTablet) {
