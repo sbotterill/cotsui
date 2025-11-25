@@ -355,24 +355,11 @@ export default function DrawerAppBar(props) {
             display: "flex",
             flexDirection: "row",
             alignItems: "center",
-            justifyContent: "space-between",
+            justifyContent: "flex-end",
             width: "100%",
-            padding: "8px"
+            padding: "8px",
+            minHeight: '56px'
           }}>
-            <Typography variant="h6" component="div">
-              COTS UI
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Profile />
-              <IconButton
-                color="inherit"
-                aria-label="open mobile menu"
-                edge="end"
-                onClick={handleMobileMenuToggle}
-              >
-                <MenuIcon />
-              </IconButton>
-            </Box>
           </Toolbar>
         )}
       </AppBar>

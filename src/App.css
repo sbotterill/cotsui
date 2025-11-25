@@ -1,3 +1,13 @@
+/* Viewport helper for mobile layouts to keep heights steady */
+:root {
+  --app-mobile-viewport: 100vh;
+}
+@supports (height: 1svh) {
+  :root {
+    --app-mobile-viewport: 100svh;
+  }
+}
+
 /* Set Dashboard sidebar width to 250px */
 .MuiDrawer-paper {
   width: 250px;
@@ -22,4 +32,24 @@ html {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
+}
+
+/* Hide hamburger menu button in mobile view */
+@media (max-width: 600px) {
+  /* Hide the sidebar toggle button (hamburger menu) in mobile view */
+  /* Target Toolpad DashboardLayout hamburger menu button */
+  button[aria-label*="menu" i],
+  button[aria-label*="sidebar" i],
+  button[aria-label*="navigation" i],
+  .MuiIconButton-root[aria-label*="menu" i],
+  .MuiIconButton-root[aria-label*="sidebar" i],
+  .MuiIconButton-root[aria-label*="navigation" i],
+  /* More specific targeting for Toolpad DashboardLayout */
+  [class*="DashboardLayout"] button[aria-label*="menu" i],
+  [class*="DashboardLayout"] button[aria-label*="sidebar" i],
+  [class*="DashboardLayout"] button[aria-label*="navigation" i],
+  /* Target any button in the toolbar that might be the hamburger */
+  [class*="MuiToolbar-root"] button:first-child {
+    display: none !important;
+  }
 }

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Box, TextField, IconButton, FormControl, InputLabel, Select, MenuItem, CircularProgress, Tooltip, Typography, ListSubheader } from '@mui/material';
+import { Box, TextField, IconButton, FormControl, InputLabel, Select, MenuItem, CircularProgress, Tooltip, Typography, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -72,6 +72,7 @@ const CHART_SYMBOL_OPTIONS = [
 
 function HeaderActions(props) {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   // Support controlled search via props, fallback to internal state
   const isControlled = Object.prototype.hasOwnProperty.call(props, 'searchTerm');
   const [internalSearchTerm, setInternalSearchTerm] = React.useState('');
@@ -142,7 +143,18 @@ function HeaderActions(props) {
   const selectedOption = flatOptions.find(o => o.value === (props.selectedSymbol || 'CL')) || null;
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: isMobile ? 'stretch' : 'center',
+        flexWrap: 'wrap',
+        columnGap: isMobile ? 1 : 1.5,
+        rowGap: 1,
+        width: isMobile ? '100%' : 'auto',
+        maxWidth: '100%',
+        justifyContent: isChart ? 'flex-end' : (isMobile ? 'center' : 'flex-start')
+      }}
+    >
       {!isChart && (
       <TextField
         onChange={handleFuturesFilter}
@@ -150,7 +162,11 @@ function HeaderActions(props) {
         size="small"
         label="Search"
         variant="outlined"
-        sx={{ minWidth: 220 }}
+        fullWidth={isMobile}
+        sx={{
+          minWidth: isMobile ? '100%' : 220,
+          flex: isMobile ? '1 1 100%' : '0 0 auto'
+        }}
         InputLabelProps={{ style: { color: 'inherit' } }}
         InputProps={{
           style: { color: 'inherit' },
@@ -181,7 +197,14 @@ function HeaderActions(props) {
         </FormControl>
       ) : (
         <>
-          <FormControl size="small" sx={{ minWidth: 220 }}>
+          <FormControl
+            size="small"
+            fullWidth={isMobile}
+            sx={{
+              minWidth: isMobile ? '100%' : 220,
+              flex: isMobile ? '1 1 100%' : '0 0 auto'
+            }}
+          >
             <InputLabel id="date-select-label">Report Date</InputLabel>
             <Select
               labelId="date-select-label"
@@ -203,19 +226,31 @@ function HeaderActions(props) {
               ))}
             </Select>
           </FormControl>
-          <Tooltip title={
-            <React.Fragment>
-              <Typography variant="body2" component="div">• This week's data available for selection Friday 3:30 PM EST</Typography>
-              <Typography variant="body2" component="div">• Only Tuesdays are available for selection</Typography>
-            </React.Fragment>
-          }>
-            <InfoOutlinedIcon sx={{ fontSize: '1.2rem', color: theme.palette.text.secondary, cursor: 'help' }} />
-          </Tooltip>
-          <BasicMenu
-            commodities={props.exchanges}
-            selected={props.displayExchanges}
-            onFilterChange={props.onExchangeFilterChange}
-          />
+          {!isMobile && (
+            <Tooltip title={
+              <React.Fragment>
+                <Typography variant="body2" component="div">• This week's data available for selection Friday 3:30 PM EST</Typography>
+                <Typography variant="body2" component="div">• Only Tuesdays are available for selection</Typography>
+              </React.Fragment>
+            }>
+              <InfoOutlinedIcon sx={{ fontSize: '1.2rem', color: theme.palette.text.secondary, cursor: 'help' }} />
+            </Tooltip>
+          )}
+          {!isMobile && (
+            <Box
+              sx={{
+                display: 'flex',
+                flex: '0 0 auto',
+                justifyContent: 'flex-start'
+              }}
+            >
+              <BasicMenu
+                commodities={props.exchanges}
+                selected={props.displayExchanges}
+                onFilterChange={props.onExchangeFilterChange}
+              />
+            </Box>
+          )}
         </>
       )}
       {props.activeSection === 'seasonality' && (

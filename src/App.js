@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, createContext } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, createContext, useRef } from 'react';
 import axios from 'axios';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
@@ -16,7 +16,7 @@ import SubscriptionPage from './components/SubscriptionPage';
 import SubscriptionGuard from './components/SubscriptionGuard';
 import ForgotPassword from './components/ForgotPassword';
 import LandingPage from './components/LandingPage';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Box, CircularProgress, Typography, IconButton } from '@mui/material';
 import { API_BASE_URL } from './config';
 import TradingViewIndicator from './components/TradingView';
 import LineChartWithReferenceLines from './components/LineGraph';
@@ -32,12 +32,14 @@ import SeasonalityChart from './components/SeasonalityChart';
 import { EXCHANGE_CODE_MAP, REMOVED_EXCHANGE_CODES } from './constants';
 import SigninPage from './components/SigninPage';
 import Profile from './components/Profile';
+import ProfileCard from './components/ProfileCard';
 import Loading from './components/Loading';
 import { useMediaQuery } from '@mui/material';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { getCommercialExtremes, getRetailExtremes } from './services/cftcService';
 
 // Context to expose toggle function for theme switch
@@ -1037,6 +1039,25 @@ export default function App() {
     }
   };
 
+  const handleSeasonalityClick = () => {
+    if (activeSection === 'seasonality') {
+      router.navigate('/cots-report');
+    } else {
+      router.navigate('/seasonality');
+    }
+  };
+
+  const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+  const profileButtonRef = useRef(null);
+
+  const handleAccountClick = (event) => {
+    setProfileAnchorEl(event.currentTarget);
+  };
+
+  const handleProfileClose = () => {
+    setProfileAnchorEl(null);
+  };
+
   const renderCollapsibleTable = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', height: '100%' }}>
@@ -1065,14 +1086,22 @@ export default function App() {
           <>
             {isMobile && (
               <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                mt: 1,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 1,
                 position: 'sticky',
-                top: '64px',
-                zIndex: 1,
+                top: { xs: '56px', sm: '64px' },
+                zIndex: 3,
                 backgroundColor: theme.palette.background.default,
-                py: 1
+                py: 0.5,
+                px: 2,
+                boxShadow: theme.palette.mode === 'dark'
+                  ? '0 8px 16px rgba(0,0,0,0.6)'
+                  : '0 6px 14px rgba(0,0,0,0.12)',
+                borderBottom: `1px solid ${theme.palette.divider}`,
+                borderTop: `1px solid ${theme.palette.divider}`,
+                mb: 1
               }}>
                 <ToggleButtonGroup
                   value={mobileView}
@@ -1081,15 +1110,51 @@ export default function App() {
                   aria-label="mobile view"
                   size="small"
                 >
-                  <ToggleButton value="table" aria-label="table view">
-                    <TableChartIcon sx={{ mr: 1 }} />
-                    Table
+                  <ToggleButton
+                    value="table"
+                    aria-label="table view"
+                    title="Table View"
+                    sx={{ px: 1.25 }}
+                  >
+                    <TableChartIcon fontSize="small" />
                   </ToggleButton>
-                  <ToggleButton value="chart" aria-label="chart view">
-                    <ShowChartIcon sx={{ mr: 1 }} />
-                    Chart
+                  <ToggleButton
+                    value="chart"
+                    aria-label="chart view"
+                    title="Chart View"
+                    sx={{ px: 1.25 }}
+                  >
+                    <ShowChartIcon fontSize="small" />
                   </ToggleButton>
                 </ToggleButtonGroup>
+                <IconButton
+                  onClick={handleSeasonalityClick}
+                  aria-label="seasonality"
+                  title={activeSection === 'seasonality' ? 'Go to Reports' : 'Seasonality'}
+                  size="small"
+                  sx={{ 
+                    px: 1.25,
+                    color: activeSection === 'seasonality' ? theme.palette.primary.main : 'inherit'
+                  }}
+                >
+                  <WbSunnyIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  ref={profileButtonRef}
+                  onClick={handleAccountClick}
+                  aria-label="account"
+                  title="Account"
+                  size="small"
+                  sx={{ px: 1.25 }}
+                >
+                  <AccountCircleIcon fontSize="small" />
+                </IconButton>
+                <ProfileCard
+                  open={Boolean(profileAnchorEl)}
+                  onClose={handleProfileClose}
+                  anchorEl={profileAnchorEl}
+                  buttonRef={profileButtonRef}
+                />
               </Box>
             )}
             
@@ -1176,6 +1241,14 @@ export default function App() {
       if (seg) setActiveSection(seg);
     }
   }), [routerPath]);
+
+  const handleSeasonalityShortcut = useCallback(() => {
+    if (activeSection === 'seasonality') {
+      router.navigate('/cots-report');
+    } else {
+      router.navigate('/seasonality');
+    }
+  }, [activeSection, router]);
 
   const renderSidebarItem = React.useCallback((item) => {
     const selected = item.segment === activeSection;
@@ -1276,15 +1349,38 @@ export default function App() {
                         sx={{
                           '& .MuiDrawer-paper': {
                             width: 250,
-                          }
+                          },
+                          // Hide hamburger menu button in mobile view
+                          ...(isMobile && {
+                            '& button[aria-label*="menu" i]': {
+                              display: 'none !important',
+                            },
+                            '& button[aria-label*="sidebar" i]': {
+                              display: 'none !important',
+                            },
+                            '& button[aria-label*="navigation" i]': {
+                              display: 'none !important',
+                            },
+                            '& .MuiToolbar-root button:first-child': {
+                              display: 'none !important',
+                            },
+                          })
                         }}
                         defaultSidebarCollapsed
                         slots={{
                           renderPageItem: renderSidebarItem,
                           appTitle: () => (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <BarChartIcon sx={{ color: '#fff' }} />
-                              <Typography variant="h6" sx={{ color: '#fff', fontWeight: 700 }}>COTS UI</Typography>
+                              <Typography
+                                variant="h6"
+                                sx={{
+                                  color: '#fff',
+                                  fontWeight: 700,
+                                  display: { xs: 'none', sm: 'block' }
+                                }}
+                              >
+                                COTS UI
+                              </Typography>
                             </Box>
                           ),
                           toolbarActions,

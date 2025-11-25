@@ -632,7 +632,7 @@ export default function CollapsibleTable({
     }
 
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25, flex: 1, minHeight: 0 }}>
         {sortedData.map((row) => {
           const sectionConfigs = [
             {
@@ -1642,7 +1642,10 @@ export default function CollapsibleTable({
       width: '100%', 
       display: 'flex', 
       flexDirection: 'column',
-      height: isMobile ? 'calc(100vh - 180px)' : '45vh',
+      height: isMobile ? 'calc(var(--app-mobile-viewport, 100vh) - 210px)' : '45vh',
+      minHeight: isMobile ? 420 : '45vh',
+      maxHeight: isMobile ? 'calc(var(--app-mobile-viewport, 100vh) - 120px)' : undefined,
+      flex: '1 1 auto',
       borderRadius: 1,
       overflow: 'hidden',
       ...(isMobile && {
@@ -1662,7 +1665,7 @@ export default function CollapsibleTable({
         }
       })
     }}>
-      <Box sx={{ 
+    <Box sx={{ 
         borderBottom: 1, 
         borderColor: 'divider',
         bgcolor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
@@ -1677,11 +1680,14 @@ export default function CollapsibleTable({
         component={Paper} 
         sx={{ 
           border: 'none',
+          flex: 1,
+          height: '100%',
           '& .MuiPaper-root': {
             border: 'none'
           },
           ...(isMobile && {
             overflowX: 'auto',
+            overflowY: 'auto',
             WebkitOverflowScrolling: 'touch',
             '&::-webkit-scrollbar': {
               height: '8px'
