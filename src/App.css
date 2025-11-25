@@ -52,4 +52,11 @@ html {
   [class*="MuiToolbar-root"] button:first-child {
     display: none !important;
   }
+  
+  /* Center the toolbar actions Stack container in mobile view */
+  .MuiToolbar-root .MuiStack-root:last-child,
+  .MuiToolbar-root .css-ktx3up-MuiStack-root {
+    align-items: center !important;
+    width: 100% !important;
+  }
 }
