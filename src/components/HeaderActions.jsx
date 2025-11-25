@@ -152,7 +152,20 @@ function HeaderActions(props) {
         rowGap: 1,
         width: isMobile ? '100%' : 'auto',
         maxWidth: '100%',
-        justifyContent: isChart ? 'flex-end' : (isMobile ? 'center' : 'flex-start')
+        justifyContent: isChart ? 'flex-end' : (isMobile ? 'center' : 'flex-start'),
+        ...(isMobile && {
+          position: 'sticky',
+          top: { xs: '56px', sm: '64px' },
+          zIndex: 4,
+          backgroundColor: theme.palette.background.default,
+          py: 1.5,
+          px: 2,
+          width: '100%',
+          maxWidth: '100%',
+          left: 0,
+          right: 0,
+          margin: 0
+        })
       }}
     >
       {!isChart && (
@@ -165,6 +178,7 @@ function HeaderActions(props) {
         fullWidth={isMobile}
         sx={{
           minWidth: isMobile ? '100%' : 220,
+          maxWidth: isMobile ? '100%' : 220,
           flex: isMobile ? '1 1 100%' : '0 0 auto'
         }}
         InputLabelProps={{ style: { color: 'inherit' } }}
@@ -202,6 +216,7 @@ function HeaderActions(props) {
             fullWidth={isMobile}
             sx={{
               minWidth: isMobile ? '100%' : 220,
+              maxWidth: isMobile ? '100%' : 220,
               flex: isMobile ? '1 1 100%' : '0 0 auto'
             }}
           >

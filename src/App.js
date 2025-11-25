@@ -1058,6 +1058,119 @@ export default function App() {
     setProfileAnchorEl(null);
   };
 
+  // Mobile toolbar component that appears on all screens
+  const renderMobileToolbar = () => {
+    if (!isMobile) return null;
+    
+    return (
+      <Box sx={{ 
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'sticky',
+        top: { xs: '58px', sm: '160px' }, // AppBar (56px/64px) + HeaderActions (~96px with padding)
+        zIndex: 4,
+        backgroundColor: theme.palette.background.default,
+        py: 0.5,
+        px: 2,
+        mb: 0,
+        width: '100%',
+        left: 0,
+        right: 0
+      }}>
+        <Box
+          sx={{
+            display: 'flex',
+            borderRadius: 1,
+            border: `1px solid ${theme.palette.divider}`,
+            overflow: 'hidden',
+            '& .MuiToggleButton-root': {
+              border: 'none',
+              borderRadius: 0,
+              '&:not(:last-child)': {
+                borderRight: `1px solid ${theme.palette.divider}`,
+              },
+            }
+          }}
+        >
+          <ToggleButtonGroup
+            value={activeSection === 'cots-report' ? mobileView : null}
+            exclusive
+            onChange={handleMobileViewChange}
+            aria-label="mobile view"
+            size="small"
+            sx={{
+              '& .MuiToggleButton-root': {
+                border: 'none',
+                borderRadius: 0,
+              }
+            }}
+          >
+            <ToggleButton
+              value="table"
+              aria-label="table view"
+              title="Table View"
+              disabled={activeSection !== 'cots-report'}
+              sx={{ px: 1.25 }}
+            >
+              <TableChartIcon fontSize="small" />
+            </ToggleButton>
+            <ToggleButton
+              value="chart"
+              aria-label="chart view"
+              title="Chart View"
+              disabled={activeSection !== 'cots-report'}
+              sx={{ px: 1.25 }}
+            >
+              <ShowChartIcon fontSize="small" />
+            </ToggleButton>
+          </ToggleButtonGroup>
+          <ToggleButton
+            selected={activeSection === 'seasonality'}
+            onClick={handleSeasonalityClick}
+            aria-label="seasonality"
+            title={activeSection === 'seasonality' ? 'Go to Reports' : 'Seasonality'}
+            value="seasonality"
+            sx={{ 
+              px: 1.25,
+              border: 'none',
+              borderRadius: 0,
+              '&.Mui-selected': {
+                backgroundColor: theme.palette.action.selected,
+              }
+            }}
+          >
+            <WbSunnyIcon fontSize="small" />
+          </ToggleButton>
+          <ToggleButton
+            ref={profileButtonRef}
+            selected={Boolean(profileAnchorEl)}
+            onClick={handleAccountClick}
+            aria-label="account"
+            title="Account"
+            value="account"
+            sx={{ 
+              px: 1.25,
+              border: 'none',
+              borderRadius: 0,
+              '&.Mui-selected': {
+                backgroundColor: theme.palette.action.selected,
+              }
+            }}
+          >
+            <AccountCircleIcon fontSize="small" />
+          </ToggleButton>
+        </Box>
+        <ProfileCard
+          open={Boolean(profileAnchorEl)}
+          onClose={handleProfileClose}
+          anchorEl={profileAnchorEl}
+          buttonRef={profileButtonRef}
+        />
+      </Box>
+    );
+  };
+
   const renderCollapsibleTable = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', height: '100%' }}>
@@ -1084,79 +1197,6 @@ export default function App() {
           <CollapsableTableSkeleton />
         ) : (
           <>
-            {isMobile && (
-              <Box sx={{ 
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: 1,
-                position: 'sticky',
-                top: { xs: '56px', sm: '64px' },
-                zIndex: 3,
-                backgroundColor: theme.palette.background.default,
-                py: 0.5,
-                px: 2,
-                boxShadow: theme.palette.mode === 'dark'
-                  ? '0 8px 16px rgba(0,0,0,0.6)'
-                  : '0 6px 14px rgba(0,0,0,0.12)',
-                borderBottom: `1px solid ${theme.palette.divider}`,
-                borderTop: `1px solid ${theme.palette.divider}`,
-                mb: 1
-              }}>
-                <ToggleButtonGroup
-                  value={mobileView}
-                  exclusive
-                  onChange={handleMobileViewChange}
-                  aria-label="mobile view"
-                  size="small"
-                >
-                  <ToggleButton
-                    value="table"
-                    aria-label="table view"
-                    title="Table View"
-                    sx={{ px: 1.25 }}
-                  >
-                    <TableChartIcon fontSize="small" />
-                  </ToggleButton>
-                  <ToggleButton
-                    value="chart"
-                    aria-label="chart view"
-                    title="Chart View"
-                    sx={{ px: 1.25 }}
-                  >
-                    <ShowChartIcon fontSize="small" />
-                  </ToggleButton>
-                </ToggleButtonGroup>
-                <IconButton
-                  onClick={handleSeasonalityClick}
-                  aria-label="seasonality"
-                  title={activeSection === 'seasonality' ? 'Go to Reports' : 'Seasonality'}
-                  size="small"
-                  sx={{ 
-                    px: 1.25,
-                    color: activeSection === 'seasonality' ? theme.palette.primary.main : 'inherit'
-                  }}
-                >
-                  <WbSunnyIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  ref={profileButtonRef}
-                  onClick={handleAccountClick}
-                  aria-label="account"
-                  title="Account"
-                  size="small"
-                  sx={{ px: 1.25 }}
-                >
-                  <AccountCircleIcon fontSize="small" />
-                </IconButton>
-                <ProfileCard
-                  open={Boolean(profileAnchorEl)}
-                  onClose={handleProfileClose}
-                  anchorEl={profileAnchorEl}
-                  buttonRef={profileButtonRef}
-                />
-              </Box>
-            )}
             
             {(!isMobile || mobileView === 'table') && (
               <CollapsibleTable
@@ -1349,9 +1389,12 @@ export default function App() {
                         sx={{
                           '& .MuiDrawer-paper': {
                             width: 250,
+                            '@media (min-width: 601px)': {
+                              width: 250, // Ensure desktop drawer stays at 250px
+                            }
                           },
-                          // Hide hamburger menu button in mobile view
-                          ...(isMobile && {
+                          // Hide hamburger menu button in mobile view ONLY
+                          '@media (max-width: 600px)': {
                             '& button[aria-label*="menu" i]': {
                               display: 'none !important',
                             },
@@ -1364,7 +1407,7 @@ export default function App() {
                             '& .MuiToolbar-root button:first-child': {
                               display: 'none !important',
                             },
-                          })
+                          }
                         }}
                         defaultSidebarCollapsed
                         slots={{
@@ -1390,21 +1433,24 @@ export default function App() {
                           if (page?.segment) setActiveSection(page.segment);
                         }}
                       >
-                        <Box sx={{ flexGrow: 1, width: '100%', overflow: 'hidden' }}>
-                          {activeSection === 'cots-report' && renderCollapsibleTable()}
-                          {/* Chart section hidden for now */}
-                          {activeSection === 'seasonality' && (
-                            <Box sx={{ p: 2, height: 'calc(100vh - 120px)' }}>
-                              <SeasonalityChart 
-                                symbol={selectedSymbol} 
-                                lookbackYears={seasonalityLookback}
-                                cycleFilter={seasonalityCycle}
-                                startDate={seasonalityStartDate}
-                                endDate={seasonalityEndDate}
-                                onEffectiveRange={(range) => setSeasonalityEffectiveRange(range)}
-                              />
-                            </Box>
-                          )}
+                        <Box sx={{ flexGrow: 1, width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                          {renderMobileToolbar()}
+                          <Box sx={{ flexGrow: 1, overflow: 'auto', width: '100%' }}>
+                            {activeSection === 'cots-report' && renderCollapsibleTable()}
+                            {/* Chart section hidden for now */}
+                            {activeSection === 'seasonality' && (
+                              <Box sx={{ p: 2, height: 'calc(100vh - 120px)' }}>
+                                <SeasonalityChart 
+                                  symbol={selectedSymbol} 
+                                  lookbackYears={seasonalityLookback}
+                                  cycleFilter={seasonalityCycle}
+                                  startDate={seasonalityStartDate}
+                                  endDate={seasonalityEndDate}
+                                  onEffectiveRange={(range) => setSeasonalityEffectiveRange(range)}
+                                />
+                              </Box>
+                            )}
+                          </Box>
                         </Box>
                       </DashboardLayout>
                     </AppProvider>
