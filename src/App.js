@@ -1255,7 +1255,14 @@ export default function App() {
             >
               <Select
                 value={mobileSortBy}
-                onChange={(e) => setMobileSortBy(e.target.value)}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  setMobileSortBy(newValue);
+                  // Z-score sorts should always use descending order
+                  if (newValue === 'zScore_positive' || newValue === 'zScore_negative') {
+                    setMobileSortOrder('desc');
+                  }
+                }}
                 displayEmpty
                 sx={{
                   height: '36px',
@@ -1271,7 +1278,8 @@ export default function App() {
                 <MenuItem value="commercial_long_all" sx={{ fontSize: '0.875rem' }}>C Long</MenuItem>
                 <MenuItem value="commercial_short_all" sx={{ fontSize: '0.875rem' }}>C Short</MenuItem>
                 <MenuItem value="commercial_percentage_long" sx={{ fontSize: '0.875rem' }}>C % Long</MenuItem>
-                <MenuItem value="zScore" sx={{ fontSize: '0.875rem' }}>Z-Score</MenuItem>
+                <MenuItem value="zScore_positive" sx={{ fontSize: '0.875rem' }}>Z-Score (Positive)</MenuItem>
+                <MenuItem value="zScore_negative" sx={{ fontSize: '0.875rem' }}>Z-Score (Negative)</MenuItem>
               </Select>
             </FormControl>
           </Box>

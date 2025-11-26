@@ -72,8 +72,21 @@ function ZBadge({ z, type }) {
   const color = isBullish ? theme.palette.success.main : theme.palette.error.main;
   const bg = alpha(color, 0.12);
   const display = Math.abs(z).toFixed(2); // remove '-' visually, keep color by sign
+  
+  // Enhanced tooltip with explanation
+  const tooltipText = (
+    <>
+      <div style={{ fontWeight: 600, marginBottom: '4px' }}>Z-Score: {z.toFixed(2)}</div>
+      {type && <div style={{ marginBottom: '4px' }}>Type: {type}</div>}
+      <div style={{ fontSize: '0.85em', opacity: 0.9 }}>
+        Measures how many standard deviations the current position is from the historical average.
+        {z > 0 ? ' Positive values indicate above-average positioning.' : ' Negative values indicate below-average positioning.'}
+      </div>
+    </>
+  );
+  
   return (
-    <Tooltip title={`Z-score: ${z.toFixed(2)}${type ? ` • ${type}` : ''}`}> 
+    <Tooltip title={tooltipText}> 
       <Chip
         label={`z ${display}`}
         size="small"
@@ -93,6 +106,31 @@ function ZBadge({ z, type }) {
 }
 
 function descendingComparator(a, b, orderBy) {
+  // Handle special z-score sorting
+  if (orderBy === 'zScore_positive') {
+    const aValue = typeof a.zScore === 'number' ? a.zScore : -Infinity;
+    const bValue = typeof b.zScore === 'number' ? b.zScore : -Infinity;
+    // Positive z-scores first, sorted high to low
+    if (aValue > 0 && bValue <= 0) return -1;  // a is positive, b is not -> a comes first
+    if (aValue <= 0 && bValue > 0) return 1;   // b is positive, a is not -> b comes first
+    // Both are in same category, sort descending (high to low)
+    if (bValue < aValue) return -1;
+    if (bValue > aValue) return 1;
+    return 0;
+  }
+  
+  if (orderBy === 'zScore_negative') {
+    const aValue = typeof a.zScore === 'number' ? a.zScore : Infinity;
+    const bValue = typeof b.zScore === 'number' ? b.zScore : Infinity;
+    // Negative z-scores first, sorted low to high (most negative first)
+    if (aValue < 0 && bValue >= 0) return -1;  // a is negative, b is not -> a comes first
+    if (aValue >= 0 && bValue < 0) return 1;   // b is negative, a is not -> b comes first
+    // Both are in same category, sort ascending for negatives (most negative first)
+    if (aValue < bValue) return -1;
+    if (aValue > bValue) return 1;
+    return 0;
+  }
+  
   if (orderBy === 'non_commercial_percentage_long' || 
       orderBy === 'commercial_percentage_long' || 
       orderBy === 'non_reportable_percentage_long' ||
@@ -508,7 +546,8 @@ export default function CollapsibleTable({
 
   // If user leaves tracker while sorting by zScore, reset to commodity
   React.useEffect(() => {
-    if (!(isCommercialTrackerSelected || isRetailTrackerSelected) && effectiveOrderBy === 'zScore') {
+    const isZScoreSort = effectiveOrderBy === 'zScore' || effectiveOrderBy === 'zScore_positive' || effectiveOrderBy === 'zScore_negative';
+    if (!(isCommercialTrackerSelected || isRetailTrackerSelected) && isZScoreSort) {
       if (isMobile && onMobileSortChange) {
         onMobileSortChange('commodity', 'asc');
       } else {
@@ -721,9 +760,7 @@ export default function CollapsibleTable({
                       variant="outlined"
                       label={row.market_code || '—'}
                     />
-                    {!(isCommercialTrackerSelected || isRetailTrackerSelected) && (
-                      <ZBadge z={row.zScore} type={row.extremeType} />
-                    )}
+                    <ZBadge z={row.zScore} type={row.extremeType} />
                   </Box>
                 </Box>
                 <FavoriteButton
