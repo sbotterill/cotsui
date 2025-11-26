@@ -96,7 +96,7 @@ export default function SigninPage({ setAuthorization }) {
           ]);
 
           if (prefsResponse.ok) {
-            const prefsData = await prefsResponse.json();
+            await prefsResponse.json();
           }
 
           if (favoritesResponse.ok) {
@@ -166,7 +166,8 @@ export default function SigninPage({ setAuthorization }) {
         alignItems: 'center',
         justifyContent: 'center',
         background: `linear-gradient(135deg, ${theme.palette.primary.main}15, ${theme.palette.secondary.main}15)`,
-        py: 4,
+        py: { xs: 2, sm: 4 },
+        px: { xs: 2, sm: 3 },
       }}
     >
       <Container maxWidth="sm">
@@ -175,7 +176,7 @@ export default function SigninPage({ setAuthorization }) {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            mb: 4,
+            mb: { xs: 2, sm: 4 },
           }}
         >
           <Typography 
@@ -185,6 +186,7 @@ export default function SigninPage({ setAuthorization }) {
               fontWeight: 700,
               color: theme.palette.primary.main,
               mb: 1,
+              fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
             }}
           >
             COTS UI
@@ -194,7 +196,8 @@ export default function SigninPage({ setAuthorization }) {
             sx={{ 
               color: theme.palette.text.secondary,
               textAlign: 'center',
-              maxWidth: '80%',
+              maxWidth: '90%',
+              fontSize: { xs: '0.9rem', sm: '1rem' },
             }}
           >
             Access real-time CFTC Commitment of Traders data
@@ -204,7 +207,7 @@ export default function SigninPage({ setAuthorization }) {
         <Paper 
           elevation={2} 
           sx={{ 
-            p: 4, 
+            p: { xs: 2.5, sm: 3, md: 4 }, 
             borderRadius: 3,
             background: theme.palette.background.paper,
             backdropFilter: 'blur(10px)',
@@ -219,7 +222,8 @@ export default function SigninPage({ setAuthorization }) {
             align="center"
             sx={{ 
               fontWeight: 600,
-              mb: 3,
+              mb: { xs: 2, sm: 3 },
+              fontSize: { xs: '1.25rem', sm: '1.5rem' },
             }}
           >
             Welcome Back
@@ -229,8 +233,9 @@ export default function SigninPage({ setAuthorization }) {
             <Alert 
               severity="error" 
               sx={{ 
-                mb: 3,
+                mb: { xs: 2, sm: 3 },
                 borderRadius: 2,
+                fontSize: { xs: '0.875rem', sm: '1rem' },
               }} 
               onClose={() => setError(null)}
             >
@@ -249,10 +254,14 @@ export default function SigninPage({ setAuthorization }) {
               margin="normal"
               required
               variant="outlined"
+              size={window.innerWidth < 600 ? 'medium' : 'medium'}
               sx={{
-                mb: 2,
+                mb: { xs: 1.5, sm: 2 },
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 2,
+                },
+                '& .MuiInputBase-input': {
+                  fontSize: { xs: '1rem', sm: '1rem' },
                 }
               }}
               InputProps={{
@@ -273,9 +282,13 @@ export default function SigninPage({ setAuthorization }) {
                 value={formData.password}
                 onChange={handleChange}
                 required
+                size={window.innerWidth < 600 ? 'medium' : 'medium'}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2,
+                  },
+                  '& .MuiInputBase-input': {
+                    fontSize: { xs: '1rem', sm: '1rem' },
                   }
                 }}
                 InputProps={{
@@ -299,13 +312,14 @@ export default function SigninPage({ setAuthorization }) {
               type="submit"
               fullWidth
               variant="contained"
+              size="large"
               sx={{ 
-                mt: 4, 
+                mt: { xs: 3, sm: 4 }, 
                 mb: 2,
-                py: 1.5,
+                py: { xs: 1.25, sm: 1.5 },
                 borderRadius: 2,
                 textTransform: 'none',
-                fontSize: '1.1rem',
+                fontSize: { xs: '1rem', sm: '1.1rem' },
                 fontWeight: 600,
                 boxShadow: 2,
                 '&:hover': {
@@ -320,10 +334,11 @@ export default function SigninPage({ setAuthorization }) {
             <Box 
               sx={{ 
                 display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' },
                 justifyContent: 'space-between', 
-                mt: 3,
-                flexWrap: 'wrap',
-                gap: 1,
+                mt: { xs: 2, sm: 3 },
+                gap: { xs: 1, sm: 1 },
+                alignItems: { xs: 'center', sm: 'flex-start' },
               }}
             >
               <Link 
@@ -333,6 +348,8 @@ export default function SigninPage({ setAuthorization }) {
                 sx={{
                   color: theme.palette.primary.main,
                   textDecoration: 'none',
+                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                  textAlign: { xs: 'center', sm: 'left' },
                   '&:hover': {
                     textDecoration: 'underline',
                   }
@@ -347,6 +364,8 @@ export default function SigninPage({ setAuthorization }) {
                 sx={{
                   color: theme.palette.primary.main,
                   textDecoration: 'none',
+                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                  textAlign: { xs: 'center', sm: 'right' },
                   '&:hover': {
                     textDecoration: 'underline',
                   }

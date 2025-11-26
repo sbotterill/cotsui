@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -13,6 +13,8 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Link,
+  useTheme,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -35,6 +37,7 @@ const passwordRequirements = [
 
 export default function SignUpPage({ setAuthorization }) {
   const navigate = useNavigate();
+  const theme = useTheme();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -44,7 +47,6 @@ export default function SignUpPage({ setAuthorization }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -132,26 +134,50 @@ export default function SignUpPage({ setAuthorization }) {
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#fff',
-        py: 4,
+        py: { xs: 2, sm: 4 },
+        px: { xs: 2, sm: 3 },
       }}
     >
       <Container maxWidth="xs">
         <Paper 
           elevation={3} 
           sx={{ 
-            p: 3,
+            p: { xs: 2.5, sm: 3 },
             borderRadius: 2,
           }}
         >
-          <Typography variant="h5" component="h1" gutterBottom align="center">
+          <Typography 
+            variant="h5" 
+            component="h1" 
+            gutterBottom 
+            align="center"
+            sx={{
+              fontSize: { xs: '1.25rem', sm: '1.5rem' },
+              fontWeight: 600,
+            }}
+          >
             Sign Up
           </Typography>
-          <Typography variant="subtitle2" color="text.secondary" align="center" sx={{ mb: 3 }}>
+          <Typography 
+            variant="subtitle2" 
+            color="text.secondary" 
+            align="center" 
+            sx={{ 
+              mb: { xs: 2, sm: 3 },
+              fontSize: { xs: '0.875rem', sm: '0.875rem' },
+            }}
+          >
             Create your account to get started
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: { xs: 1.5, sm: 2 },
+                fontSize: { xs: '0.875rem', sm: '1rem' },
+              }}
+            >
               {error}
             </Alert>
           )}
@@ -164,8 +190,16 @@ export default function SignUpPage({ setAuthorization }) {
               value={formData.firstName}
               onChange={handleChange}
               margin="dense"
-              size="small"
+              size="medium"
               required
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                },
+                '& .MuiInputBase-input': {
+                  fontSize: { xs: '1rem', sm: '1rem' },
+                }
+              }}
             />
             <TextField
               fullWidth
@@ -174,8 +208,16 @@ export default function SignUpPage({ setAuthorization }) {
               value={formData.lastName}
               onChange={handleChange}
               margin="dense"
-              size="small"
+              size="medium"
               required
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                },
+                '& .MuiInputBase-input': {
+                  fontSize: { xs: '1rem', sm: '1rem' },
+                }
+              }}
             />
             <TextField
               fullWidth
@@ -185,38 +227,80 @@ export default function SignUpPage({ setAuthorization }) {
               value={formData.email}
               onChange={handleChange}
               margin="dense"
-              size="small"
+              size="medium"
               required
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                },
+                '& .MuiInputBase-input': {
+                  fontSize: { xs: '1rem', sm: '1rem' },
+                }
+              }}
             />
             <TextField
               fullWidth
               label="Password"
               name="password"
-              type={showPassword ? 'text' : 'password'}
+              type="password"
               value={formData.password}
               onChange={handleChange}
               margin="dense"
-              size="small"
+              size="medium"
               required
               helperText="Password must meet all requirements below"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                },
+                '& .MuiInputBase-input': {
+                  fontSize: { xs: '1rem', sm: '1rem' },
+                },
+                '& .MuiFormHelperText-root': {
+                  fontSize: { xs: '0.75rem', sm: '0.75rem' },
+                }
+              }}
             />
             <TextField
               fullWidth
               label="Confirm Password"
               name="confirmPassword"
-              type={showPassword ? 'text' : 'password'}
+              type="password"
               value={formData.confirmPassword}
               onChange={handleChange}
               margin="dense"
-              size="small"
+              size="medium"
               required
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                },
+                '& .MuiInputBase-input': {
+                  fontSize: { xs: '1rem', sm: '1rem' },
+                }
+              }}
             />
 
             {/* Password Requirements List */}
-            <List dense sx={{ width: '100%', bgcolor: 'background.paper', mt: 1, mb: 1 }}>
+            <List 
+              dense 
+              sx={{ 
+                width: '100%', 
+                bgcolor: 'background.paper', 
+                mt: { xs: 0.5, sm: 1 }, 
+                mb: { xs: 0.5, sm: 1 },
+                px: { xs: 0, sm: 0 }
+              }}
+            >
               {passwordRequirements.map((req, index) => (
-                <ListItem key={index} sx={{ py: 0.5 }}>
-                  <ListItemIcon sx={{ minWidth: 32 }}>
+                <ListItem 
+                  key={index} 
+                  sx={{ 
+                    py: { xs: 0.25, sm: 0.5 },
+                    px: { xs: 0, sm: 2 }
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: { xs: 28, sm: 32 } }}>
                     {req.validator(formData.password) ? (
                       <CheckCircleIcon color="success" fontSize="small" />
                     ) : (
@@ -226,7 +310,7 @@ export default function SignUpPage({ setAuthorization }) {
                   <ListItemText 
                     primary={req.label}
                     primaryTypographyProps={{
-                      fontSize: '0.75rem',
+                      fontSize: { xs: '0.7rem', sm: '0.75rem' },
                       color: req.validator(formData.password) ? 'success.main' : 'error.main'
                     }}
                   />
@@ -238,11 +322,43 @@ export default function SignUpPage({ setAuthorization }) {
               type="submit"
               fullWidth
               variant="contained"
+              size="large"
               disabled={loading || !isPasswordValid()}
-              sx={{ mt: 2 }}
+              sx={{ 
+                mt: { xs: 2, sm: 2 },
+                py: { xs: 1.25, sm: 1.5 },
+                fontSize: { xs: '1rem', sm: '1.1rem' },
+                fontWeight: 600,
+                borderRadius: 2,
+                textTransform: 'none',
+              }}
             >
               {loading ? <CircularProgress size={24} /> : 'Sign Up'}
             </Button>
+
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                mt: { xs: 2, sm: 2.5 },
+              }}
+            >
+              <Link 
+                component={RouterLink} 
+                to="/sign-in" 
+                variant="body2"
+                sx={{
+                  color: theme.palette.primary.main,
+                  textDecoration: 'none',
+                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                  '&:hover': {
+                    textDecoration: 'underline',
+                  }
+                }}
+              >
+                Already have an account? Sign In
+              </Link>
+            </Box>
           </Box>
         </Paper>
       </Container>

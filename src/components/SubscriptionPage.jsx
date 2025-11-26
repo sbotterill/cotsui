@@ -142,10 +142,21 @@ function StartTrialDialog({ open, onClose, onSuccess, onError }) {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ m: 0, p: 3, pb: 1 }}>
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="sm" 
+      fullWidth
+      PaperProps={{
+        sx: {
+          m: { xs: 2, sm: 4 },
+          maxWidth: { xs: 'calc(100% - 32px)', sm: '600px' },
+        }
+      }}
+    >
+      <DialogTitle sx={{ m: 0, p: { xs: 2, sm: 3 }, pb: { xs: 1, sm: 1 } }}>
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">
+          <Typography variant="h6" sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
             Start Your Free Trial
           </Typography>
           <IconButton
@@ -159,17 +170,28 @@ function StartTrialDialog({ open, onClose, onSuccess, onError }) {
           </IconButton>
         </Box>
       </DialogTitle>
-      <DialogContent sx={{ p: 3 }}>
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
+      <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
+        <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+          <Typography 
+            variant="h6" 
+            gutterBottom
+            sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+          >
             Get Started with a 7-Day Free Trial
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+          <Typography 
+            variant="body1" 
+            color="text.secondary" 
+            sx={{ 
+              mb: { xs: 2, sm: 3 },
+              fontSize: { xs: '0.875rem', sm: '1rem' }
+            }}
+          >
             Start exploring all features immediately. No credit card required during the trial period.
           </Typography>
           
-          <Alert severity="info" sx={{ mb: 3 }}>
-            <Typography variant="body2">
+          <Alert severity="info" sx={{ mb: { xs: 2, sm: 3 } }}>
+            <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
               You'll only need to add payment information when your trial ends. Cancel anytime during the trial.
             </Typography>
           </Alert>
@@ -180,8 +202,8 @@ function StartTrialDialog({ open, onClose, onSuccess, onError }) {
             </Alert>
           )}
 
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 } }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 1.5, sm: 2 } }}>
               <TextField
                 fullWidth
                 label="First Name"
@@ -191,16 +213,15 @@ function StartTrialDialog({ open, onClose, onSuccess, onError }) {
                 required
                 sx={{ 
                   '& .MuiInputBase-input': {
-                    padding: '16px',
-                    fontSize: '16px'
+                    padding: { xs: '14px', sm: '16px' },
+                    fontSize: { xs: '1rem', sm: '16px' }
                   },
                   '& .MuiOutlinedInput-root': {
-                    height: '56px'
+                    height: { xs: '52px', sm: '56px' },
+                    borderRadius: 2,
                   }
                 }}
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Last Name"
@@ -210,16 +231,17 @@ function StartTrialDialog({ open, onClose, onSuccess, onError }) {
                 required
                 sx={{ 
                   '& .MuiInputBase-input': {
-                    padding: '16px',
-                    fontSize: '16px'
+                    padding: { xs: '14px', sm: '16px' },
+                    fontSize: { xs: '1rem', sm: '16px' }
                   },
                   '& .MuiOutlinedInput-root': {
-                    height: '56px'
+                    height: { xs: '52px', sm: '56px' },
+                    borderRadius: 2,
                   }
                 }}
               />
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Box>
 
         <Button
@@ -229,8 +251,8 @@ function StartTrialDialog({ open, onClose, onSuccess, onError }) {
           disabled={loading}
           size="large"
           sx={{ 
-            py: 1.5,
-            fontSize: '1.1rem',
+            py: { xs: 1.25, sm: 1.5 },
+            fontSize: { xs: '1rem', sm: '1.1rem' },
             fontWeight: 600,
             borderRadius: 2,
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
@@ -246,8 +268,12 @@ function StartTrialDialog({ open, onClose, onSuccess, onError }) {
           )}
         </Button>
 
-        <Box sx={{ mt: 3, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
+        <Box sx={{ mt: { xs: 2, sm: 3 }, textAlign: 'center' }}>
+          <Typography 
+            variant="body2" 
+            color="text.secondary"
+            sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+          >
             By starting your trial, you agree to our Terms of Service and Privacy Policy
           </Typography>
         </Box>
