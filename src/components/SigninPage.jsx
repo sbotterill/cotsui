@@ -12,16 +12,19 @@ import {
   Container,
   Typography,
   useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
 
 export default function SigninPage({ setAuthorization }) {
   const theme = useTheme();
   const navigate = useNavigate();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -168,8 +171,30 @@ export default function SigninPage({ setAuthorization }) {
         background: `linear-gradient(135deg, ${theme.palette.primary.main}15, ${theme.palette.secondary.main}15)`,
         py: { xs: 2, sm: 4 },
         px: { xs: 2, sm: 3 },
+        position: 'relative',
       }}
     >
+      {/* Back arrow for mobile only */}
+      {isMobile && (
+        <IconButton
+          onClick={() => navigate('/')}
+          sx={{
+            position: 'absolute',
+            top: 16,
+            left: 16,
+            color: theme.palette.primary.main,
+            backgroundColor: theme.palette.background.paper,
+            boxShadow: 2,
+            '&:hover': {
+              backgroundColor: theme.palette.background.paper,
+              boxShadow: 4,
+            }
+          }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
+      )}
+
       <Container maxWidth="sm">
         <Box
           sx={{

@@ -15,6 +15,7 @@ import VerificationPage from './components/VerificationPage';
 import SubscriptionPage from './components/SubscriptionPage';
 import SubscriptionGuard from './components/SubscriptionGuard';
 import ForgotPassword from './components/ForgotPassword';
+import PrivacyPolicy from './components/PrivacyPolicy';
 import LandingPage from './components/LandingPage';
 import { Box, CircularProgress, Typography, IconButton } from '@mui/material';
 import { API_BASE_URL } from './config';
@@ -1366,6 +1367,7 @@ export default function App() {
         <Route path="/verify" element={<VerificationPage />} />
         <Route path="/subscription" element={<SubscriptionPage setAuthorization={setAuthorization} />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/sign-in" element={<SigninPage setAuthorization={setAuthorization} />} />
         <Route path="/dashboard" element={
           <>

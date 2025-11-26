@@ -85,7 +85,7 @@ export default function LandingPage() {
       <Box
         sx={{
           position: 'relative',
-          minHeight: { xs: '100vh', md: '80vh' },
+          minHeight: { xs: 'calc(100vh - 56px)', md: '80vh' },
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -94,7 +94,7 @@ export default function LandingPage() {
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
           borderBottom: `1px solid ${theme.palette.divider}`,
-          pt: { xs: '64px', sm: '80px' },
+          pt: { xs: '56px', sm: '64px' },
           '&::before': {
             content: '""',
             position: 'absolute',
@@ -213,7 +213,14 @@ export default function LandingPage() {
       </Box>
 
       {/* Features Section */}
-      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6, md: 8 }, px: { xs: 2, sm: 3 } }}>
+      <Container 
+        maxWidth="lg" 
+        sx={{ 
+          py: { xs: 4, sm: 6, md: 8 }, 
+          px: { xs: 2, sm: 3 },
+          display: { xs: 'none', md: 'block' }
+        }}
+      >
         <Box
           sx={{
             display: 'grid',

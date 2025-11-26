@@ -15,9 +15,12 @@ import {
   ListItemText,
   Link,
   useTheme,
+  useMediaQuery,
+  IconButton,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { API_BASE_URL } from '../config';
 
 // Password validation functions
@@ -38,6 +41,7 @@ const passwordRequirements = [
 export default function SignUpPage({ setAuthorization }) {
   const navigate = useNavigate();
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -136,8 +140,30 @@ export default function SignUpPage({ setAuthorization }) {
         backgroundColor: '#fff',
         py: { xs: 2, sm: 4 },
         px: { xs: 2, sm: 3 },
+        position: 'relative',
       }}
     >
+      {/* Back arrow for mobile only */}
+      {isMobile && (
+        <IconButton
+          onClick={() => navigate('/')}
+          sx={{
+            position: 'absolute',
+            top: 16,
+            left: 16,
+            color: theme.palette.primary.main,
+            backgroundColor: theme.palette.background.paper,
+            boxShadow: 2,
+            '&:hover': {
+              backgroundColor: theme.palette.background.paper,
+              boxShadow: 4,
+            }
+          }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
+      )}
+
       <Container maxWidth="xs">
         <Paper 
           elevation={3} 
@@ -318,6 +344,35 @@ export default function SignUpPage({ setAuthorization }) {
               ))}
             </List>
 
+            <Box 
+              sx={{ 
+                textAlign: 'center',
+                mt: { xs: 1.5, sm: 2 },
+                mb: { xs: 1.5, sm: 2 },
+              }}
+            >
+              <Typography 
+                variant="caption" 
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+              >
+                By signing up, you agree to our{' '}
+                <Link
+                  component={RouterLink}
+                  to="/privacy-policy"
+                  sx={{
+                    color: theme.palette.primary.main,
+                    textDecoration: 'none',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                    }
+                  }}
+                >
+                  Privacy Policy
+                </Link>
+              </Typography>
+            </Box>
+
             <Button
               type="submit"
               fullWidth
@@ -325,7 +380,7 @@ export default function SignUpPage({ setAuthorization }) {
               size="large"
               disabled={loading || !isPasswordValid()}
               sx={{ 
-                mt: { xs: 2, sm: 2 },
+                mt: 0,
                 py: { xs: 1.25, sm: 1.5 },
                 fontSize: { xs: '1rem', sm: '1.1rem' },
                 fontWeight: 600,
