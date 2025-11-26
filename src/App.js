@@ -41,6 +41,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import { Select, MenuItem, FormControl } from '@mui/material';
 import { getCommercialExtremes, getRetailExtremes } from './services/cftcService';
 
 // Context to expose toggle function for theme switch
@@ -523,6 +524,8 @@ export default function App() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   const [mobileView, setMobileView] = useState('table');
+  const [mobileSortBy, setMobileSortBy] = useState('commodity');
+  const [mobileSortOrder, setMobileSortOrder] = useState('asc');
   const [authorized, setAuthorization] = useState(() => {
     return !!localStorage.getItem('userEmail');
   });
@@ -1063,37 +1066,71 @@ export default function App() {
   const renderMobileToolbar = () => {
     if (!isMobile) return null;
     
+    // Build tab options for dropdown
+    const getTabOptions = () => {
+      const options = [];
+      
+      // Add Favorites if there are any
+      if (favorites.length > 0) {
+        options.push({ value: 0, label: `Favorites (${favorites.length})` });
+      }
+      
+      // Add Commercial Tracker
+      options.push({ value: 1, label: 'Commercial Tracker' });
+      
+      // Add Retail Tracker
+      options.push({ value: 2, label: 'Retail Tracker' });
+      
+      // Add groups
+      const groupStartIndex = 3;
+      exchanges.forEach((group, index) => {
+        options.push({ value: groupStartIndex + index, label: group });
+      });
+      
+      return options;
+    };
+    
+    const tabOptions = getTabOptions();
+    
     return (
       <Box sx={{ 
         display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
+        flexDirection: 'column',
+        gap: 1,
         position: 'sticky',
-        top: { xs: '58px', sm: '160px' }, // AppBar (56px/64px) + HeaderActions (~96px with padding)
+        top: { xs: '58px', sm: '160px' },
         zIndex: 4,
         backgroundColor: theme.palette.background.default,
-        py: 0.5,
+        py: 1,
         px: 2,
         mb: 0,
         width: '100%',
         left: 0,
         right: 0
       }}>
+        {/* First row: View toggles */}
         <Box
           sx={{
             display: 'flex',
-            borderRadius: 1,
-            border: `1px solid ${theme.palette.divider}`,
-            overflow: 'hidden',
-            '& .MuiToggleButton-root': {
-              border: 'none',
-              borderRadius: 0,
-              '&:not(:last-child)': {
-                borderRight: `1px solid ${theme.palette.divider}`,
-              },
-            }
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
         >
+          <Box
+            sx={{
+              display: 'flex',
+              borderRadius: 1,
+              border: `1px solid ${theme.palette.divider}`,
+              overflow: 'hidden',
+              '& .MuiToggleButton-root': {
+                border: 'none',
+                borderRadius: 0,
+                '&:not(:last-child)': {
+                  borderRight: `1px solid ${theme.palette.divider}`,
+                },
+              }
+            }}
+          >
           <ToggleButtonGroup
             value={activeSection === 'cots-report' ? mobileView : null}
             exclusive
@@ -1162,12 +1199,83 @@ export default function App() {
             <AccountCircleIcon fontSize="small" />
           </ToggleButton>
         </Box>
+      </Box>
         <ProfileCard
           open={Boolean(profileAnchorEl)}
           onClose={handleProfileClose}
           anchorEl={profileAnchorEl}
           buttonRef={profileButtonRef}
         />
+        
+        {/* Second row: Tab selector and Sort (only show on cots-report section) */}
+        {activeSection === 'cots-report' && tabOptions.length > 0 && (
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 1,
+            width: '100%',
+          }}>
+            <FormControl 
+              size="small" 
+              sx={{ 
+                flex: 1,
+                minWidth: 120,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 1,
+                  fontSize: '0.875rem',
+                }
+              }}
+            >
+              <Select
+                value={selectedTab}
+                onChange={(e) => setSelectedTab(e.target.value)}
+                displayEmpty
+                sx={{
+                  height: '36px',
+                  fontSize: '0.875rem',
+                }}
+              >
+                {tabOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value} sx={{ fontSize: '0.875rem' }}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            
+            <FormControl 
+              size="small" 
+              sx={{ 
+                flex: 1,
+                minWidth: 100,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 1,
+                  fontSize: '0.875rem',
+                }
+              }}
+            >
+              <Select
+                value={mobileSortBy}
+                onChange={(e) => setMobileSortBy(e.target.value)}
+                displayEmpty
+                sx={{
+                  height: '36px',
+                  fontSize: '0.875rem',
+                }}
+              >
+                <MenuItem value="commodity" sx={{ fontSize: '0.875rem' }}>Name</MenuItem>
+                <MenuItem value="open_interest_all" sx={{ fontSize: '0.875rem' }}>Open Interest</MenuItem>
+                <MenuItem value="change_in_open_interest_all" sx={{ fontSize: '0.875rem' }}>OI Change</MenuItem>
+                <MenuItem value="non_commercial_long_all" sx={{ fontSize: '0.875rem' }}>NC Long</MenuItem>
+                <MenuItem value="non_commercial_short_all" sx={{ fontSize: '0.875rem' }}>NC Short</MenuItem>
+                <MenuItem value="non_commercial_percentage_long" sx={{ fontSize: '0.875rem' }}>NC % Long</MenuItem>
+                <MenuItem value="commercial_long_all" sx={{ fontSize: '0.875rem' }}>C Long</MenuItem>
+                <MenuItem value="commercial_short_all" sx={{ fontSize: '0.875rem' }}>C Short</MenuItem>
+                <MenuItem value="commercial_percentage_long" sx={{ fontSize: '0.875rem' }}>C % Long</MenuItem>
+                <MenuItem value="zScore" sx={{ fontSize: '0.875rem' }}>Z-Score</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        )}
       </Box>
     );
   };
@@ -1214,6 +1322,12 @@ export default function App() {
                 commercialExtremes={commercialExtremes}
                 retailExtremes={retailExtremes}
                 isLoadingExtremes={isLoadingExtremes}
+                mobileSortBy={isMobile ? mobileSortBy : undefined}
+                mobileSortOrder={isMobile ? mobileSortOrder : undefined}
+                onMobileSortChange={isMobile ? (field, order) => {
+                  setMobileSortBy(field);
+                  setMobileSortOrder(order);
+                } : undefined}
               />
             )}
             

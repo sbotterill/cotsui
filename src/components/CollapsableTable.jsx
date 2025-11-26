@@ -162,7 +162,10 @@ export default function CollapsibleTable({
   onTabChange,
   commercialExtremes,
   retailExtremes,
-  isLoadingExtremes
+  isLoadingExtremes,
+  mobileSortBy,
+  mobileSortOrder,
+  onMobileSortChange
 }) {
   
   const theme = useTheme();
@@ -172,6 +175,10 @@ export default function CollapsibleTable({
   const isTabletLandscape = isTablet && isLandscape;
   const [order, setOrder] = React.useState('asc');
   const [orderBy, setOrderBy] = React.useState('commodity');
+  
+  // Use mobile sort values when provided
+  const effectiveOrder = isMobile && mobileSortOrder ? mobileSortOrder : order;
+  const effectiveOrderBy = isMobile && mobileSortBy ? mobileSortBy : orderBy;
   const [showDetails, setShowDetails] = React.useState(false);
   const initialLoadDone = React.useRef(false);
   const fmt = new Intl.NumberFormat('en-US');
@@ -361,9 +368,15 @@ export default function CollapsibleTable({
   }, [futuresData, filteredGroups, favorites, commercialTrackerData, retailTrackerData, favoritesTabIndex, commercialTabIndex, retailTabIndex, groupStartIndex, favoritesTabVisible, hasCommercialTracker, hasRetailTracker]);
 
   const handleRequestSort = (property) => {
-    const isAsc = orderBy === property && order === 'asc';
-    setOrder(isAsc ? 'desc' : 'asc');
-    setOrderBy(property);
+    const isAsc = effectiveOrderBy === property && effectiveOrder === 'asc';
+    const newOrder = isAsc ? 'desc' : 'asc';
+    
+    if (isMobile && onMobileSortChange) {
+      onMobileSortChange(property, newOrder);
+    } else {
+      setOrder(newOrder);
+      setOrderBy(property);
+    }
   };
 
   const handleTabChange = (event, newValue) => {
@@ -489,17 +502,21 @@ export default function CollapsibleTable({
   const sortedData = React.useMemo(() => {
     const sorted = [...currentGroupData]
       .filter(r => !REMOVED_EXCHANGE_CODES.includes((r.market_code || '').trim()))
-      .sort(getComparator(order, orderBy));
+      .sort(getComparator(effectiveOrder, effectiveOrderBy));
     return sorted;
-  }, [currentGroupData, order, orderBy]);
+  }, [currentGroupData, effectiveOrder, effectiveOrderBy]);
 
   // If user leaves tracker while sorting by zScore, reset to commodity
   React.useEffect(() => {
-    if (!(isCommercialTrackerSelected || isRetailTrackerSelected) && orderBy === 'zScore') {
-      setOrderBy('commodity');
-      setOrder('asc');
+    if (!(isCommercialTrackerSelected || isRetailTrackerSelected) && effectiveOrderBy === 'zScore') {
+      if (isMobile && onMobileSortChange) {
+        onMobileSortChange('commodity', 'asc');
+      } else {
+        setOrderBy('commodity');
+        setOrder('asc');
+      }
     }
-  }, [isCommercialTrackerSelected, isRetailTrackerSelected]);
+  }, [isCommercialTrackerSelected, isRetailTrackerSelected, effectiveOrderBy, isMobile, onMobileSortChange]);
 
   const handleRowClick = (commodity) => {
     // Find the selected commodity's data
@@ -632,7 +649,14 @@ export default function CollapsibleTable({
     }
 
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25, flex: 1, minHeight: 0 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: 1.25, 
+        flex: 1, 
+        minHeight: 0,
+        paddingTop: '12px',
+      }}>
         {sortedData.map((row) => {
           const sectionConfigs = [
             {
@@ -774,8 +798,8 @@ export default function CollapsibleTable({
                 }}
               >
                 <TableSortLabel
-                  active={orderBy === 'commodity'}
-                  direction={orderBy === 'commodity' ? order : 'asc'}
+                  active={effectiveOrderBy === 'commodity'}
+                  direction={effectiveOrderBy === 'commodity' ? effectiveOrder : 'asc'}
                   onClick={() => handleRequestSort('commodity')}
                   sx={{ justifyContent: 'center' }}
                 >
@@ -785,8 +809,8 @@ export default function CollapsibleTable({
               {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
                 <TableCell align="center">
                   <TableSortLabel
-                    active={orderBy === 'zScore'}
-                    direction={orderBy === 'zScore' ? order : 'asc'}
+                    active={effectiveOrderBy === 'zScore'}
+                    direction={effectiveOrderBy === 'zScore' ? effectiveOrder : 'asc'}
                     onClick={() => handleRequestSort('zScore')}
                     sx={{ justifyContent: 'center' }}
                   >
@@ -1005,8 +1029,8 @@ export default function CollapsibleTable({
               }
             }}>
               <TableSortLabel
-                active={orderBy === 'commodity'}
-                direction={orderBy === 'commodity' ? order : 'asc'}
+                active={effectiveOrderBy === 'commodity'}
+                direction={effectiveOrderBy === 'commodity' ? effectiveOrder : 'asc'}
                 onClick={() => handleRequestSort('commodity')}
                 sx={{
                   width: '100%',
@@ -1079,8 +1103,8 @@ export default function CollapsibleTable({
                 }}
               >
                 <TableSortLabel
-                  active={orderBy === 'zScore'}
-                  direction={orderBy === 'zScore' ? order : 'asc'}
+                  active={effectiveOrderBy === 'zScore'}
+                  direction={effectiveOrderBy === 'zScore' ? effectiveOrder : 'asc'}
                   onClick={() => handleRequestSort('zScore')}
                   sx={{ justifyContent: 'center' }}
                 >
@@ -1103,8 +1127,8 @@ export default function CollapsibleTable({
               }}
             >
               <TableSortLabel
-                active={orderBy === 'open_interest_all'}
-                direction={orderBy === 'open_interest_all' ? order : 'asc'}
+                active={effectiveOrderBy === 'open_interest_all'}
+                direction={effectiveOrderBy === 'open_interest_all' ? effectiveOrder : 'asc'}
                 onClick={() => handleRequestSort('open_interest_all')}
                 sx={{ justifyContent: 'center' }}
               >
@@ -1126,8 +1150,8 @@ export default function CollapsibleTable({
               }}
             >
               <TableSortLabel
-                active={orderBy === 'change_in_open_interest_all'}
-                direction={orderBy === 'change_in_open_interest_all' ? order : 'asc'}
+                active={effectiveOrderBy === 'change_in_open_interest_all'}
+                direction={effectiveOrderBy === 'change_in_open_interest_all' ? effectiveOrder : 'asc'}
                 onClick={() => handleRequestSort('change_in_open_interest_all')}
                 sx={{ justifyContent: 'center' }}
               >
@@ -1152,14 +1176,14 @@ export default function CollapsibleTable({
                 }}
               >
                 <TableSortLabel
-                  active={orderBy === `non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                  active={effectiveOrderBy === `non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
                     lbl === '% OI Long' ? 'pct_of_oi_noncomm_long_all' :
                     lbl === '% OI Short' ? 'pct_of_oi_noncomm_short_all' :
                     lbl.toLowerCase().replace('% ', 'percentage_')}`}
-                  direction={orderBy === `non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                  direction={effectiveOrderBy === `non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
                     lbl === '% OI Long' ? 'pct_of_oi_noncomm_long_all' :
                     lbl === '% OI Short' ? 'pct_of_oi_noncomm_short_all' :
-                    lbl.toLowerCase().replace('% ', 'percentage_')}` ? order : 'asc'}
+                    lbl.toLowerCase().replace('% ', 'percentage_')}` ? effectiveOrder : 'asc'}
                   onClick={() => handleRequestSort(`non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
                     lbl === '% OI Long' ? 'pct_of_oi_noncomm_long_all' :
                     lbl === '% OI Short' ? 'pct_of_oi_noncomm_short_all' :
@@ -1188,14 +1212,14 @@ export default function CollapsibleTable({
                 }}
               >
                 <TableSortLabel
-                  active={orderBy === `commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                  active={effectiveOrderBy === `commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
                     lbl === '% OI Long' ? 'pct_of_oi_comm_long_all' :
                     lbl === '% OI Short' ? 'pct_of_oi_comm_short_all' :
                     lbl.toLowerCase().replace('% ', 'percentage_')}`}
-                  direction={orderBy === `commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                  direction={effectiveOrderBy === `commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
                     lbl === '% OI Long' ? 'pct_of_oi_comm_long_all' :
                     lbl === '% OI Short' ? 'pct_of_oi_comm_short_all' :
-                    lbl.toLowerCase().replace('% ', 'percentage_')}` ? order : 'asc'}
+                    lbl.toLowerCase().replace('% ', 'percentage_')}` ? effectiveOrder : 'asc'}
                   onClick={() => handleRequestSort(`commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
                     lbl === '% OI Long' ? 'pct_of_oi_comm_long_all' :
                     lbl === '% OI Short' ? 'pct_of_oi_comm_short_all' :
@@ -1224,14 +1248,14 @@ export default function CollapsibleTable({
                 }}
               >
                 <TableSortLabel
-                  active={orderBy === `non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                  active={effectiveOrderBy === `non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : 
                     lbl === '% OI Long' ? 'pct_of_oi_nonrept_long_all' :
                     lbl === '% OI Short' ? 'pct_of_oi_nonrept_short_all' :
                     lbl.toLowerCase().replace('% ', 'percentage_')}`}
-                  direction={orderBy === `non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : 
+                  direction={effectiveOrderBy === `non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : 
                     lbl === '% OI Long' ? 'pct_of_oi_nonrept_long_all' :
                     lbl === '% OI Short' ? 'pct_of_oi_nonrept_short_all' :
-                    lbl.toLowerCase().replace('% ', 'percentage_')}` ? order : 'asc'}
+                    lbl.toLowerCase().replace('% ', 'percentage_')}` ? effectiveOrder : 'asc'}
                   onClick={() => handleRequestSort(`non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : 
                     lbl === '% OI Long' ? 'pct_of_oi_nonrept_long_all' :
                     lbl === '% OI Short' ? 'pct_of_oi_nonrept_short_all' :
@@ -1648,13 +1672,15 @@ export default function CollapsibleTable({
       borderRadius: 1,
       overflow: 'hidden',
     }}>
-    <Box sx={{ 
+    {!isMobile && (
+      <Box sx={{ 
         borderBottom: 1, 
         borderColor: 'divider',
         bgcolor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
       }}>
         {renderTabs()}
       </Box>
+    )}
       <TableContainer 
         component={Paper} 
         sx={{ 
@@ -1664,6 +1690,9 @@ export default function CollapsibleTable({
           '& .MuiPaper-root': {
             border: 'none'
           },
+          ...(isMobile && {
+            paddingTop: '40px',
+          }),
         }}
       >
         {renderTable()}
