@@ -1437,7 +1437,14 @@ export default function App() {
                       >
                         <Box sx={{ flexGrow: 1, width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
                           {renderMobileToolbar()}
-                          <Box sx={{ flexGrow: 1, overflow: 'auto', width: '100%' }}>
+                          <Box sx={{ 
+                            flexGrow: 1, 
+                            overflow: 'auto', 
+                            width: '100%',
+                            ...(isMobile && {
+                              paddingBottom: '20px',
+                            })
+                          }}>
                             {activeSection === 'cots-report' && renderCollapsibleTable()}
                             {/* Chart section hidden for now */}
                             {activeSection === 'seasonality' && (

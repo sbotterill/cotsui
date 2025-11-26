@@ -1642,44 +1642,16 @@ export default function CollapsibleTable({
       width: '100%', 
       display: 'flex', 
       flexDirection: 'column',
-      height: isMobile ? 'calc(var(--app-mobile-viewport, 100vh) - 210px)' : '45vh',
-      minHeight: isMobile ? 420 : '45vh',
-      maxHeight: isMobile ? 'calc(var(--app-mobile-viewport, 100vh) - 120px)' : undefined,
+      height: '45vh',
+      minHeight: '45vh',
       flex: '1 1 auto',
       borderRadius: 1,
       overflow: 'hidden',
-      ...(isMobile && {
-        '& .MuiTableContainer-root': {
-          scrollbarWidth: 'thin',
-          '&::-webkit-scrollbar': {
-            width: '6px',
-            height: '6px'
-          },
-          '&::-webkit-scrollbar-track': {
-            background: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5'
-          },
-          '&::-webkit-scrollbar-thumb': {
-            background: theme.palette.mode === 'dark' ? '#444' : '#ccc',
-            borderRadius: '3px'
-          }
-        }
-      })
     }}>
     <Box sx={{ 
         borderBottom: 1, 
         borderColor: 'divider',
         bgcolor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-        ...(isMobile && {
-          overflowX: 'auto',
-          WebkitOverflowScrolling: 'touch',
-          position: 'sticky',
-          top: { xs: '54px', sm: '208px' }, // AppBar (56px/64px) + HeaderActions (~96px) + Mobile Toolbar (~48px)
-          zIndex: 3,
-          backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-          width: '100%',
-          left: 0,
-          right: 0
-        })
       }}>
         {renderTabs()}
       </Box>
@@ -1692,23 +1664,6 @@ export default function CollapsibleTable({
           '& .MuiPaper-root': {
             border: 'none'
           },
-          ...(isMobile && {
-            overflowX: 'auto',
-            overflowY: 'auto',
-            position: 'absolute',
-            top: '144px',
-            WebkitOverflowScrolling: 'touch',
-            '&::-webkit-scrollbar': {
-              height: '8px'
-            },
-            '&::-webkit-scrollbar-track': {
-              backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5'
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: theme.palette.mode === 'dark' ? '#444' : '#ccc',
-              borderRadius: '4px'
-            }
-          })
         }}
       >
         {renderTable()}
