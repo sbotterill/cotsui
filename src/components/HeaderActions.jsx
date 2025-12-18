@@ -145,7 +145,7 @@ function HeaderActions(props) {
   return (
     <Box
       sx={{
-        display: 'flex',
+        display: isMobile && isChart ? 'none' : 'flex',
         alignItems: isMobile ? 'stretch' : 'center',
         flexWrap: 'wrap',
         columnGap: isMobile ? 1 : 1.5,
@@ -192,19 +192,27 @@ function HeaderActions(props) {
         }}
       />)}
       {isChart ? (
-        <FormControl size="small" sx={{ minWidth: 280 }}>
+        <FormControl size="small" sx={{ minWidth: isMobile ? 140 : 280, flex: isMobile ? '1 1 100%' : '0 0 auto' }}>
           <Autocomplete
             options={flatOptions}
             autoHighlight
             size="small"
-            getOptionLabel={(opt) => (opt?.label ? opt.label : '')}
+            getOptionLabel={(opt) => {
+              if (!opt?.label) return '';
+              return isMobile ? opt.value : opt.label;
+            }}
             value={selectedOption}
             onChange={(_, opt) => {
               const sym = opt?.value || null;
               props.onChartSelectionChange?.({ symbol: sym });
             }}
             renderInput={(params) => (
-              <TextField {...params} label="Symbol" placeholder="Type to search..." />
+              <TextField {...params} label="Symbol" placeholder={isMobile ? "Symbol" : "Type to search..."} />
+            )}
+            renderOption={(props, option) => (
+              <li {...props}>
+                {isMobile ? `${option.value} — ${displayOnlyName(option.label)}` : option.label}
+              </li>
             )}
             isOptionEqualToValue={(o, v) => o?.value === v?.value}
           />
@@ -270,7 +278,7 @@ function HeaderActions(props) {
       )}
       {props.activeSection === 'seasonality' && (
         <>
-          <FormControl size="small" sx={{ minWidth: 140 }}>
+          <FormControl size="small" sx={{ minWidth: isMobile ? 100 : 140, flex: isMobile ? '1 1 45%' : '0 0 auto' }}>
             <InputLabel id="seasonality-lookback-label">Lookback</InputLabel>
             <Select
               labelId="seasonality-lookback-label"
@@ -279,11 +287,10 @@ function HeaderActions(props) {
               onChange={(e) => props.onSeasonalityLookbackChange?.(Number(e.target.value))}
             >
               <MenuItem value={10}>10 years</MenuItem>
-              <MenuItem value={10}>10 years</MenuItem>
               <MenuItem value={5}>5 years</MenuItem>
             </Select>
           </FormControl>
-          <FormControl size="small" sx={{ minWidth: 180 }}>
+          <FormControl size="small" sx={{ minWidth: isMobile ? 100 : 180, flex: isMobile ? '1 1 45%' : '0 0 auto' }}>
             <InputLabel id="seasonality-cycle-label">Cycle</InputLabel>
             <Select
               labelId="seasonality-cycle-label"
@@ -292,34 +299,38 @@ function HeaderActions(props) {
               onChange={(e) => props.onSeasonalityCycleChange?.(e.target.value)}
             >
               <MenuItem value={'all'}>All years</MenuItem>
-              <MenuItem value={'pre'}>Pre-election year</MenuItem>
-              <MenuItem value={'election'}>Election year</MenuItem>
-              <MenuItem value={'post'}>Post-election year</MenuItem>
-              <MenuItem value={'midterm'}>Midterm year</MenuItem>
+              <MenuItem value={'pre'}>Pre-election</MenuItem>
+              <MenuItem value={'election'}>Election</MenuItem>
+              <MenuItem value={'post'}>Post-election</MenuItem>
+              <MenuItem value={'midterm'}>Midterm</MenuItem>
             </Select>
           </FormControl>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <TextField
-              size="small"
-              type="date"
-              label="Start"
-              InputLabelProps={{ shrink: true }}
-              value={props.seasonalityStartDate || ''}
-              onChange={(e) => props.onSeasonalityCustomRangeChange?.({ start: e.target.value || null, end: props.seasonalityEndDate || null })}
-            />
-            <TextField
-              size="small"
-              type="date"
-              label="End"
-              InputLabelProps={{ shrink: true }}
-              value={props.seasonalityEndDate || ''}
-              onChange={(e) => props.onSeasonalityCustomRangeChange?.({ start: props.seasonalityStartDate || null, end: e.target.value || null })}
-            />
-          </Box>
-          {props.seasonalityEffectiveRange?.from && props.seasonalityEffectiveRange?.to && (
-            <Typography variant="body2" sx={{ ml: 1, color: 'text.secondary' }}>
-              Using: {props.seasonalityEffectiveRange.from} – {props.seasonalityEffectiveRange.to}
-            </Typography>
+          {!isMobile && (
+            <>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TextField
+                  size="small"
+                  type="date"
+                  label="Start"
+                  InputLabelProps={{ shrink: true }}
+                  value={props.seasonalityStartDate || ''}
+                  onChange={(e) => props.onSeasonalityCustomRangeChange?.({ start: e.target.value || null, end: props.seasonalityEndDate || null })}
+                />
+                <TextField
+                  size="small"
+                  type="date"
+                  label="End"
+                  InputLabelProps={{ shrink: true }}
+                  value={props.seasonalityEndDate || ''}
+                  onChange={(e) => props.onSeasonalityCustomRangeChange?.({ start: props.seasonalityStartDate || null, end: e.target.value || null })}
+                />
+              </Box>
+              {props.seasonalityEffectiveRange?.from && props.seasonalityEffectiveRange?.to && (
+                <Typography variant="body2" sx={{ ml: 1, color: 'text.secondary' }}>
+                  Using: {props.seasonalityEffectiveRange.from} – {props.seasonalityEffectiveRange.to}
+                </Typography>
+              )}
+            </>
           )}
         </>
       )}

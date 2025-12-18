@@ -41,7 +41,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import { Select, MenuItem, FormControl } from '@mui/material';
+import { Select, MenuItem, FormControl, InputLabel, Autocomplete, TextField } from '@mui/material';
 import { getCommercialExtremes, getRetailExtremes } from './services/cftcService';
 
 // Context to expose toggle function for theme switch
@@ -510,6 +510,24 @@ async function fetchData(selectedDate = null) {
 }
 
 // Main App component
+// Symbol options for seasonality chart
+const SEASONALITY_SYMBOLS = [
+  { value: 'CL', label: 'CL — Crude Oil' },
+  { value: 'GC', label: 'GC — Gold' },
+  { value: 'SI', label: 'SI — Silver' },
+  { value: 'ES', label: 'ES — E-mini S&P 500' },
+  { value: 'NQ', label: 'NQ — E-mini NASDAQ' },
+  { value: 'ZB', label: 'ZB — 30-Year T-Bond' },
+  { value: 'ZN', label: 'ZN — 10-Year T-Note' },
+  { value: 'ZC', label: 'ZC — Corn' },
+  { value: 'ZS', label: 'ZS — Soybeans' },
+  { value: 'ZW', label: 'ZW — Wheat' },
+  { value: 'NG', label: 'NG — Natural Gas' },
+  { value: 'HG', label: 'HG — Copper' },
+  { value: '6E', label: '6E — Euro FX' },
+  { value: '6J', label: '6J — Japanese Yen' },
+];
+
 export default function App() {
   const [mode, setMode] = useState('dark');
   
@@ -1108,7 +1126,7 @@ export default function App() {
         left: 0,
         right: 0
       }}>
-        {/* First row: View toggles */}
+        {/* View toggle buttons row */}
         <Box
           sx={{
             display: 'flex',
@@ -1131,75 +1149,82 @@ export default function App() {
               }
             }}
           >
-          <ToggleButtonGroup
-            value={activeSection === 'cots-report' ? mobileView : null}
-            exclusive
-            onChange={handleMobileViewChange}
-            aria-label="mobile view"
-            size="small"
-            sx={{
-              '& .MuiToggleButton-root': {
+            <ToggleButtonGroup
+              value={activeSection === 'cots-report' ? mobileView : null}
+              exclusive
+              onChange={(e, newView) => {
+                // If in seasonality, switch back to cots-report first
+                if (activeSection === 'seasonality' && newView) {
+                  router.navigate('/cots-report');
+                  setMobileView(newView);
+                } else {
+                  handleMobileViewChange(e, newView);
+                }
+              }}
+              aria-label="mobile view"
+              size="small"
+              sx={{
+                '& .MuiToggleButton-root': {
+                  border: 'none',
+                  borderRadius: 0,
+                }
+              }}
+            >
+              <ToggleButton
+                value="table"
+                aria-label="table view"
+                title="Table View"
+                sx={{ px: 1.25 }}
+              >
+                <TableChartIcon fontSize="small" />
+              </ToggleButton>
+              <ToggleButton
+                value="chart"
+                aria-label="chart view"
+                title="Chart View"
+                sx={{ px: 1.25 }}
+              >
+                <ShowChartIcon fontSize="small" />
+              </ToggleButton>
+            </ToggleButtonGroup>
+            <ToggleButton
+              selected={activeSection === 'seasonality'}
+              onClick={handleSeasonalityClick}
+              aria-label="seasonality"
+              title={activeSection === 'seasonality' ? 'Go to Reports' : 'Seasonality'}
+              value="seasonality"
+              sx={{ 
+                px: 1.25,
                 border: 'none',
                 borderRadius: 0,
-              }
-            }}
-          >
-            <ToggleButton
-              value="table"
-              aria-label="table view"
-              title="Table View"
-              disabled={activeSection !== 'cots-report'}
-              sx={{ px: 1.25 }}
+                '&.Mui-selected': {
+                  backgroundColor: theme.palette.action.selected,
+                }
+              }}
             >
-              <TableChartIcon fontSize="small" />
+              <WbSunnyIcon fontSize="small" />
             </ToggleButton>
             <ToggleButton
-              value="chart"
-              aria-label="chart view"
-              title="Chart View"
-              disabled={activeSection !== 'cots-report'}
-              sx={{ px: 1.25 }}
+              ref={profileButtonRef}
+              selected={Boolean(profileAnchorEl)}
+              onClick={handleAccountClick}
+              aria-label="account"
+              title="Account"
+              value="account"
+              sx={{ 
+                px: 1.25,
+                border: 'none',
+                borderRadius: 0,
+                '&.Mui-selected': {
+                  backgroundColor: theme.palette.action.selected,
+                }
+              }}
             >
-              <ShowChartIcon fontSize="small" />
+              <AccountCircleIcon fontSize="small" />
             </ToggleButton>
-          </ToggleButtonGroup>
-          <ToggleButton
-            selected={activeSection === 'seasonality'}
-            onClick={handleSeasonalityClick}
-            aria-label="seasonality"
-            title={activeSection === 'seasonality' ? 'Go to Reports' : 'Seasonality'}
-            value="seasonality"
-            sx={{ 
-              px: 1.25,
-              border: 'none',
-              borderRadius: 0,
-              '&.Mui-selected': {
-                backgroundColor: theme.palette.action.selected,
-              }
-            }}
-          >
-            <WbSunnyIcon fontSize="small" />
-          </ToggleButton>
-          <ToggleButton
-            ref={profileButtonRef}
-            selected={Boolean(profileAnchorEl)}
-            onClick={handleAccountClick}
-            aria-label="account"
-            title="Account"
-            value="account"
-            sx={{ 
-              px: 1.25,
-              border: 'none',
-              borderRadius: 0,
-              '&.Mui-selected': {
-                backgroundColor: theme.palette.action.selected,
-              }
-            }}
-          >
-            <AccountCircleIcon fontSize="small" />
-          </ToggleButton>
+          </Box>
         </Box>
-      </Box>
+        
         <ProfileCard
           open={Boolean(profileAnchorEl)}
           onClose={handleProfileClose}
@@ -1207,7 +1232,72 @@ export default function App() {
           buttonRef={profileButtonRef}
         />
         
-        {/* Second row: Tab selector and Sort (only show on cots-report section) */}
+        {/* Seasonality controls (when in seasonality mode) */}
+        {activeSection === 'seasonality' && (
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            gap: 1,
+            width: '100%',
+          }}>
+            {/* Symbol selector - full width */}
+            <Autocomplete
+              size="small"
+              options={SEASONALITY_SYMBOLS}
+              value={SEASONALITY_SYMBOLS.find(s => s.value === selectedSymbol) || SEASONALITY_SYMBOLS[0]}
+              onChange={(_, option) => setSelectedSymbol(option?.value || 'CL')}
+              getOptionLabel={(option) => option.label}
+              renderInput={(params) => (
+                <TextField 
+                  {...params} 
+                  label="Symbol" 
+                  sx={{ 
+                    '& .MuiInputBase-root': { 
+                      height: '36px',
+                      fontSize: '0.875rem'
+                    } 
+                  }}
+                />
+              )}
+              isOptionEqualToValue={(option, value) => option.value === value.value}
+            />
+            
+            {/* Lookback and Cycle - side by side */}
+            <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
+              <FormControl size="small" sx={{ flex: 1, minWidth: 100 }}>
+                <InputLabel id="mobile-seasonality-lookback-label">Lookback</InputLabel>
+                <Select
+                  labelId="mobile-seasonality-lookback-label"
+                  value={seasonalityLookback || 10}
+                  label="Lookback"
+                  onChange={(e) => setSeasonalityLookback(Number(e.target.value))}
+                  sx={{ height: '36px', fontSize: '0.875rem' }}
+                >
+                  <MenuItem value={10}>10 years</MenuItem>
+                  <MenuItem value={5}>5 years</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl size="small" sx={{ flex: 1, minWidth: 100 }}>
+                <InputLabel id="mobile-seasonality-cycle-label">Cycle</InputLabel>
+                <Select
+                  labelId="mobile-seasonality-cycle-label"
+                  value={seasonalityCycle || 'all'}
+                  label="Cycle"
+                  onChange={(e) => setSeasonalityCycle(e.target.value)}
+                  sx={{ height: '36px', fontSize: '0.875rem' }}
+                >
+                  <MenuItem value={'all'}>All years</MenuItem>
+                  <MenuItem value={'pre'}>Pre-elec</MenuItem>
+                  <MenuItem value={'election'}>Election</MenuItem>
+                  <MenuItem value={'post'}>Post-elec</MenuItem>
+                  <MenuItem value={'midterm'}>Midterm</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          </Box>
+        )}
+        
+        {/* Tab selector and Sort (only show on cots-report section) */}
         {activeSection === 'cots-report' && tabOptions.length > 0 && (
           <Box sx={{ 
             display: 'flex', 
@@ -1571,7 +1661,13 @@ export default function App() {
                             {activeSection === 'cots-report' && renderCollapsibleTable()}
                             {/* Chart section hidden for now */}
                             {activeSection === 'seasonality' && (
-                              <Box sx={{ p: 2, height: 'calc(100vh - 120px)' }}>
+                              <Box sx={{ 
+                                p: isMobile ? 1 : 2, 
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                overflow: isMobile ? 'auto' : 'hidden'
+                              }}>
                                 <SeasonalityChart 
                                   symbol={selectedSymbol} 
                                   lookbackYears={seasonalityLookback}

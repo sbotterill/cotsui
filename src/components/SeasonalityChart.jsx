@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Box, CircularProgress, Stack, Typography, useTheme } from '@mui/material';
+import { Box, CircularProgress, Stack, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { LineChartPro, BarChartPro } from '@mui/x-charts-pro';
 import { LicenseInfo } from '@mui/x-license';
 import { fetchDailyCandlesByAsset, fetchAllCandlesByAsset } from '../services/priceService';
@@ -83,6 +83,8 @@ function computeSeasonality(candles) {
 
 export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilter = 'all', startDate, endDate, onEffectiveRange }) {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
   const [loading, setLoading] = React.useState(false);
   const [seriesData, setSeriesData] = React.useState(null);
   const [error, setError] = React.useState(null);
@@ -308,15 +310,24 @@ export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilt
   const monthStartSet = React.useMemo(() => new Set(seriesData?.monthStartIndices || []), [seriesData]);
 
   return (
-    <Box sx={{ width: '100%', height: '100%', position: 'relative', mt: 2, display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ 
+      width: '100%', 
+      height: isMobile ? 'auto' : '100%',
+      minHeight: isMobile ? 'calc(100vh - 180px)' : undefined,
+      position: 'relative', 
+      mt: isMobile ? 0 : 2, 
+      display: 'flex', 
+      flexDirection: 'column',
+      pb: isMobile ? 2 : 0
+    }}>
       {loading && (
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
           <CircularProgress />
         </Box>
       )}
       {error && (
-        <Box sx={{ p: 2 }}>
-          <Typography color="error">{error}</Typography>
+        <Box sx={{ p: isMobile ? 1 : 2 }}>
+          <Typography color="error" variant={isMobile ? "body2" : "body1"}>{error}</Typography>
         </Box>
       )}
       {!loading && seriesData && seriesData.dailySeasonality && (
@@ -326,12 +337,12 @@ export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilt
             spacing={2} 
             sx={{ 
               position: 'absolute', 
-              top: 20,
+              top: isMobile ? 10 : 20,
               left: '50%',
               transform: 'translateX(-50%)',
               zIndex: 1,
               backgroundColor: 'transparent',
-              padding: '4px 8px',
+              padding: isMobile ? '2px 4px' : '4px 8px',
             }}
           >
             <Box
@@ -339,24 +350,28 @@ export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilt
                 display: 'flex',
                 alignItems: 'center',
                 cursor: 'default',
-                padding: '4px 8px',
+                padding: isMobile ? '2px 4px' : '4px 8px',
                 borderRadius: '4px',
                 userSelect: 'none',
               }}
             >
               <Box
                 sx={{
-                  width: 10,
-                  height: 10,
+                  width: isMobile ? 8 : 10,
+                  height: isMobile ? 8 : 10,
                   borderRadius: '50%',
                   backgroundColor: '#4A148C',
                   marginRight: 1,
                 }}
               />
-              <Typography variant="body2">Historical Seasonality</Typography>
+              <Typography variant={isMobile ? "caption" : "body2"}>Historical Seasonality</Typography>
             </Box>
           </Stack>
-          <Box sx={{ flex: 1, minHeight: 0 }}>
+          <Box sx={{ 
+            flex: isMobile ? '0 0 auto' : 1, 
+            minHeight: isMobile ? '300px' : 0,
+            height: isMobile ? '300px' : 'auto'
+          }}>
             <LineChartPro
               sx={{ 
                 width: '100%', 
@@ -421,7 +436,12 @@ export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilt
                   strokeWidth: 1,
                 }
               }}
-              margin={{ right: 10, top: 50, bottom: 10, left: 10 }}
+              margin={{ 
+                right: isMobile ? 5 : 10, 
+                top: isMobile ? 35 : 50, 
+                bottom: isMobile ? 5 : 10, 
+                left: isMobile ? 5 : 10 
+              }}
               tooltip={{ 
                 trigger: 'axis',
                 axisPointer: {
@@ -449,12 +469,34 @@ export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilt
               }}
             />
           </Box>
-          <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="body2" sx={{ mb: 1 }}>Avg Return by Weekday</Typography>
+          <Stack 
+            direction={isMobile ? "column" : "row"} 
+            spacing={2} 
+            sx={{ 
+              mt: isMobile ? 1 : 2,
+              px: isMobile ? 1 : 0 
+            }}
+          >
+            <Box sx={{ flex: 1, width: '100%' }}>
+              <Typography 
+                variant={isMobile ? "caption" : "body2"} 
+                sx={{ 
+                  mb: 0.5,
+                  fontWeight: 500,
+                  fontSize: isMobile ? '0.75rem' : undefined
+                }}
+              >
+                Avg Return by Weekday
+              </Typography>
               {avgByWeekday && (
                 <BarChartPro
-                  xAxis={[{ scaleType: 'band', data: avgByWeekday.map(x => x.label) }]}
+                  xAxis={[{ 
+                    scaleType: 'band', 
+                    data: avgByWeekday.map(x => x.label),
+                    tickLabelStyle: {
+                      fontSize: isMobile ? 10 : 12,
+                    }
+                  }]}
                   series={[
                     { 
                       data: avgByWeekday.map(x => (x.value > 0 ? x.value : 0)), 
@@ -469,16 +511,43 @@ export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilt
                       valueFormatter: (v) => `${(v * 100).toFixed(2)}%`,
                     },
                   ]}
-                  yAxis={[{ valueFormatter: (v) => `${(v * 100).toFixed(2)}%` }]}
-                  height={220}
+                  yAxis={[{ 
+                    valueFormatter: (v) => `${(v * 100).toFixed(2)}%`,
+                    tickLabelStyle: {
+                      fontSize: isMobile ? 10 : 12,
+                    }
+                  }]}
+                  height={isMobile ? 180 : (isTablet ? 200 : 220)}
+                  margin={{
+                    left: isMobile ? 40 : 50,
+                    right: isMobile ? 10 : 20,
+                    top: isMobile ? 10 : 20,
+                    bottom: isMobile ? 30 : 40
+                  }}
                 />
               )}
             </Box>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="body2" sx={{ mb: 1 }}>Avg Return by Month</Typography>
+            <Box sx={{ flex: 1, width: '100%' }}>
+              <Typography 
+                variant={isMobile ? "caption" : "body2"} 
+                sx={{ 
+                  mb: 0.5,
+                  fontWeight: 500,
+                  fontSize: isMobile ? '0.75rem' : undefined
+                }}
+              >
+                Avg Return by Month
+              </Typography>
               {avgByMonth && (
                 <BarChartPro
-                  xAxis={[{ scaleType: 'band', data: avgByMonth.map(x => x.label) }]}
+                  xAxis={[{ 
+                    scaleType: 'band', 
+                    data: avgByMonth.map(x => x.label),
+                    tickLabelStyle: {
+                      fontSize: isMobile ? 9 : 12,
+                      angle: isMobile ? -45 : 0,
+                    }
+                  }]}
                   series={[
                     { 
                       data: avgByMonth.map(x => (x.value > 0 ? x.value : 0)), 
@@ -493,8 +562,19 @@ export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilt
                       valueFormatter: (v) => `${(v * 100).toFixed(2)}%`,
                     },
                   ]}
-                  yAxis={[{ valueFormatter: (v) => `${(v * 100).toFixed(2)}%` }]}
-                  height={220}
+                  yAxis={[{ 
+                    valueFormatter: (v) => `${(v * 100).toFixed(2)}%`,
+                    tickLabelStyle: {
+                      fontSize: isMobile ? 10 : 12,
+                    }
+                  }]}
+                  height={isMobile ? 180 : (isTablet ? 200 : 220)}
+                  margin={{
+                    left: isMobile ? 40 : 50,
+                    right: isMobile ? 10 : 20,
+                    top: isMobile ? 10 : 20,
+                    bottom: isMobile ? 40 : 40
+                  }}
                 />
               )}
             </Box>
