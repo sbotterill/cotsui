@@ -1,4 +1,7 @@
 module.exports = {
+  devServer: {
+    historyApiFallback: true,
+  },
   webpack: {
     configure: (webpackConfig) => {
       // Find the rule that processes JS/JSX files

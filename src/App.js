@@ -1398,6 +1398,7 @@ export default function App() {
 
   const router = useMemo(() => ({
     pathname: routerPath,
+    searchParams: new URLSearchParams(),
     navigate: (path) => {
       setRouterPath(path);
       const seg = (path || '').split('/').filter(Boolean).pop();
@@ -1528,7 +1529,7 @@ export default function App() {
                             '& button[aria-label*="navigation" i]': {
                               display: 'none !important',
                             },
-                            '& .MuiToolbar-root button:first-child': {
+                            '& .MuiToolbar-root button:first-of-type': {
                               display: 'none !important',
                             },
                           }

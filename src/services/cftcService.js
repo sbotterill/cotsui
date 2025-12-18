@@ -5,8 +5,8 @@ const BATCH_SIZE = 50;
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const Z_SCORE_THRESHOLD = 1.5; // Z-score threshold for extreme positions
 // Use stable cache keys; manage freshness via stored timestamps
-const CACHE_KEY = 'commercialStatsCache';
-const RETAIL_CACHE_KEY = 'retailStatsCache';
+const CACHE_KEY = 'commercialStatsCache_v2'; // v2 includes 5-year stats
+const RETAIL_CACHE_KEY = 'retailStatsCache_v2'; // v2 includes 5-year stats
 
 // Calculate mean of an array
 function calculateMean(values) {
@@ -166,18 +166,43 @@ async function getHistoricalNetPositions(marketCode) {
       return null;
     }
 
-    // Calculate net positions
-    const netPositions = response.data.map(d => {
+    // Calculate net positions with dates
+    const dataWithDates = response.data.map(d => {
       const long = parseInt(d.comm_positions_long_all) || 0;
       const short = parseInt(d.comm_positions_short_all) || 0;
-      return long - short;
-    }).filter(net => !isNaN(net));
+      return {
+        date: d.report_date_as_yyyy_mm_dd,
+        net: long - short
+      };
+    }).filter(item => !isNaN(item.net));
 
-    if (netPositions.length === 0) return null;
+    if (dataWithDates.length === 0) return null;
 
-    // Calculate statistics
+    const netPositions = dataWithDates.map(d => d.net);
+
+    // Calculate all-time statistics
     const mean = calculateMean(netPositions);
     const stdDev = calculateStandardDeviation(netPositions, mean);
+
+    // Calculate 5-year statistics
+    const fiveYearsAgo = new Date();
+    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+    const fiveYearData = dataWithDates.filter(d => {
+      const itemDate = new Date(d.date);
+      return itemDate >= fiveYearsAgo;
+    });
+
+    let stats5y = null;
+    if (fiveYearData.length > 0) {
+      const netPositions5y = fiveYearData.map(d => d.net);
+      const mean5y = calculateMean(netPositions5y);
+      const stdDev5y = calculateStandardDeviation(netPositions5y, mean5y);
+      stats5y = {
+        mean: mean5y,
+        stdDev: stdDev5y,
+        count: netPositions5y.length
+      };
+    }
 
     return {
       netPositions,
@@ -185,7 +210,8 @@ async function getHistoricalNetPositions(marketCode) {
         mean,
         stdDev,
         count: netPositions.length
-      }
+      },
+      stats5y
     };
   } catch (error) {
     console.error(`Error fetching data for ${marketCode}:`, error);
@@ -211,8 +237,15 @@ export function getCommercialTrackerData(data, historicalData) {
       return null;
     }
 
-    // Calculate Z-score
+    // Calculate all-time Z-score
     const zScore = calculateZScore(currentNet, history.stats.mean, history.stats.stdDev);
+
+    // Calculate 5-year Z-score if available
+    let zScore5y = null;
+    if (history.stats5y) {
+      zScore5y = calculateZScore(currentNet, history.stats5y.mean, history.stats5y.stdDev);
+      zScore5y = Number(zScore5y.toFixed(2));
+    }
 
     // Check if position is extreme based on Z-score
     const extremeType = zScore >= Z_SCORE_THRESHOLD ? 'BULLISH' : 
@@ -222,6 +255,7 @@ export function getCommercialTrackerData(data, historicalData) {
     return {
       ...item,
       zScore: Number(zScore.toFixed(2)),
+      zScore5y,
       extremeType
     };
   });
@@ -285,16 +319,43 @@ async function getHistoricalRetailNetPositions(marketCode) {
       return null;
     }
 
-    const netPositions = response.data.map(d => {
+    // Calculate net positions with dates
+    const dataWithDates = response.data.map(d => {
       const long = parseInt(d.nonrept_positions_long_all) || 0;
       const short = parseInt(d.nonrept_positions_short_all) || 0;
-      return long - short;
-    }).filter(net => !isNaN(net));
+      return {
+        date: d.report_date_as_yyyy_mm_dd,
+        net: long - short
+      };
+    }).filter(item => !isNaN(item.net));
 
-    if (netPositions.length === 0) return null;
+    if (dataWithDates.length === 0) return null;
 
+    const netPositions = dataWithDates.map(d => d.net);
+
+    // Calculate all-time statistics
     const mean = calculateMean(netPositions);
     const stdDev = calculateStandardDeviation(netPositions, mean);
+
+    // Calculate 5-year statistics
+    const fiveYearsAgo = new Date();
+    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+    const fiveYearData = dataWithDates.filter(d => {
+      const itemDate = new Date(d.date);
+      return itemDate >= fiveYearsAgo;
+    });
+
+    let stats5y = null;
+    if (fiveYearData.length > 0) {
+      const netPositions5y = fiveYearData.map(d => d.net);
+      const mean5y = calculateMean(netPositions5y);
+      const stdDev5y = calculateStandardDeviation(netPositions5y, mean5y);
+      stats5y = {
+        mean: mean5y,
+        stdDev: stdDev5y,
+        count: netPositions5y.length
+      };
+    }
 
     return {
       netPositions,
@@ -302,7 +363,8 @@ async function getHistoricalRetailNetPositions(marketCode) {
         mean,
         stdDev,
         count: netPositions.length
-      }
+      },
+      stats5y
     };
   } catch (error) {
     console.error(`Error fetching retail data for ${marketCode}:`, error);
@@ -325,7 +387,15 @@ export function getRetailTrackerData(data, historicalData) {
       return null;
     }
 
+    // Calculate all-time Z-score
     const zScore = calculateZScore(currentNet, history.stats.mean, history.stats.stdDev);
+
+    // Calculate 5-year Z-score if available
+    let zScore5y = null;
+    if (history.stats5y) {
+      zScore5y = calculateZScore(currentNet, history.stats5y.mean, history.stats5y.stdDev);
+      zScore5y = Number(zScore5y.toFixed(2));
+    }
 
     const extremeType = zScore >= Z_SCORE_THRESHOLD ? 'BULLISH' :
                         zScore <= -Z_SCORE_THRESHOLD ? 'BEARISH' : 'NORMAL';
@@ -333,6 +403,7 @@ export function getRetailTrackerData(data, historicalData) {
     return {
       ...item,
       zScore: Number(zScore.toFixed(2)),
+      zScore5y,
       extremeType
     };
   });

@@ -131,6 +131,15 @@ function descendingComparator(a, b, orderBy) {
     return 0;
   }
   
+  // Handle 5-year z-score sorting (with null handling)
+  if (orderBy === 'zScore5y') {
+    const aValue = typeof a.zScore5y === 'number' ? a.zScore5y : -Infinity;
+    const bValue = typeof b.zScore5y === 'number' ? b.zScore5y : -Infinity;
+    if (bValue < aValue) return -1;
+    if (bValue > aValue) return 1;
+    return 0;
+  }
+  
   if (orderBy === 'non_commercial_percentage_long' || 
       orderBy === 'commercial_percentage_long' || 
       orderBy === 'non_reportable_percentage_long' ||
@@ -546,7 +555,7 @@ export default function CollapsibleTable({
 
   // If user leaves tracker while sorting by zScore, reset to commodity
   React.useEffect(() => {
-    const isZScoreSort = effectiveOrderBy === 'zScore' || effectiveOrderBy === 'zScore_positive' || effectiveOrderBy === 'zScore_negative';
+    const isZScoreSort = effectiveOrderBy === 'zScore' || effectiveOrderBy === 'zScore5y' || effectiveOrderBy === 'zScore_positive' || effectiveOrderBy === 'zScore_negative';
     if (!(isCommercialTrackerSelected || isRetailTrackerSelected) && isZScoreSort) {
       if (isMobile && onMobileSortChange) {
         onMobileSortChange('commodity', 'asc');
@@ -760,7 +769,18 @@ export default function CollapsibleTable({
                       variant="outlined"
                       label={row.market_code || '—'}
                     />
-                    <ZBadge z={row.zScore} type={row.extremeType} />
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <Typography variant="caption" sx={{ fontSize: '0.65rem', opacity: 0.7 }}>All-Time</Typography>
+                        <ZBadge z={row.zScore} type={row.extremeType} />
+                      </Box>
+                      {row.zScore5y !== null && row.zScore5y !== undefined && (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <Typography variant="caption" sx={{ fontSize: '0.65rem', opacity: 0.7 }}>5Y</Typography>
+                          <ZBadge z={row.zScore5y} type={row.extremeType} />
+                        </Box>
+                      )}
+                    </Box>
                   </Box>
                 </Box>
                 <FavoriteButton
@@ -844,16 +864,28 @@ export default function CollapsibleTable({
                 </TableSortLabel>
               </TableCell>
               {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
-                <TableCell align="center">
-                  <TableSortLabel
-                    active={effectiveOrderBy === 'zScore'}
-                    direction={effectiveOrderBy === 'zScore' ? effectiveOrder : 'asc'}
-                    onClick={() => handleRequestSort('zScore')}
-                    sx={{ justifyContent: 'center' }}
-                  >
-                    zScore
-                  </TableSortLabel>
-                </TableCell>
+                <>
+                  <TableCell align="center">
+                    <TableSortLabel
+                      active={effectiveOrderBy === 'zScore'}
+                      direction={effectiveOrderBy === 'zScore' ? effectiveOrder : 'asc'}
+                      onClick={() => handleRequestSort('zScore')}
+                      sx={{ justifyContent: 'center' }}
+                    >
+                      zScore (All)
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell align="center">
+                    <TableSortLabel
+                      active={effectiveOrderBy === 'zScore5y'}
+                      direction={effectiveOrderBy === 'zScore5y' ? effectiveOrder : 'asc'}
+                      onClick={() => handleRequestSort('zScore5y')}
+                      sx={{ justifyContent: 'center' }}
+                    >
+                      zScore (5Y)
+                    </TableSortLabel>
+                  </TableCell>
+                </>
               )}
               <TableCell colSpan={2} align="center">Open Interest</TableCell>
               <TableCell colSpan={isTabletLandscape ? 4 : 3} align="center">Non-commercial</TableCell>
@@ -863,7 +895,10 @@ export default function CollapsibleTable({
             <TableRow>
               <TableCell sx={{ position: 'sticky', left: 0, backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5', zIndex: 1 }} />
               {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
-                <TableCell align="center">zScore</TableCell>
+                <>
+                  <TableCell align="center">All-Time</TableCell>
+                  <TableCell align="center">5 Years</TableCell>
+                </>
               )}
               <TableCell align="center">Total</TableCell>
               <TableCell align="center">Change</TableCell>
@@ -923,7 +958,16 @@ export default function CollapsibleTable({
                   </Box>
                 </TableCell>
                 {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
-                  <TableCell align="center"><ZBadge z={row.zScore} type={row.extremeType} /></TableCell>
+                  <>
+                    <TableCell align="center"><ZBadge z={row.zScore} type={row.extremeType} /></TableCell>
+                    <TableCell align="center">
+                      {row.zScore5y !== null && row.zScore5y !== undefined ? (
+                        <ZBadge z={row.zScore5y} type={row.extremeType} />
+                      ) : (
+                        '—'
+                      )}
+                    </TableCell>
+                  </>
                 )}
                 {/* Open Interest */}
                 <TableCell align="right">{isTabletLandscape ? fmt.format(row.open_interest_all) : fmtCompact.format(row.open_interest_all)}</TableCell>
@@ -1125,29 +1169,54 @@ export default function CollapsibleTable({
           }}>
             {/* Open Interest Headers */}
             {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
-              <TableCell
-                align="center"
-                sx={{
-                  color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                  minWidth: '70px',
-                  maxWidth: '80px',
-                  backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                  padding: '8px 4px',
-                  fontSize: '0.75rem',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}
-              >
-                <TableSortLabel
-                  active={effectiveOrderBy === 'zScore'}
-                  direction={effectiveOrderBy === 'zScore' ? effectiveOrder : 'asc'}
-                  onClick={() => handleRequestSort('zScore')}
-                  sx={{ justifyContent: 'center' }}
+              <>
+                <TableCell
+                  align="center"
+                  sx={{
+                    color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                    minWidth: '70px',
+                    maxWidth: '80px',
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                    padding: '8px 4px',
+                    fontSize: '0.75rem',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
                 >
-                  zScore
-                </TableSortLabel>
-              </TableCell>
+                  <TableSortLabel
+                    active={effectiveOrderBy === 'zScore'}
+                    direction={effectiveOrderBy === 'zScore' ? effectiveOrder : 'asc'}
+                    onClick={() => handleRequestSort('zScore')}
+                    sx={{ justifyContent: 'center' }}
+                  >
+                    zScore (All)
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell
+                  align="center"
+                  sx={{
+                    color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                    minWidth: '70px',
+                    maxWidth: '80px',
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                    padding: '8px 4px',
+                    fontSize: '0.75rem',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  <TableSortLabel
+                    active={effectiveOrderBy === 'zScore5y'}
+                    direction={effectiveOrderBy === 'zScore5y' ? effectiveOrder : 'asc'}
+                    onClick={() => handleRequestSort('zScore5y')}
+                    sx={{ justifyContent: 'center' }}
+                  >
+                    zScore (5Y)
+                  </TableSortLabel>
+                </TableCell>
+              </>
             )}
             <TableCell
               align="center"
@@ -1387,13 +1456,25 @@ export default function CollapsibleTable({
                 )}
               </TableCell>
               {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
-                <TableCell align="center" sx={{ 
-                  padding: '8px 4px', 
-                  fontSize: '0.75rem',
-                  borderLeft: `2px solid ${theme.palette.divider}`
-                }}>
-                  <ZBadge z={r.zScore} type={r.extremeType} />
-                </TableCell>
+                <>
+                  <TableCell align="center" sx={{ 
+                    padding: '8px 4px', 
+                    fontSize: '0.75rem',
+                    borderLeft: `2px solid ${theme.palette.divider}`
+                  }}>
+                    <ZBadge z={r.zScore} type={r.extremeType} />
+                  </TableCell>
+                  <TableCell align="center" sx={{ 
+                    padding: '8px 4px', 
+                    fontSize: '0.75rem'
+                  }}>
+                    {r.zScore5y !== null && r.zScore5y !== undefined ? (
+                      <ZBadge z={r.zScore5y} type={r.extremeType} />
+                    ) : (
+                      '—'
+                    )}
+                  </TableCell>
+                </>
               )}
               
               {/* Open Interest */}
