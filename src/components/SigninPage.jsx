@@ -164,38 +164,35 @@ export default function SigninPage({ setAuthorization }) {
     <Box
       sx={{
         minHeight: '100vh',
+        height: '100vh',
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: `linear-gradient(135deg, ${theme.palette.primary.main}15, ${theme.palette.secondary.main}15)`,
-        py: { xs: 2, sm: 4 },
+        background: 'linear-gradient(180deg, #0a0a0a 0%, #111111 50%, #0a0a0a 100%)',
         px: { xs: 2, sm: 3 },
         position: 'relative',
+        overflowY: 'auto',
       }}
     >
-      {/* Back arrow for mobile only */}
-      {isMobile && (
-        <IconButton
-          onClick={() => navigate('/')}
-          sx={{
-            position: 'absolute',
-            top: 16,
-            left: 16,
-            color: theme.palette.primary.main,
-            backgroundColor: theme.palette.background.paper,
-            boxShadow: 2,
-            '&:hover': {
-              backgroundColor: theme.palette.background.paper,
-              boxShadow: 4,
-            }
-          }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
-      )}
+      {/* Back arrow */}
+      <IconButton
+        onClick={() => navigate('/')}
+        sx={{
+          position: 'absolute',
+          top: 16,
+          left: 16,
+          color: '#cbb26a',
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          '&:hover': {
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          }
+        }}
+      >
+        <ArrowBackIcon />
+      </IconButton>
 
-      <Container maxWidth="sm">
+      <Container maxWidth="sm" sx={{ my: 'auto' }}>
         <Box
           sx={{
             display: 'flex',
@@ -204,22 +201,20 @@ export default function SigninPage({ setAuthorization }) {
             mb: { xs: 2, sm: 4 },
           }}
         >
-          <Typography 
-            variant="h3" 
-            component="h1" 
-            sx={{ 
-              fontWeight: 700,
-              color: theme.palette.primary.main,
-              mb: 1,
-              fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+          <Box
+            component="img"
+            src="/noBgColor.png"
+            alt="COTS UI Logo"
+            sx={{
+              height: { xs: '40px', sm: '50px' },
+              width: 'auto',
+              mb: 2,
             }}
-          >
-            COTS UI
-          </Typography>
+          />
           <Typography 
             variant="subtitle1" 
             sx={{ 
-              color: theme.palette.text.secondary,
+              color: 'rgba(255, 255, 255, 0.6)',
               textAlign: 'center',
               maxWidth: '90%',
               fontSize: { xs: '0.9rem', sm: '1rem' },
@@ -230,14 +225,13 @@ export default function SigninPage({ setAuthorization }) {
         </Box>
 
         <Paper 
-          elevation={2} 
+          elevation={0} 
           sx={{ 
             p: { xs: 2.5, sm: 3, md: 4 }, 
             borderRadius: 3,
-            background: theme.palette.background.paper,
+            background: 'rgba(255, 255, 255, 0.03)',
             backdropFilter: 'blur(10px)',
-            border: '1px solid',
-            borderColor: theme.palette.divider,
+            border: '1px solid rgba(255, 255, 255, 0.1)',
           }}
         >
           <Typography 
@@ -249,6 +243,7 @@ export default function SigninPage({ setAuthorization }) {
               fontWeight: 600,
               mb: { xs: 2, sm: 3 },
               fontSize: { xs: '1.25rem', sm: '1.5rem' },
+              color: '#fff',
             }}
           >
             Welcome Back
@@ -279,20 +274,36 @@ export default function SigninPage({ setAuthorization }) {
               margin="normal"
               required
               variant="outlined"
-              size={window.innerWidth < 600 ? 'medium' : 'medium'}
               sx={{
                 mb: { xs: 1.5, sm: 2 },
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 2,
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  '& fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'rgba(203, 178, 106, 0.5)',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#cbb26a',
+                  },
                 },
                 '& .MuiInputBase-input': {
                   fontSize: { xs: '1rem', sm: '1rem' },
-                }
+                  color: '#fff',
+                },
+                '& .MuiInputLabel-root': {
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  '&.Mui-focused': {
+                    color: '#cbb26a',
+                  },
+                },
               }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <AccountCircle color="primary" />
+                    <AccountCircle sx={{ color: '#cbb26a' }} />
                   </InputAdornment>
                 ),
               }}
@@ -307,14 +318,30 @@ export default function SigninPage({ setAuthorization }) {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                size={window.innerWidth < 600 ? 'medium' : 'medium'}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2,
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    '& fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.2)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(203, 178, 106, 0.5)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#cbb26a',
+                    },
                   },
                   '& .MuiInputBase-input': {
                     fontSize: { xs: '1rem', sm: '1rem' },
-                  }
+                    color: '#fff',
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: 'rgba(255, 255, 255, 0.6)',
+                    '&.Mui-focused': {
+                      color: '#cbb26a',
+                    },
+                  },
                 }}
                 InputProps={{
                   endAdornment: (
@@ -324,6 +351,7 @@ export default function SigninPage({ setAuthorization }) {
                         onClick={() => setShowPassword(!showPassword)}
                         onMouseDown={(e) => e.preventDefault()}
                         edge="end"
+                        sx={{ color: 'rgba(255, 255, 255, 0.6)' }}
                       >
                         {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
@@ -346,10 +374,16 @@ export default function SigninPage({ setAuthorization }) {
                 textTransform: 'none',
                 fontSize: { xs: '1rem', sm: '1.1rem' },
                 fontWeight: 600,
-                boxShadow: 2,
+                background: 'linear-gradient(135deg, #cbb26a 0%, #a89245 100%)',
+                color: '#000',
                 '&:hover': {
-                  boxShadow: 4,
-                }
+                  background: 'linear-gradient(135deg, #d4bc74 0%, #b19a4e 100%)',
+                  boxShadow: '0 8px 24px rgba(203, 178, 106, 0.3)',
+                },
+                '&:disabled': {
+                  background: 'rgba(203, 178, 106, 0.3)',
+                  color: 'rgba(0, 0, 0, 0.5)',
+                },
               }}
               disabled={isLoading}
             >
@@ -371,7 +405,7 @@ export default function SigninPage({ setAuthorization }) {
                 to="/signup" 
                 variant="body2"
                 sx={{
-                  color: theme.palette.primary.main,
+                  color: '#cbb26a',
                   textDecoration: 'none',
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
                   textAlign: { xs: 'center', sm: 'left' },
@@ -387,7 +421,7 @@ export default function SigninPage({ setAuthorization }) {
                 to="/forgot-password" 
                 variant="body2"
                 sx={{
-                  color: theme.palette.primary.main,
+                  color: '#cbb26a',
                   textDecoration: 'none',
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
                   textAlign: { xs: 'center', sm: 'right' },

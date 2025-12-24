@@ -304,12 +304,12 @@ export default function LandingPage() {
         id="hero-section"
         sx={{
           position: 'relative',
-          minHeight: { xs: '85vh', md: '75vh' },
+          minHeight: { xs: '70vh', md: '65vh' },
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          pt: { xs: '80px', md: '100px' },
-          pb: { xs: 4, md: 6 },
+          pt: { xs: '60px', md: '70px' },
+          pb: { xs: 2, md: 4 },
           overflow: 'hidden',
         }}
       >
@@ -684,9 +684,19 @@ export default function LandingPage() {
                 sx={{
                   color: 'rgba(255, 255, 255, 0.6)',
                   fontSize: '1.1rem',
+                  mb: 1,
                 }}
               >
                 Start with a 7-day free trial. Cancel anytime.
+              </Typography>
+              <Typography
+                sx={{
+                  color: '#cbb26a',
+                  fontSize: '0.95rem',
+                  fontWeight: 500,
+                }}
+              >
+                No credit card required for free trial
               </Typography>
             </Box>
           </AnimatedSection>

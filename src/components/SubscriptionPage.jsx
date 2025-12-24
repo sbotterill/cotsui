@@ -141,6 +141,33 @@ function StartTrialDialog({ open, onClose, onSuccess, onError }) {
     }
   };
 
+  const inputStyles = {
+    '& .MuiOutlinedInput-root': {
+      borderRadius: 2,
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      '& fieldset': {
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+      },
+      '&:hover fieldset': {
+        borderColor: 'rgba(203, 178, 106, 0.5)',
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: '#cbb26a',
+      },
+    },
+    '& .MuiInputBase-input': {
+      padding: { xs: '14px', sm: '16px' },
+      fontSize: { xs: '1rem', sm: '16px' },
+      color: '#fff',
+    },
+    '& .MuiInputLabel-root': {
+      color: 'rgba(255, 255, 255, 0.6)',
+      '&.Mui-focused': {
+        color: '#cbb26a',
+      },
+    },
+  };
+
   return (
     <Dialog 
       open={open} 
@@ -151,19 +178,25 @@ function StartTrialDialog({ open, onClose, onSuccess, onError }) {
         sx: {
           m: { xs: 2, sm: 4 },
           maxWidth: { xs: 'calc(100% - 32px)', sm: '600px' },
+          background: 'linear-gradient(180deg, #1a1a1a 0%, #111111 100%)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: 3,
         }
       }}
     >
       <DialogTitle sx={{ m: 0, p: { xs: 2, sm: 3 }, pb: { xs: 1, sm: 1 } }}>
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6" sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
+          <Typography variant="h6" sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' }, color: '#fff' }}>
             Start Your Free Trial
           </Typography>
           <IconButton
             aria-label="close"
             onClick={onClose}
             sx={{
-              color: (theme) => theme.palette.grey[500],
+              color: 'rgba(255, 255, 255, 0.5)',
+              '&:hover': {
+                color: '#fff',
+              },
             }}
           >
             <CloseIcon />
@@ -175,26 +208,32 @@ function StartTrialDialog({ open, onClose, onSuccess, onError }) {
           <Typography 
             variant="h6" 
             gutterBottom
-            sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+            sx={{ fontSize: { xs: '1rem', sm: '1.25rem' }, color: '#fff' }}
           >
             Get Started with a 7-Day Free Trial
           </Typography>
           <Typography 
             variant="body1" 
-            color="text.secondary" 
             sx={{ 
               mb: { xs: 2, sm: 3 },
-              fontSize: { xs: '0.875rem', sm: '1rem' }
+              fontSize: { xs: '0.875rem', sm: '1rem' },
+              color: 'rgba(255, 255, 255, 0.6)',
             }}
           >
             Start exploring all features immediately. No credit card required during the trial period.
           </Typography>
           
-          <Alert severity="info" sx={{ mb: { xs: 2, sm: 3 } }}>
-            <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
+          <Box sx={{ 
+            mb: { xs: 2, sm: 3 }, 
+            p: 2, 
+            borderRadius: 2, 
+            backgroundColor: 'rgba(203, 178, 106, 0.1)',
+            border: '1px solid rgba(203, 178, 106, 0.3)',
+          }}>
+            <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, color: '#cbb26a' }}>
               You'll only need to add payment information when your trial ends. Cancel anytime during the trial.
             </Typography>
-          </Alert>
+          </Box>
 
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
@@ -211,16 +250,7 @@ function StartTrialDialog({ open, onClose, onSuccess, onError }) {
                 value={trialDetails.firstName}
                 onChange={handleInputChange}
                 required
-                sx={{ 
-                  '& .MuiInputBase-input': {
-                    padding: { xs: '14px', sm: '16px' },
-                    fontSize: { xs: '1rem', sm: '16px' }
-                  },
-                  '& .MuiOutlinedInput-root': {
-                    height: { xs: '52px', sm: '56px' },
-                    borderRadius: 2,
-                  }
-                }}
+                sx={inputStyles}
               />
               <TextField
                 fullWidth
@@ -229,16 +259,7 @@ function StartTrialDialog({ open, onClose, onSuccess, onError }) {
                 value={trialDetails.lastName}
                 onChange={handleInputChange}
                 required
-                sx={{ 
-                  '& .MuiInputBase-input': {
-                    padding: { xs: '14px', sm: '16px' },
-                    fontSize: { xs: '1rem', sm: '16px' }
-                  },
-                  '& .MuiOutlinedInput-root': {
-                    height: { xs: '52px', sm: '56px' },
-                    borderRadius: 2,
-                  }
-                }}
+                sx={inputStyles}
               />
             </Box>
           </Box>
@@ -255,14 +276,20 @@ function StartTrialDialog({ open, onClose, onSuccess, onError }) {
             fontSize: { xs: '1rem', sm: '1.1rem' },
             fontWeight: 600,
             borderRadius: 2,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            background: 'linear-gradient(135deg, #cbb26a 0%, #a89245 100%)',
+            color: '#000',
             '&:hover': {
-              boxShadow: '0 6px 16px rgba(0,0,0,0.2)',
-            }
+              background: 'linear-gradient(135deg, #d4bc74 0%, #b19a4e 100%)',
+              boxShadow: '0 8px 24px rgba(203, 178, 106, 0.3)',
+            },
+            '&:disabled': {
+              background: 'rgba(203, 178, 106, 0.3)',
+              color: 'rgba(0, 0, 0, 0.5)',
+            },
           }}
         >
           {loading ? (
-            <CircularProgress size={24} color="inherit" />
+            <CircularProgress size={24} sx={{ color: '#000' }} />
           ) : (
             'Start Free Trial'
           )}
@@ -271,8 +298,7 @@ function StartTrialDialog({ open, onClose, onSuccess, onError }) {
         <Box sx={{ mt: { xs: 2, sm: 3 }, textAlign: 'center' }}>
           <Typography 
             variant="body2" 
-            color="text.secondary"
-            sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+            sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, color: 'rgba(255, 255, 255, 0.5)' }}
           >
             By starting your trial, you agree to our Terms of Service and Privacy Policy
           </Typography>
@@ -335,14 +361,55 @@ export default function SubscriptionPage({ setAuthorization }) {
     }
   };
 
-  const handlePlanSelect = (planId) => {
+  const handlePlanSelect = async (planId) => {
     setSelectedPlan(planId);
     if (hasHadTrial) {
       // If they've had a trial, show payment dialog immediately
       setShowPaymentDialog(true);
     } else {
-      // If they haven't had a trial, show trial dialog
-      setShowTrialDialog(true);
+      // If they haven't had a trial, start trial directly using stored name
+      await startTrialDirectly();
+    }
+  };
+
+  const startTrialDirectly = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Get name from localStorage (stored during signup)
+      const storedName = localStorage.getItem('userName') || '';
+      
+      if (!storedName.trim()) {
+        // Fallback: show trial dialog if name not found
+        setShowTrialDialog(true);
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/create-trial`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          name: storedName
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to start trial');
+      }
+
+      setAuthorization(true);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -378,13 +445,14 @@ export default function SubscriptionPage({ setAuthorization }) {
       <Box
         sx={{
           minHeight: '100vh',
+          height: '100vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#fff',
+          background: 'linear-gradient(180deg, #0a0a0a 0%, #111111 50%, #0a0a0a 100%)',
         }}
       >
-        <CircularProgress />
+        <CircularProgress sx={{ color: '#cbb26a' }} />
       </Box>
     );
   }
@@ -393,26 +461,30 @@ export default function SubscriptionPage({ setAuthorization }) {
     <Box
       sx={{
         minHeight: '100vh',
+        height: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#fff',
+        background: 'linear-gradient(180deg, #0a0a0a 0%, #111111 50%, #0a0a0a 100%)',
         py: 4,
+        overflowY: 'auto',
       }}
     >
-      <Container maxWidth="lg">
+      <Container maxWidth="lg" sx={{ my: 'auto' }}>
         <Box sx={{ mb: 6, textAlign: 'center' }}>
-          <Typography variant="h4" component="h1" gutterBottom>
+          <Typography variant="h4" component="h1" gutterBottom sx={{ color: '#fff', fontWeight: 600 }}>
             Choose Your Plan
           </Typography>
           {hasHadTrial ? (
-            <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+            <Typography variant="subtitle1" sx={{ color: 'rgba(255, 255, 255, 0.6)' }} gutterBottom>
               Welcome back! Choose a plan to continue your access.
             </Typography>
           ) : (
-            <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-              Start with a 7-day free trial. No credit card required during trial.
-            </Typography>
+            <>
+              <Typography variant="subtitle1" sx={{ color: 'rgba(255, 255, 255, 0.6)', mb: 1 }} gutterBottom>
+                Start with a 7-day free trial. No credit card required during trial.
+              </Typography>
+            </>
           )}
         </Box>
 
@@ -437,7 +509,7 @@ export default function SubscriptionPage({ setAuthorization }) {
             mx: 'auto',
           }}
         >
-          {plans.map((plan) => (
+          {plans.map((plan, idx) => (
             <Box key={plan.id}>
               <Card
                 sx={{
@@ -445,22 +517,30 @@ export default function SubscriptionPage({ setAuthorization }) {
                   display: 'flex',
                   flexDirection: 'column',
                   transition: 'all 0.3s ease',
+                  background: idx === 1 
+                    ? 'linear-gradient(135deg, rgba(203, 178, 106, 0.1) 0%, rgba(203, 178, 106, 0.02) 100%)'
+                    : 'rgba(255, 255, 255, 0.03)',
+                  border: idx === 1 
+                    ? '2px solid rgba(203, 178, 106, 0.4)'
+                    : '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: 3,
                   '&:hover': {
                     transform: 'translateY(-4px)',
-                    boxShadow: theme.shadows[8],
+                    borderColor: 'rgba(203, 178, 106, 0.5)',
+                    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
                   },
                 }}
               >
                 <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                  <Typography variant="h5" component="h2" gutterBottom>
+                  <Typography variant="h5" component="h2" gutterBottom sx={{ color: '#fff', fontWeight: 600 }}>
                     {plan.name}
                   </Typography>
-                  <Typography variant="h3" component="div" sx={{ mb: 1 }}>
+                  <Typography variant="h3" component="div" sx={{ mb: 1, color: '#fff' }}>
                     {plan.price}
                     <Typography
                       component="span"
                       variant="subtitle1"
-                      color="text.secondary"
+                      sx={{ color: 'rgba(255, 255, 255, 0.5)' }}
                     >
                       /{plan.interval}
                     </Typography>
@@ -474,17 +554,16 @@ export default function SubscriptionPage({ setAuthorization }) {
                           display: 'flex',
                           alignItems: 'center',
                           mb: 1.5,
-                          color: 'text.secondary',
                         }}
                       >
                         <CheckCircleIcon
                           sx={{ 
-                            color: 'success.main', 
+                            color: '#cbb26a', 
                             mr: 1, 
                             fontSize: '1.2rem' 
                           }}
                         />
-                        <Typography variant="body2">
+                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                           {feature}
                         </Typography>
                       </Box>
@@ -498,18 +577,30 @@ export default function SubscriptionPage({ setAuthorization }) {
                     onClick={() => handlePlanSelect(plan.id)}
                     disabled={loading}
                     size="large"
-                    color="primary"
                     sx={{
                       py: 1.5,
                       fontSize: '1rem',
-                      fontWeight: 500,
+                      fontWeight: 600,
+                      borderRadius: 2,
+                      background: idx === 1 
+                        ? 'linear-gradient(135deg, #cbb26a 0%, #a89245 100%)'
+                        : 'transparent',
+                      border: idx === 1 ? 'none' : '2px solid rgba(255, 255, 255, 0.3)',
+                      color: idx === 1 ? '#000' : '#fff',
                       '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: theme.shadows[4],
-                      }
+                        background: idx === 1 
+                          ? 'linear-gradient(135deg, #d4bc74 0%, #b19a4e 100%)'
+                          : 'rgba(203, 178, 106, 0.1)',
+                        borderColor: idx === 1 ? 'transparent' : '#cbb26a',
+                        boxShadow: idx === 1 ? '0 8px 24px rgba(203, 178, 106, 0.3)' : 'none',
+                      },
+                      '&:disabled': {
+                        background: 'rgba(203, 178, 106, 0.3)',
+                        color: 'rgba(0, 0, 0, 0.5)',
+                      },
                     }}
                   >
-                    {loading ? <CircularProgress size={24} /> : 
+                    {loading ? <CircularProgress size={24} sx={{ color: idx === 1 ? '#000' : '#cbb26a' }} /> : 
                       hasHadTrial 
                         ? `Start ${plan.interval === 'month' ? 'Monthly' : 'Annual'} Plan`
                         : `Start ${plan.interval === 'month' ? 'Monthly' : 'Annual'} Trial`

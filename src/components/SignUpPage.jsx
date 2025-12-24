@@ -130,46 +130,74 @@ export default function SignUpPage({ setAuthorization }) {
     }
   };
 
+  // Common input styles for dark theme
+  const inputStyles = {
+    '& .MuiOutlinedInput-root': {
+      borderRadius: 2,
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      '& fieldset': {
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+      },
+      '&:hover fieldset': {
+        borderColor: 'rgba(203, 178, 106, 0.5)',
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: '#cbb26a',
+      },
+    },
+    '& .MuiInputBase-input': {
+      fontSize: { xs: '1rem', sm: '1rem' },
+      color: '#fff',
+    },
+    '& .MuiInputLabel-root': {
+      color: 'rgba(255, 255, 255, 0.6)',
+      '&.Mui-focused': {
+        color: '#cbb26a',
+      },
+    },
+  };
+
   return (
     <Box
       sx={{
         minHeight: '100vh',
+        height: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#fff',
-        py: { xs: 2, sm: 4 },
+        background: 'linear-gradient(180deg, #0a0a0a 0%, #111111 50%, #0a0a0a 100%)',
         px: { xs: 2, sm: 3 },
         position: 'relative',
+        overflowY: 'auto',
       }}
     >
-      {/* Back arrow for mobile only */}
-      {isMobile && (
-        <IconButton
-          onClick={() => navigate('/')}
-          sx={{
-            position: 'absolute',
-            top: 16,
-            left: 16,
-            color: theme.palette.primary.main,
-            backgroundColor: theme.palette.background.paper,
-            boxShadow: 2,
-            '&:hover': {
-              backgroundColor: theme.palette.background.paper,
-              boxShadow: 4,
-            }
-          }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
-      )}
+      {/* Back arrow */}
+      <IconButton
+        onClick={() => navigate('/')}
+        sx={{
+          position: 'absolute',
+          top: 16,
+          left: 16,
+          color: '#cbb26a',
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          '&:hover': {
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          }
+        }}
+      >
+        <ArrowBackIcon />
+      </IconButton>
 
-      <Container maxWidth="xs">
+      <Container maxWidth="xs" sx={{ my: 'auto' }}>
         <Paper 
-          elevation={3} 
+          elevation={0} 
           sx={{ 
             p: { xs: 2.5, sm: 3 },
-            borderRadius: 2,
+            borderRadius: 3,
+            background: 'rgba(255, 255, 255, 0.03)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
           }}
         >
           <Typography 
@@ -180,17 +208,18 @@ export default function SignUpPage({ setAuthorization }) {
             sx={{
               fontSize: { xs: '1.25rem', sm: '1.5rem' },
               fontWeight: 600,
+              color: '#fff',
             }}
           >
             Sign Up
           </Typography>
           <Typography 
             variant="subtitle2" 
-            color="text.secondary" 
             align="center" 
             sx={{ 
               mb: { xs: 2, sm: 3 },
               fontSize: { xs: '0.875rem', sm: '0.875rem' },
+              color: 'rgba(255, 255, 255, 0.6)',
             }}
           >
             Create your account to get started
@@ -218,14 +247,7 @@ export default function SignUpPage({ setAuthorization }) {
               margin="dense"
               size="medium"
               required
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                },
-                '& .MuiInputBase-input': {
-                  fontSize: { xs: '1rem', sm: '1rem' },
-                }
-              }}
+              sx={inputStyles}
             />
             <TextField
               fullWidth
@@ -236,14 +258,7 @@ export default function SignUpPage({ setAuthorization }) {
               margin="dense"
               size="medium"
               required
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                },
-                '& .MuiInputBase-input': {
-                  fontSize: { xs: '1rem', sm: '1rem' },
-                }
-              }}
+              sx={inputStyles}
             />
             <TextField
               fullWidth
@@ -255,14 +270,7 @@ export default function SignUpPage({ setAuthorization }) {
               margin="dense"
               size="medium"
               required
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                },
-                '& .MuiInputBase-input': {
-                  fontSize: { xs: '1rem', sm: '1rem' },
-                }
-              }}
+              sx={inputStyles}
             />
             <TextField
               fullWidth
@@ -276,14 +284,10 @@ export default function SignUpPage({ setAuthorization }) {
               required
               helperText="Password must meet all requirements below"
               sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                },
-                '& .MuiInputBase-input': {
-                  fontSize: { xs: '1rem', sm: '1rem' },
-                },
+                ...inputStyles,
                 '& .MuiFormHelperText-root': {
                   fontSize: { xs: '0.75rem', sm: '0.75rem' },
+                  color: 'rgba(255, 255, 255, 0.5)',
                 }
               }}
             />
@@ -297,14 +301,7 @@ export default function SignUpPage({ setAuthorization }) {
               margin="dense"
               size="medium"
               required
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                },
-                '& .MuiInputBase-input': {
-                  fontSize: { xs: '1rem', sm: '1rem' },
-                }
-              }}
+              sx={inputStyles}
             />
 
             {/* Password Requirements List */}
@@ -312,7 +309,7 @@ export default function SignUpPage({ setAuthorization }) {
               dense 
               sx={{ 
                 width: '100%', 
-                bgcolor: 'background.paper', 
+                bgcolor: 'transparent', 
                 mt: { xs: 0.5, sm: 1 }, 
                 mb: { xs: 0.5, sm: 1 },
                 px: { xs: 0, sm: 0 }
@@ -328,16 +325,16 @@ export default function SignUpPage({ setAuthorization }) {
                 >
                   <ListItemIcon sx={{ minWidth: { xs: 28, sm: 32 } }}>
                     {req.validator(formData.password) ? (
-                      <CheckCircleIcon color="success" fontSize="small" />
+                      <CheckCircleIcon sx={{ color: '#4caf50' }} fontSize="small" />
                     ) : (
-                      <CancelIcon color="error" fontSize="small" />
+                      <CancelIcon sx={{ color: 'rgba(255, 255, 255, 0.3)' }} fontSize="small" />
                     )}
                   </ListItemIcon>
                   <ListItemText 
                     primary={req.label}
                     primaryTypographyProps={{
                       fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                      color: req.validator(formData.password) ? 'success.main' : 'error.main'
+                      color: req.validator(formData.password) ? '#4caf50' : 'rgba(255, 255, 255, 0.5)'
                     }}
                   />
                 </ListItem>
@@ -353,15 +350,17 @@ export default function SignUpPage({ setAuthorization }) {
             >
               <Typography 
                 variant="caption" 
-                color="text.secondary"
-                sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                sx={{ 
+                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                  color: 'rgba(255, 255, 255, 0.5)',
+                }}
               >
                 By signing up, you agree to our{' '}
                 <Link
                   component={RouterLink}
                   to="/privacy-policy"
                   sx={{
-                    color: theme.palette.primary.main,
+                    color: '#cbb26a',
                     textDecoration: 'none',
                     '&:hover': {
                       textDecoration: 'underline',
@@ -386,9 +385,19 @@ export default function SignUpPage({ setAuthorization }) {
                 fontWeight: 600,
                 borderRadius: 2,
                 textTransform: 'none',
+                background: 'linear-gradient(135deg, #cbb26a 0%, #a89245 100%)',
+                color: '#000',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #d4bc74 0%, #b19a4e 100%)',
+                  boxShadow: '0 8px 24px rgba(203, 178, 106, 0.3)',
+                },
+                '&:disabled': {
+                  background: 'rgba(203, 178, 106, 0.3)',
+                  color: 'rgba(0, 0, 0, 0.5)',
+                },
               }}
             >
-              {loading ? <CircularProgress size={24} /> : 'Sign Up'}
+              {loading ? <CircularProgress size={24} sx={{ color: '#000' }} /> : 'Sign Up'}
             </Button>
 
             <Box 
@@ -403,7 +412,7 @@ export default function SignUpPage({ setAuthorization }) {
                 to="/sign-in" 
                 variant="body2"
                 sx={{
-                  color: theme.palette.primary.main,
+                  color: '#cbb26a',
                   textDecoration: 'none',
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
                   '&:hover': {
