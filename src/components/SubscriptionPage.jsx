@@ -38,7 +38,7 @@ const SUBSCRIPTION_PLANS = [
   {
     id: 'monthly',
     name: 'Monthly Plan',
-    price: '$4.99',
+    price: '$34.99',
     interval: 'month',
     features: [
       'Full access to all features',
@@ -50,12 +50,12 @@ const SUBSCRIPTION_PLANS = [
   {
     id: 'annual',
     name: 'Annual Plan',
-    price: '$49.99',
+    price: '$299.99',
     interval: 'year',
     features: [
       'All Monthly features',
       'Priority Discord support',
-      'Save 16% compared to monthly',
+      'Save 29% compared to monthly',
       '7-day free trial',
     ],
   },
@@ -65,7 +65,7 @@ const SUBSCRIPTION_PLANS_NO_TRIAL = [
   {
     id: 'monthly',
     name: 'Monthly Plan',
-    price: '$4.99',
+    price: '$34.99',
     interval: 'month',
     features: [
       'Full access to all features',
@@ -77,12 +77,12 @@ const SUBSCRIPTION_PLANS_NO_TRIAL = [
   {
     id: 'annual',
     name: 'Annual Plan',
-    price: '$49.99',
+    price: '$299.99',
     interval: 'year',
     features: [
       'All Monthly features',
       'Priority Discord support',
-      'Save 16% compared to monthly',
+      'Save 29% compared to monthly',
       'Immediate access',
     ],
   },
@@ -559,7 +559,7 @@ export default function SubscriptionPage({ setAuthorization }) {
                   {selectedPlan === 'monthly' ? 'Monthly Plan' : 'Annual Plan'}
                 </Typography>
                 <Typography variant="h4" component="div" sx={{ mb: 1 }}>
-                  {selectedPlan === 'monthly' ? '$4.99' : '$49.99'}
+                  {selectedPlan === 'monthly' ? '$34.99' : '$299.99'}
                   <Typography
                     component="span"
                     variant="subtitle1"
@@ -570,7 +570,7 @@ export default function SubscriptionPage({ setAuthorization }) {
                 </Typography>
                 <Alert severity="info" sx={{ mt: 2 }}>
                   <Typography variant="body2">
-                    You will be charged {selectedPlan === 'monthly' ? '$4.99/month' : '$49.99/year'} immediately. Cancel anytime.
+                    You will be charged {selectedPlan === 'monthly' ? '$34.99/month' : '$299.99/year'} immediately. Cancel anytime.
                   </Typography>
                 </Alert>
               </Box>

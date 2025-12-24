@@ -733,7 +733,7 @@ export default function StripePayment({ plan, onSuccess, onError, isUpdatingPaym
                   {plan === 'monthly' ? 'Monthly Plan' : 'Annual Plan'}
                 </Typography>
                 <Typography variant="body2" fontWeight={600}>
-                  {plan === 'monthly' ? '$4.99' : '$49.99'}
+                  {plan === 'monthly' ? '$34.99' : '$299.99'}
                 </Typography>
               </Box>
               {!hasHadTrial && (
@@ -743,7 +743,7 @@ export default function StripePayment({ plan, onSuccess, onError, isUpdatingPaym
                       Free Trial (7 days)
                     </Typography>
                     <Typography variant="body2" color="success.main" fontWeight={600}>
-                      -{plan === 'monthly' ? '$4.99' : '$49.99'}
+                      -{plan === 'monthly' ? '$34.99' : '$299.99'}
                     </Typography>
                   </Box>
                   <Divider sx={{ my: 1 }} />
@@ -765,7 +765,7 @@ export default function StripePayment({ plan, onSuccess, onError, isUpdatingPaym
                       Today's Charge
                     </Typography>
                     <Typography variant="body2" fontWeight={600}>
-                      {plan === 'monthly' ? '$4.99' : '$49.99'}
+                      {plan === 'monthly' ? '$34.99' : '$299.99'}
                     </Typography>
                   </Box>
                 </>

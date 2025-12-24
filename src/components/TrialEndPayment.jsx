@@ -224,7 +224,7 @@ export default function TrialEndPayment({ onSuccess, onError }) {
                 Monthly Plan
               </Typography>
               <Typography variant="h3" component="div" sx={{ mb: 1 }}>
-                $4.99
+                $34.99
                 <Typography
                   component="span"
                   variant="subtitle1"
@@ -288,7 +288,7 @@ export default function TrialEndPayment({ onSuccess, onError }) {
                 Annual Plan
               </Typography>
               <Typography variant="h3" component="div" sx={{ mb: 1 }}>
-                $49.99
+                $299.99
                 <Typography
                   component="span"
                   variant="subtitle1"
@@ -305,7 +305,7 @@ export default function TrialEndPayment({ onSuccess, onError }) {
                   <Typography variant="body2">Priority Discord support</Typography>
                 </Box>
                 <Box component="li" sx={{ display: 'flex', alignItems: 'center', mb: 1.5, color: 'text.secondary' }}>
-                  <Typography variant="body2">Save 16% compared to monthly</Typography>
+                  <Typography variant="body2">Save 29% compared to monthly</Typography>
                 </Box>
                 <Box component="li" sx={{ display: 'flex', alignItems: 'center', mb: 1.5, color: 'text.secondary' }}>
                   <Typography variant="body2">Cancel anytime</Typography>
@@ -379,7 +379,7 @@ export default function TrialEndPayment({ onSuccess, onError }) {
                   {selectedPlan === 'monthly' ? 'Monthly Plan' : 'Annual Plan'}
                 </Typography>
                 <Typography variant="h4" component="div" sx={{ mb: 1 }}>
-                  {selectedPlan === 'monthly' ? '$4.99' : '$49.99'}
+                  {selectedPlan === 'monthly' ? '$34.99' : '$299.99'}
                   <Typography
                     component="span"
                     variant="subtitle1"
@@ -390,7 +390,7 @@ export default function TrialEndPayment({ onSuccess, onError }) {
                 </Typography>
                 <Alert severity="info" sx={{ mt: 2 }}>
                   <Typography variant="body2">
-                    Add your payment method to continue your subscription. You'll be charged {selectedPlan === 'monthly' ? '$4.99/month' : '$49.99/year'}.
+                    Add your payment method to continue your subscription. You'll be charged {selectedPlan === 'monthly' ? '$34.99/month' : '$299.99/year'}.
                   </Typography>
                 </Alert>
               </Box>
