@@ -86,6 +86,12 @@ function HeaderActions(props) {
   };
   const [showNoResults, setShowNoResults] = React.useState(false);
   const isChart = props.activeSection === 'chart' || props.activeSection === 'seasonality';
+  const isAIAgent = props.activeSection === 'ai-agent';
+
+  // AI Agent section should have no toolbar content (just hamburger menu from layout)
+  if (isAIAgent) {
+    return null;
+  }
 
   const displayOnlyName = (label) => {
     if (!label) return '';

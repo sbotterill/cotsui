@@ -28,8 +28,10 @@ import SidebarFooter from './components/SidebarFooter';
 import SummarizeIcon from '@mui/icons-material/Summarize';
 import WbSunnyIcon from '@mui/icons-material/WbSunny';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 import TradingViewAdvancedChart from './components/TradingViewAdvancedChart';
 import SeasonalityChart from './components/SeasonalityChart';
+import AIChat from './components/AIChat';
 import { EXCHANGE_CODE_MAP, REMOVED_EXCHANGE_CODES } from './constants';
 import SigninPage from './components/SigninPage';
 import Profile from './components/Profile';
@@ -1063,7 +1065,7 @@ export default function App() {
 
   const handleSeasonalityClick = () => {
     if (activeSection === 'seasonality') {
-      router.navigate('/cots-report');
+      router.navigate('/ai-agent');
     } else {
       router.navigate('/seasonality');
     }
@@ -1187,41 +1189,58 @@ export default function App() {
                 <ShowChartIcon fontSize="small" />
               </ToggleButton>
             </ToggleButtonGroup>
-            <ToggleButton
-              selected={activeSection === 'seasonality'}
-              onClick={handleSeasonalityClick}
-              aria-label="seasonality"
-              title={activeSection === 'seasonality' ? 'Go to Reports' : 'Seasonality'}
-              value="seasonality"
-              sx={{ 
-                px: 1.25,
-                border: 'none',
-                borderRadius: 0,
-                '&.Mui-selected': {
-                  backgroundColor: theme.palette.action.selected,
-                }
-              }}
-            >
-              <WbSunnyIcon fontSize="small" />
-            </ToggleButton>
-            <ToggleButton
-              ref={profileButtonRef}
-              selected={Boolean(profileAnchorEl)}
-              onClick={handleAccountClick}
-              aria-label="account"
-              title="Account"
-              value="account"
-              sx={{ 
-                px: 1.25,
-                border: 'none',
-                borderRadius: 0,
-                '&.Mui-selected': {
-                  backgroundColor: theme.palette.action.selected,
-                }
-              }}
-            >
-              <AccountCircleIcon fontSize="small" />
-            </ToggleButton>
+<ToggleButton
+                              selected={activeSection === 'seasonality'}
+                              onClick={handleSeasonalityClick}
+                              aria-label="seasonality"
+                              title={activeSection === 'seasonality' ? 'Go to Reports' : 'Seasonality'}
+                              value="seasonality"
+                              sx={{ 
+                                px: 1.25,
+                                border: 'none',
+                                borderRadius: 0,
+                                '&.Mui-selected': {
+                                  backgroundColor: theme.palette.action.selected,
+                                }
+                              }}
+                            >
+                              <WbSunnyIcon fontSize="small" />
+                            </ToggleButton>
+                            <ToggleButton
+                              selected={activeSection === 'ai-agent'}
+                              onClick={() => router.navigate('/ai-agent')}
+                              aria-label="ai-agent"
+                              title="AI Agent"
+                              value="ai-agent"
+                              sx={{ 
+                                px: 1.25,
+                                border: 'none',
+                                borderRadius: 0,
+                                '&.Mui-selected': {
+                                  backgroundColor: theme.palette.action.selected,
+                                }
+                              }}
+                            >
+                              <SmartToyIcon fontSize="small" />
+                            </ToggleButton>
+                            <ToggleButton
+                              ref={profileButtonRef}
+                              selected={Boolean(profileAnchorEl)}
+                              onClick={handleAccountClick}
+                              aria-label="account"
+                              title="Account"
+                              value="account"
+                              sx={{ 
+                                px: 1.25,
+                                border: 'none',
+                                borderRadius: 0,
+                                '&.Mui-selected': {
+                                  backgroundColor: theme.palette.action.selected,
+                                }
+                              }}
+                            >
+                              <AccountCircleIcon fontSize="small" />
+                            </ToggleButton>
           </Box>
         </Box>
         
@@ -1471,12 +1490,13 @@ export default function App() {
   };
 
   const NAVIGATION = [
+    { segment: 'ai-agent', title: 'AI Agent', icon: <SmartToyIcon /> },
     { segment: 'cots-report', title: 'Reports', icon: <SummarizeIcon /> },
     // { segment: 'chart', title: 'Chart', icon: <ShowChartIcon /> }, // Hidden for now
     { segment: 'seasonality', title: 'Seasonality', icon: <WbSunnyIcon /> },
   ];
 
-  const [activeSection, setActiveSection] = useState('cots-report');
+  const [activeSection, setActiveSection] = useState('ai-agent');
   const [chartAssetId, setChartAssetId] = useState(26);
   const [selectedSymbol, setSelectedSymbol] = useState('CL');
   const [seasonalityLookback, setSeasonalityLookback] = useState(10);
@@ -1484,7 +1504,7 @@ export default function App() {
   const [seasonalityStartDate, setSeasonalityStartDate] = useState(null);
   const [seasonalityEndDate, setSeasonalityEndDate] = useState(null);
   const [seasonalityEffectiveRange, setSeasonalityEffectiveRange] = useState(null);
-  const [routerPath, setRouterPath] = useState('/cots-report');
+  const [routerPath, setRouterPath] = useState('/ai-agent');
 
   const router = useMemo(() => ({
     pathname: routerPath,
@@ -1498,7 +1518,7 @@ export default function App() {
 
   const handleSeasonalityShortcut = useCallback(() => {
     if (activeSection === 'seasonality') {
-      router.navigate('/cots-report');
+      router.navigate('/ai-agent');
     } else {
       router.navigate('/seasonality');
     }
@@ -1627,20 +1647,7 @@ export default function App() {
                         defaultSidebarCollapsed
                         slots={{
                           renderPageItem: renderSidebarItem,
-                          appTitle: () => (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography
-                                variant="h6"
-                                sx={{
-                                  color: '#fff',
-                                  fontWeight: 700,
-                                  display: { xs: 'none', sm: 'block' }
-                                }}
-                              >
-                                COTS UI
-                              </Typography>
-                            </Box>
-                          ),
+                          appTitle: () => null,
                           toolbarActions,
                           sidebarFooter: SidebarFooter,
                         }}
@@ -1676,6 +1683,17 @@ export default function App() {
                                   endDate={seasonalityEndDate}
                                   onEffectiveRange={(range) => setSeasonalityEffectiveRange(range)}
                                 />
+                              </Box>
+                            )}
+                            {activeSection === 'ai-agent' && (
+                              <Box sx={{ 
+                                p: isMobile ? 1 : 2, 
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                overflow: 'hidden'
+                              }}>
+                                <AIChat />
                               </Box>
                             )}
                           </Box>
