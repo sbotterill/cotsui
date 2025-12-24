@@ -11,6 +11,7 @@ import {
   useTheme,
   alpha,
   Fade,
+  Tooltip,
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
@@ -19,6 +20,10 @@ import CodeIcon from '@mui/icons-material/Code';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import ThumbDownIcon from '@mui/icons-material/ThumbDown';
+import ThumbUpOutlinedIcon from '@mui/icons-material/ThumbUpOutlined';
+import ThumbDownOutlinedIcon from '@mui/icons-material/ThumbDownOutlined';
 import { API_BASE_URL } from '../config';
 
 // Suggested questions for users to try
@@ -31,15 +36,44 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 // Single message component
-const ChatMessage = ({ message, isUser, queries, data }) => {
+const ChatMessage = ({ message, isUser, queries, data, logId, onFeedback, feedbackGiven }) => {
   const theme = useTheme();
   const [showQueries, setShowQueries] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [localFeedback, setLocalFeedback] = useState(feedbackGiven);
 
   const handleCopySql = (sql, index) => {
     navigator.clipboard.writeText(sql);
     setCopiedIndex(index);
     setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  const handleFeedback = async (isHelpful) => {
+    if (!logId || submittingFeedback || localFeedback !== null) return;
+    
+    setSubmittingFeedback(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/ai/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          log_id: logId,
+          is_helpful: isHelpful,
+        }),
+      });
+      
+      if (response.ok) {
+        setLocalFeedback(isHelpful);
+        if (onFeedback) onFeedback(logId, isHelpful);
+      }
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+    } finally {
+      setSubmittingFeedback(false);
+    }
   };
 
   // Format message with markdown-like syntax
@@ -207,6 +241,64 @@ const ChatMessage = ({ message, isUser, queries, data }) => {
                 </Collapse>
               </Box>
             )}
+
+            {/* Feedback buttons (only for AI responses with a log_id) */}
+            {!isUser && logId && (
+              <Box 
+                sx={{ 
+                  mt: 1.5, 
+                  pt: 1, 
+                  borderTop: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                }}
+              >
+                <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
+                  {localFeedback !== null ? 'Thanks for your feedback!' : 'Was this helpful?'}
+                </Typography>
+                {localFeedback === null ? (
+                  <>
+                    <Tooltip title="Yes, helpful">
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleFeedback(true)}
+                        disabled={submittingFeedback}
+                        sx={{ 
+                          p: 0.5,
+                          color: theme.palette.text.secondary,
+                          '&:hover': { color: theme.palette.success.main }
+                        }}
+                      >
+                        <ThumbUpOutlinedIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Not helpful">
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleFeedback(false)}
+                        disabled={submittingFeedback}
+                        sx={{ 
+                          p: 0.5,
+                          color: theme.palette.text.secondary,
+                          '&:hover': { color: theme.palette.error.main }
+                        }}
+                      >
+                        <ThumbDownOutlinedIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </>
+                ) : (
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    {localFeedback ? (
+                      <ThumbUpIcon sx={{ fontSize: 16, color: theme.palette.success.main }} />
+                    ) : (
+                      <ThumbDownIcon sx={{ fontSize: 16, color: theme.palette.error.main }} />
+                    )}
+                  </Box>
+                )}
+              </Box>
+            )}
           </Paper>
         </Box>
       </Box>
@@ -274,6 +366,8 @@ const AIChat = () => {
           isUser: false,
           queries: data.queries,  // Array of queries executed
           data: data.data,
+          logId: data.log_id,  // ID for submitting feedback
+          feedbackGiven: null,
         };
         setMessages(prev => [...prev, aiMessage]);
       } else {
@@ -281,6 +375,8 @@ const AIChat = () => {
           id: Date.now() + 1,
           text: data.error || 'Sorry, I encountered an error processing your question. Please try again.',
           isUser: false,
+          logId: data.log_id,  // Even errors can have log_id
+          feedbackGiven: null,
         };
         setMessages(prev => [...prev, errorMessage]);
       }
@@ -306,6 +402,13 @@ const AIChat = () => {
 
   const handleSuggestedQuestion = (question) => {
     handleSend(question);
+  };
+
+  // Handle feedback updates to persist in state
+  const handleFeedback = (logId, isHelpful) => {
+    setMessages(prev => prev.map(msg => 
+      msg.logId === logId ? { ...msg, feedbackGiven: isHelpful } : msg
+    ));
   };
 
   return (
@@ -400,6 +503,9 @@ const AIChat = () => {
                 isUser={msg.isUser}
                 queries={msg.queries}
                 data={msg.data}
+                logId={msg.logId}
+                onFeedback={handleFeedback}
+                feedbackGiven={msg.feedbackGiven}
               />
             ))}
             {isLoading && (

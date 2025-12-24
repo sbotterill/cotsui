@@ -65,22 +65,34 @@ function getPercentageColor(value) {
 }
 
 // Render a compact z-score badge
+// Color is determined ONLY by the z-score sign:
+//   Positive z-score (>= 0) = BULLISH = green
+//   Negative z-score (< 0) = BEARISH = red
+// eslint-disable-next-line no-unused-vars
 function ZBadge({ z, type }) {
   const theme = useTheme();
   if (typeof z !== 'number') return null;
-  const isBullish = (type || '').toUpperCase() === 'BULLISH' || z >= 0;
+  
+  // IMPORTANT: Color is determined by z-score sign only
+  // Positive z = commercials more long than usual = BULLISH = green
+  // Negative z = commercials more short than usual = BEARISH = red
+  const isBullish = z >= 0;
   const color = isBullish ? theme.palette.success.main : theme.palette.error.main;
   const bg = alpha(color, 0.12);
   const display = Math.abs(z).toFixed(2); // remove '-' visually, keep color by sign
   
+  // Determine interpretation based on z-score sign
+  const interpretation = z >= 0 ? 'BULLISH' : 'BEARISH';
+  
   // Enhanced tooltip with explanation
   const tooltipText = (
     <>
-      <div style={{ fontWeight: 600, marginBottom: '4px' }}>Z-Score: {z.toFixed(2)}</div>
-      {type && <div style={{ marginBottom: '4px' }}>Type: {type}</div>}
+      <div style={{ fontWeight: 600, marginBottom: '4px' }}>Z-Score: {z.toFixed(2)} ({interpretation})</div>
       <div style={{ fontSize: '0.85em', opacity: 0.9 }}>
         Measures how many standard deviations the current position is from the historical average.
-        {z > 0 ? ' Positive values indicate above-average positioning.' : ' Negative values indicate below-average positioning.'}
+        {z >= 0 
+          ? ' Positive values indicate commercials are MORE LONG than usual (bullish).' 
+          : ' Negative values indicate commercials are MORE SHORT than usual (bearish).'}
       </div>
     </>
   );
