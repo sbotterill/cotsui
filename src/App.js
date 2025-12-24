@@ -32,6 +32,7 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import TradingViewAdvancedChart from './components/TradingViewAdvancedChart';
 import SeasonalityChart from './components/SeasonalityChart';
 import AIChat from './components/AIChat';
+import HelpChat from './components/HelpChat';
 import { EXCHANGE_CODE_MAP, REMOVED_EXCHANGE_CODES } from './constants';
 import SigninPage from './components/SigninPage';
 import Profile from './components/Profile';
@@ -1699,6 +1700,8 @@ export default function App() {
                           </Box>
                         </Box>
                       </DashboardLayout>
+                      {/* Floating Help Chat - appears on all views */}
+                      <HelpChat />
                     </AppProvider>
                   </ThemeProvider>
                 </ColorModeContext.Provider>
