@@ -1811,9 +1811,6 @@ export default function App() {
                               '& button[aria-label*="menu" i], & button[aria-label*="sidebar" i], & button[aria-label*="navigation" i]': {
                                 display: 'none !important',
                               },
-                              '& .MuiToolbar-root button:first-of-type': {
-                                display: 'none !important',
-                              },
                             },
                             // Hide hamburger menu button in mobile view
                             '@media (max-width: 600px)': {
