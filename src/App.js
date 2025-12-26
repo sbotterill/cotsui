@@ -1806,6 +1806,24 @@ export default function App() {
                                 maxWidth: '82px !important',
                               }
                             },
+                            // Center sidebar navigation items
+                            '& .MuiDrawer-root .MuiDrawer-paper .MuiList-root': {
+                              padding: '8px 0',
+                            },
+                            '& .MuiDrawer-root .MuiDrawer-paper .MuiListItemButton-root': {
+                              justifyContent: 'center',
+                              padding: '8px 12px',
+                              margin: '2px 12px',
+                              borderRadius: '8px',
+                              minHeight: '48px',
+                            },
+                            '& .MuiDrawer-root .MuiDrawer-paper .MuiListItemIcon-root': {
+                              minWidth: 'unset',
+                              marginRight: 0,
+                            },
+                            '& .MuiDrawer-root .MuiDrawer-paper .MuiListItemText-root': {
+                              display: 'none',
+                            },
                             // Hide hamburger menu button on desktop (sidebar stays fixed)
                             '@media (min-width: 601px)': {
                               '& button[aria-label*="menu" i], & button[aria-label*="sidebar" i], & button[aria-label*="navigation" i]': {
@@ -1835,6 +1853,8 @@ export default function App() {
                             }
                           }}
                           defaultSidebarCollapsed
+                          disableCollapsibleSidebar
+                          sidebarExpandedWidth={82}
                           slots={{
                             renderPageItem: renderSidebarItem,
                             appTitle: () => null,

@@ -2,6 +2,7 @@
 :root {
   --app-mobile-viewport: 100vh;
 }
+
 @supports (height: 1svh) {
   :root {
     --app-mobile-viewport: 100svh;
@@ -26,7 +27,7 @@ html {
   flex-direction: column;
 }
 
-.appbar-context-menu{
+.appbar-context-menu {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -35,6 +36,7 @@ html {
 
 /* Hide hamburger menu button in mobile view */
 @media (max-width: 600px) {
+
   /* Hide the sidebar toggle button (hamburger menu) in mobile view */
   /* Target Toolpad DashboardLayout hamburger menu button */
   button[aria-label*="menu" i],
@@ -51,7 +53,7 @@ html {
   [class*="MuiToolbar-root"] button:first-child {
     display: none !important;
   }
-  
+
   /* Center the toolbar actions Stack container in mobile view */
   .MuiToolbar-root .MuiStack-root:last-child,
   .MuiToolbar-root .css-ktx3up-MuiStack-root {
@@ -59,3 +61,5 @@ html {
     width: 100% !important;
   }
 }
+
+/* Sidebar styling is now handled in DashboardLayout sx prop in App.js */
