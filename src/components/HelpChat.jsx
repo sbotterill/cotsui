@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import {
   Box,
-  Fab,
-  Popover,
+  Dialog,
   Typography,
   TextField,
   Button,
@@ -31,22 +30,22 @@ const REQUEST_TYPES = [
 const GOLD_COLOR = '#cbb26a';
 const DARK_BG = '#1a1a1a';
 
-const HelpChat = () => {
-  const [anchorEl, setAnchorEl] = useState(null);
+const HelpChat = forwardRef((props, ref) => {
+  const [open, setOpen] = useState(false);
   const [requestType, setRequestType] = useState('question');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  const open = Boolean(anchorEl);
-
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
+  // Expose openModal method to parent via ref
+  useImperativeHandle(ref, () => ({
+    openModal: () => setOpen(true),
+    closeModal: () => setOpen(false),
+  }));
 
   const handleClose = () => {
-    setAnchorEl(null);
+    setOpen(false);
   };
 
   const handleTypeChange = (event, newType) => {
@@ -85,7 +84,7 @@ const HelpChat = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!message.trim()) {
       setSnackbar({ open: true, message: 'Please enter a message', severity: 'error' });
       return;
@@ -95,7 +94,7 @@ const HelpChat = () => {
 
     try {
       const email = localStorage.getItem('userEmail') || 'anonymous';
-      
+
       const response = await fetch(`${API_BASE_URL}/api/help/submit`, {
         method: 'POST',
         headers: {
@@ -112,10 +111,10 @@ const HelpChat = () => {
       const data = await response.json();
 
       if (data.success) {
-        setSnackbar({ 
-          open: true, 
-          message: 'Thanks! We\'ve received your message and will get back to you soon.', 
-          severity: 'success' 
+        setSnackbar({
+          open: true,
+          message: 'Thanks! We\'ve received your message and will get back to you soon.',
+          severity: 'success'
         });
         // Reset form
         setSubject('');
@@ -126,10 +125,10 @@ const HelpChat = () => {
       }
     } catch (error) {
       console.error('Error submitting help request:', error);
-      setSnackbar({ 
-        open: true, 
-        message: 'Failed to send message. Please try again or email us directly.', 
-        severity: 'error' 
+      setSnackbar({
+        open: true,
+        message: 'Failed to send message. Please try again or email us directly.',
+        severity: 'error'
       });
     } finally {
       setIsSubmitting(false);
@@ -140,54 +139,20 @@ const HelpChat = () => {
 
   return (
     <>
-      {/* Floating Action Button - Black & Gold */}
-      <Fab
-        aria-label="help"
-        onClick={handleClick}
-        size="medium"
-        sx={{
-          position: 'fixed',
-          bottom: 24,
-          right: 24,
-          zIndex: 1300,
-          background: `linear-gradient(135deg, ${DARK_BG} 0%, #2a2a2a 100%)`,
-          color: GOLD_COLOR,
-          border: `2px solid ${GOLD_COLOR}`,
-          boxShadow: `0 4px 20px rgba(203, 178, 106, 0.3)`,
-          '&:hover': {
-            transform: 'scale(1.05)',
-            background: `linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%)`,
-            boxShadow: `0 6px 25px rgba(203, 178, 106, 0.4)`,
-          },
-          transition: 'all 0.2s ease-in-out',
-        }}
-      >
-        <SupportAgentIcon />
-      </Fab>
-
-      {/* Popover Chat Window - Black & Gold Theme */}
-      <Popover
+      {/* Modal Dialog - Black & Gold Theme */}
+      <Dialog
         open={open}
-        anchorEl={anchorEl}
         onClose={handleClose}
-        anchorOrigin={{
-          vertical: 'top',
-          horizontal: 'left',
-        }}
-        transformOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        sx={{
-          '& .MuiPopover-paper': {
-            width: 360,
-            maxWidth: 'calc(100vw - 48px)',
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
             borderRadius: 3,
             overflow: 'hidden',
             background: DARK_BG,
             border: `1px solid rgba(203, 178, 106, 0.3)`,
             boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
-          },
+          }
         }}
       >
         {/* Header - Gold Gradient */}
@@ -210,7 +175,7 @@ const HelpChat = () => {
           <IconButton
             size="small"
             onClick={handleClose}
-            sx={{ 
+            sx={{
               color: 'rgba(255, 255, 255, 0.7)',
               '&:hover': { color: '#fff' }
             }}
@@ -232,7 +197,7 @@ const HelpChat = () => {
             aria-label="request type"
             size="small"
             fullWidth
-            sx={{ 
+            sx={{
               mb: 2,
               '& .MuiToggleButton-root': {
                 color: 'rgba(255, 255, 255, 0.6)',
@@ -256,8 +221,8 @@ const HelpChat = () => {
             }}
           >
             {REQUEST_TYPES.map((type) => (
-              <ToggleButton 
-                key={type.value} 
+              <ToggleButton
+                key={type.value}
                 value={type.value}
               >
                 {type.icon}
@@ -274,7 +239,7 @@ const HelpChat = () => {
             placeholder={placeholders.subject}
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            sx={{ 
+            sx={{
               mb: 2,
               '& .MuiOutlinedInput-root': {
                 color: '#fff',
@@ -310,7 +275,7 @@ const HelpChat = () => {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             required
-            sx={{ 
+            sx={{
               mb: 2,
               '& .MuiOutlinedInput-root': {
                 color: '#fff',
@@ -337,8 +302,8 @@ const HelpChat = () => {
           />
 
           {/* User Email Display */}
-          <Typography 
-            variant="caption" 
+          <Typography
+            variant="caption"
             sx={{ display: 'block', mb: 2, color: 'rgba(255, 255, 255, 0.5)' }}
           >
             We'll respond to: <span style={{ color: GOLD_COLOR }}>{localStorage.getItem('userEmail') || 'your registered email'}</span>
@@ -351,7 +316,7 @@ const HelpChat = () => {
             fullWidth
             disabled={isSubmitting || !message.trim()}
             endIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : <SendIcon />}
-            sx={{ 
+            sx={{
               py: 1.25,
               background: `linear-gradient(135deg, ${GOLD_COLOR} 0%, #a89550 100%)`,
               color: '#1a1a1a',
@@ -368,7 +333,7 @@ const HelpChat = () => {
             {isSubmitting ? 'Sending...' : 'Send Message'}
           </Button>
         </Box>
-      </Popover>
+      </Dialog>
 
       {/* Snackbar for feedback */}
       <Snackbar
@@ -377,8 +342,8 @@ const HelpChat = () => {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert 
-          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
           sx={{ width: '100%' }}
         >
@@ -387,7 +352,8 @@ const HelpChat = () => {
       </Snackbar>
     </>
   );
-};
+});
+
+HelpChat.displayName = 'HelpChat';
 
 export default HelpChat;
-

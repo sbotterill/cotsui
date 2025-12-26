@@ -48,7 +48,7 @@ import { Select, MenuItem, FormControl, InputLabel, Autocomplete, TextField } fr
 import { getCommercialExtremes, getRetailExtremes } from './services/cftcService';
 
 // Context to expose toggle function for theme switch
-export const ColorModeContext = createContext({ toggleColorMode: () => {} });
+export const ColorModeContext = createContext({ toggleColorMode: () => { } });
 
 // Format date for API
 function formatDate(date) {
@@ -329,14 +329,14 @@ async function checkLatestDataAvailability() {
     }
 
     const latestDate = response.data.dates[0]; // Dates are sorted in descending order
-    
+
     // Try to get data for the latest date
     const dataResponse = await axios.get(`${API_BASE_URL}/api/cftc/data`, {
       params: {
         report_date: latestDate
       }
     });
-    
+
     const isAvailable = dataResponse.data.data.length > 0;
     return {
       isAvailable,
@@ -380,7 +380,7 @@ async function fetchData(selectedDate = null) {
       // First try to get the latest available date
       const availabilityCheck = await checkLatestDataAvailability();
       lastChecked = availabilityCheck.checkedAt;
-      
+
       if (availabilityCheck.isAvailable) {
         const dates = await getAvailableReportDates();
         reportDate = dates[0]; // Get the most recent date
@@ -402,8 +402,8 @@ async function fetchData(selectedDate = null) {
 
     const dataMap = [];
     const exchangeSet = new Set();
-        
-    for (const data of response.data.data) {      
+
+    for (const data of response.data.data) {
 
       // Ensure all required fields have at least a 0 value
       const processedData = {
@@ -496,7 +496,7 @@ async function fetchData(selectedDate = null) {
     }
 
     exchangesList = Array.from(exchangeSet).sort();  // Sort alphabetically
-    
+
     const result = {
       data: dataMap,
       exchanges: exchangesList,
@@ -504,7 +504,7 @@ async function fetchData(selectedDate = null) {
       isLatestData,
       lastChecked
     };
-    
+
     return result;
   } catch (error) {
     console.error('Error in fetchData:', error);
@@ -533,17 +533,88 @@ const SEASONALITY_SYMBOLS = [
 
 export default function App() {
   const [mode, setMode] = useState('dark');
-  
+
   // Theme state & toggle
   const colorMode = useMemo(() => ({
     toggleColorMode: () => {
       setMode(prev => (prev === 'light' ? 'dark' : 'light'));
     },
   }), []);
-  
-  const theme = useMemo(() => createTheme({ palette: { mode } }), [mode]);
+
+  const theme = useMemo(() => createTheme({
+    palette: {
+      mode,
+      primary: {
+        main: '#cbb26a',
+        light: '#d4c078',
+        dark: '#a89550',
+        contrastText: '#1a1a1a',
+      },
+      secondary: {
+        main: '#cbb26a',
+        light: '#d4c078',
+        dark: '#a89550',
+        contrastText: '#1a1a1a',
+      },
+    },
+    components: {
+      MuiToggleButton: {
+        styleOverrides: {
+          root: {
+            '&.Mui-selected': {
+              backgroundColor: 'rgba(203, 178, 106, 0.15)',
+              color: '#cbb26a',
+              '&:hover': {
+                backgroundColor: 'rgba(203, 178, 106, 0.25)',
+              },
+            },
+          },
+        },
+      },
+      MuiSwitch: {
+        styleOverrides: {
+          switchBase: {
+            '&.Mui-checked': {
+              color: '#cbb26a',
+              '& + .MuiSwitch-track': {
+                backgroundColor: '#cbb26a',
+              },
+            },
+          },
+        },
+      },
+      MuiListItemButton: {
+        styleOverrides: {
+          root: {
+            '&.Mui-selected': {
+              backgroundColor: 'rgba(203, 178, 106, 0.12)',
+              '&:hover': {
+                backgroundColor: 'rgba(203, 178, 106, 0.18)',
+              },
+              '& .MuiListItemIcon-root': {
+                color: '#cbb26a',
+              },
+              '& .MuiListItemText-primary': {
+                color: '#cbb26a',
+              },
+            },
+          },
+        },
+      },
+      MuiLink: {
+        styleOverrides: {
+          root: {
+            color: '#cbb26a',
+            '&:hover': {
+              color: '#d4c078',
+            },
+          },
+        },
+      },
+    },
+  }), [mode]);
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
+
   const [mobileView, setMobileView] = useState('table');
   const [mobileSortBy, setMobileSortBy] = useState('commodity');
   const [mobileSortOrder, setMobileSortOrder] = useState('asc');
@@ -556,7 +627,7 @@ export default function App() {
   const [displayExchanges, setDisplayExchanges] = useState([]);
   const [futuresData, setFuturesData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
-  
+
   // Add logging to track filteredData changes
   const setFilteredDataWithLogging = useCallback((newData) => {
     setFilteredData(newData);
@@ -585,7 +656,7 @@ export default function App() {
   useEffect(() => {
     document.documentElement.style.backgroundColor = theme.palette.background.default;
   }, [theme.palette.background.default]);
-  
+
   // Add effect to handle authorization changes
   useEffect(() => {
     const checkAuth = () => {
@@ -614,20 +685,20 @@ export default function App() {
   useEffect(() => {
     const loadInitialData = async () => {
       if (!authorized) return;
-      
+
       try {
         setIsLoading(true);
         // First get available dates
         const dates = await getAvailableReportDates();
         setAvailableDates(dates);
-        
+
         if (dates && dates.length > 0) {
           // Get the latest date
           const latestDate = dates[0];
-          
+
           // Load data for the latest date
           const result = await fetchData(latestDate);
-          
+
           // Build groups and load table filters (now interpreted as groups)
           const groupsList = getGroupsFromData(result.data);
           const email = localStorage.getItem('userEmail');
@@ -661,7 +732,7 @@ export default function App() {
 
           // Set filtered data after
           setFilteredData(newFilteredData);
-          
+
           // Load favorites
           await loadFavorites();
 
@@ -692,7 +763,7 @@ export default function App() {
   }, [authorized]);
 
   // Force refresh function
-  const forceRefresh = async () => {    
+  const forceRefresh = async () => {
     // Clear localStorage
     Object.keys(localStorage).forEach(key => {
       if (key.startsWith('commercialExtremes_') || key.startsWith('retailExtremes_')) {
@@ -705,23 +776,23 @@ export default function App() {
     setRetailExtremes({});
     setFuturesData([]);
     setFilteredData([]);
-    
+
     // Reload data
     if (!authorized) return;
-      
+
     try {
       setIsLoading(true);
       // First get available dates
       const dates = await getAvailableReportDates();
       setAvailableDates(dates);
-      
+
       if (dates && dates.length > 0) {
         // Get the latest date
         const latestDate = dates[0];
-        
+
         // Load data for the latest date
         const result = await fetchData(latestDate);
-        
+
         // Build groups and load table filters (as groups)
         const groupsList = getGroupsFromData(result.data);
         const email = localStorage.getItem('userEmail');
@@ -754,7 +825,7 @@ export default function App() {
 
         // Set filtered data after
         setFilteredData(newFilteredData);
-        
+
         // Load favorites
         await loadFavorites();
 
@@ -790,12 +861,12 @@ export default function App() {
   useEffect(() => {
     const handleDateUpdate = async () => {
       if (!selectedDate || !authorized) return;
-      
+
       try {
         setIsLoading(true);
         setIsDateLoading(true);
         const result = await fetchData(selectedDate);
-        
+
         // Build groups and load table filters (as groups)
         const groupsList = getGroupsFromData(result.data);
         const email = localStorage.getItem('userEmail');
@@ -847,13 +918,13 @@ export default function App() {
       }
 
       const response = await fetch(`${API_BASE_URL}/preferences/favorites?email=${encodeURIComponent(email)}`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to load favorites');
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success && data.favorites && data.favorites.selected) {
         setFavorites(data.favorites.selected);
         // Update localStorage to match backend
@@ -875,7 +946,7 @@ export default function App() {
   const handleToggleFavorite = async (commodity) => {
     try {
       const email = localStorage.getItem('userEmail');
-      
+
       if (!email) {
         return;
       }
@@ -883,7 +954,7 @@ export default function App() {
       const newFavorites = favorites.includes(commodity)
         ? favorites.filter(f => f !== commodity)
         : [...favorites, commodity];
-      
+
 
       // Update state and localStorage immediately for responsive UI
       setFavorites(newFavorites);
@@ -928,10 +999,10 @@ export default function App() {
       const response = await axios.get(
         `https://publicreporting.cftc.gov/resource/6dca-aqww.json?cftc_contract_market_code=${marketCode}&$order=report_date_as_yyyy_mm_dd DESC&$limit=1000`
       );
-      
+
       // Format dates and ensure numeric values
       const formattedData = response.data.map((item, index) => {
-        
+
         return {
           ...item,
           report_date_as_yyyy_mm_dd: new Date(item.report_date_as_yyyy_mm_dd).toLocaleDateString('en-US', {
@@ -953,12 +1024,12 @@ export default function App() {
         const net = item.comm_positions_long_all - item.comm_positions_short_all;
         return net;
       });
-      
+
       const nonCommercialNet = formattedData.map((item, index) => {
         const net = item.noncomm_positions_long_all - item.noncomm_positions_short_all;
         return net;
       });
-      
+
       const nonReportableNet = formattedData.map((item, index) => {
         const net = item.nonrept_positions_long_all - item.nonrept_positions_short_all;
         return net;
@@ -1017,7 +1088,7 @@ export default function App() {
   // Refresh data handler
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    
+
     try {
       const result = await fetchData(selectedDate);
       setExchanges(result.exchanges);
@@ -1074,6 +1145,7 @@ export default function App() {
 
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
   const profileButtonRef = useRef(null);
+  const helpChatRef = useRef(null);
 
   const handleAccountClick = (event) => {
     setProfileAnchorEl(event.currentTarget);
@@ -1086,35 +1158,35 @@ export default function App() {
   // Mobile toolbar component that appears on all screens
   const renderMobileToolbar = () => {
     if (!isMobile) return null;
-    
+
     // Build tab options for dropdown
     const getTabOptions = () => {
       const options = [];
-      
+
       // Add Favorites if there are any
       if (favorites.length > 0) {
         options.push({ value: 0, label: `Favorites (${favorites.length})` });
       }
-      
+
       // Add Commercial Tracker
       options.push({ value: 1, label: 'Commercial Tracker' });
-      
+
       // Add Retail Tracker
       options.push({ value: 2, label: 'Retail Tracker' });
-      
+
       // Add groups
       const groupStartIndex = 3;
       exchanges.forEach((group, index) => {
         options.push({ value: groupStartIndex + index, label: group });
       });
-      
+
       return options;
     };
-    
+
     const tabOptions = getTabOptions();
-    
+
     return (
-      <Box sx={{ 
+      <Box sx={{
         display: 'flex',
         flexDirection: 'column',
         gap: 1,
@@ -1190,72 +1262,75 @@ export default function App() {
                 <ShowChartIcon fontSize="small" />
               </ToggleButton>
             </ToggleButtonGroup>
-<ToggleButton
-                              selected={activeSection === 'seasonality'}
-                              onClick={handleSeasonalityClick}
-                              aria-label="seasonality"
-                              title={activeSection === 'seasonality' ? 'Go to Reports' : 'Seasonality'}
-                              value="seasonality"
-                              sx={{ 
-                                px: 1.25,
-                                border: 'none',
-                                borderRadius: 0,
-                                '&.Mui-selected': {
-                                  backgroundColor: theme.palette.action.selected,
-                                }
-                              }}
-                            >
-                              <WbSunnyIcon fontSize="small" />
-                            </ToggleButton>
-                            <ToggleButton
-                              selected={activeSection === 'ai-agent'}
-                              onClick={() => router.navigate('/ai-agent')}
-                              aria-label="ai-agent"
-                              title="AI Agent"
-                              value="ai-agent"
-                              sx={{ 
-                                px: 1.25,
-                                border: 'none',
-                                borderRadius: 0,
-                                '&.Mui-selected': {
-                                  backgroundColor: theme.palette.action.selected,
-                                }
-                              }}
-                            >
-                              <SmartToyIcon fontSize="small" />
-                            </ToggleButton>
-                            <ToggleButton
-                              ref={profileButtonRef}
-                              selected={Boolean(profileAnchorEl)}
-                              onClick={handleAccountClick}
-                              aria-label="account"
-                              title="Account"
-                              value="account"
-                              sx={{ 
-                                px: 1.25,
-                                border: 'none',
-                                borderRadius: 0,
-                                '&.Mui-selected': {
-                                  backgroundColor: theme.palette.action.selected,
-                                }
-                              }}
-                            >
-                              <AccountCircleIcon fontSize="small" />
-                            </ToggleButton>
+            <ToggleButton
+              selected={activeSection === 'seasonality'}
+              onClick={handleSeasonalityClick}
+              aria-label="seasonality"
+              title={activeSection === 'seasonality' ? 'Go to Reports' : 'Seasonality'}
+              value="seasonality"
+              sx={{
+                px: 1.25,
+                border: 'none',
+                borderRadius: 0,
+                '&.Mui-selected': {
+                  backgroundColor: 'rgba(203, 178, 106, 0.15)',
+                  color: '#cbb26a',
+                }
+              }}
+            >
+              <WbSunnyIcon fontSize="small" />
+            </ToggleButton>
+            <ToggleButton
+              selected={activeSection === 'ai-agent'}
+              onClick={() => router.navigate('/ai-agent')}
+              aria-label="ai-agent"
+              title="AI Agent"
+              value="ai-agent"
+              sx={{
+                px: 1.25,
+                border: 'none',
+                borderRadius: 0,
+                '&.Mui-selected': {
+                  backgroundColor: 'rgba(203, 178, 106, 0.15)',
+                  color: '#cbb26a',
+                }
+              }}
+            >
+              <SmartToyIcon fontSize="small" />
+            </ToggleButton>
+            <ToggleButton
+              ref={profileButtonRef}
+              selected={Boolean(profileAnchorEl)}
+              onClick={handleAccountClick}
+              aria-label="account"
+              title="Account"
+              value="account"
+              sx={{
+                px: 1.25,
+                border: 'none',
+                borderRadius: 0,
+                '&.Mui-selected': {
+                  backgroundColor: 'rgba(203, 178, 106, 0.15)',
+                  color: '#cbb26a',
+                }
+              }}
+            >
+              <AccountCircleIcon fontSize="small" />
+            </ToggleButton>
           </Box>
         </Box>
-        
+
         <ProfileCard
           open={Boolean(profileAnchorEl)}
           onClose={handleProfileClose}
           anchorEl={profileAnchorEl}
           buttonRef={profileButtonRef}
         />
-        
+
         {/* Seasonality controls (when in seasonality mode) */}
         {activeSection === 'seasonality' && (
-          <Box sx={{ 
-            display: 'flex', 
+          <Box sx={{
+            display: 'flex',
             flexDirection: 'column',
             gap: 1,
             width: '100%',
@@ -1268,20 +1343,20 @@ export default function App() {
               onChange={(_, option) => setSelectedSymbol(option?.value || 'CL')}
               getOptionLabel={(option) => option.label}
               renderInput={(params) => (
-                <TextField 
-                  {...params} 
-                  label="Symbol" 
-                  sx={{ 
-                    '& .MuiInputBase-root': { 
+                <TextField
+                  {...params}
+                  label="Symbol"
+                  sx={{
+                    '& .MuiInputBase-root': {
                       height: '36px',
                       fontSize: '0.875rem'
-                    } 
+                    }
                   }}
                 />
               )}
               isOptionEqualToValue={(option, value) => option.value === value.value}
             />
-            
+
             {/* Lookback and Cycle - side by side */}
             <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
               <FormControl size="small" sx={{ flex: 1, minWidth: 100 }}>
@@ -1316,17 +1391,17 @@ export default function App() {
             </Box>
           </Box>
         )}
-        
+
         {/* Tab selector and Sort (only show on cots-report section) */}
         {activeSection === 'cots-report' && tabOptions.length > 0 && (
-          <Box sx={{ 
-            display: 'flex', 
+          <Box sx={{
+            display: 'flex',
             gap: 1,
             width: '100%',
           }}>
-            <FormControl 
-              size="small" 
-              sx={{ 
+            <FormControl
+              size="small"
+              sx={{
                 flex: 1,
                 minWidth: 120,
                 '& .MuiOutlinedInput-root': {
@@ -1351,10 +1426,10 @@ export default function App() {
                 ))}
               </Select>
             </FormControl>
-            
-            <FormControl 
-              size="small" 
-              sx={{ 
+
+            <FormControl
+              size="small"
+              sx={{
                 flex: 1,
                 minWidth: 100,
                 '& .MuiOutlinedInput-root': {
@@ -1424,7 +1499,7 @@ export default function App() {
           <CollapsableTableSkeleton />
         ) : (
           <>
-            
+
             {(!isMobile || mobileView === 'table') && (
               <CollapsibleTable
                 futuresData={futuresData}
@@ -1448,10 +1523,10 @@ export default function App() {
                 } : undefined}
               />
             )}
-            
+
             {(!isMobile || mobileView === 'chart') && (
-              <Box sx={{ 
-                position: 'relative', 
+              <Box sx={{
+                position: 'relative',
                 minHeight: isMobile ? 'calc(100vh - 180px)' : '400px',
                 mt: isMobile ? 1 : 2
               }}>
@@ -1474,10 +1549,10 @@ export default function App() {
                     <CircularProgress />
                   </Box>
                 )}
-                <LineChartWithReferenceLines 
-                  commercialChartData={commercialChartData} 
-                  nonCommercialChartData={nonCommercialChartData} 
-                  nonReportableChartData={nonReportableChartData} 
+                <LineChartWithReferenceLines
+                  commercialChartData={commercialChartData}
+                  nonCommercialChartData={nonCommercialChartData}
+                  nonReportableChartData={nonReportableChartData}
                   chartDates={chartDates}
                   selectedCommodity={selectedCommodity}
                   preferredSeries={preferredChartSeries}
@@ -1650,7 +1725,7 @@ export default function App() {
                           renderPageItem: renderSidebarItem,
                           appTitle: () => null,
                           toolbarActions,
-                          sidebarFooter: SidebarFooter,
+                          sidebarFooter: ({ mini }) => <SidebarFooter mini={mini} onSupportClick={() => helpChatRef.current?.openModal()} />,
                         }}
                         onPageChange={(page) => {
                           if (page?.segment) setActiveSection(page.segment);
@@ -1658,9 +1733,9 @@ export default function App() {
                       >
                         <Box sx={{ flexGrow: 1, width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
                           {renderMobileToolbar()}
-                          <Box sx={{ 
-                            flexGrow: 1, 
-                            overflow: 'auto', 
+                          <Box sx={{
+                            flexGrow: 1,
+                            overflow: 'auto',
                             width: '100%',
                             ...(isMobile && {
                               paddingBottom: '20px',
@@ -1669,15 +1744,15 @@ export default function App() {
                             {activeSection === 'cots-report' && renderCollapsibleTable()}
                             {/* Chart section hidden for now */}
                             {activeSection === 'seasonality' && (
-                              <Box sx={{ 
-                                p: isMobile ? 1 : 2, 
+                              <Box sx={{
+                                p: isMobile ? 1 : 2,
                                 height: '100%',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 overflow: isMobile ? 'auto' : 'hidden'
                               }}>
-                                <SeasonalityChart 
-                                  symbol={selectedSymbol} 
+                                <SeasonalityChart
+                                  symbol={selectedSymbol}
                                   lookbackYears={seasonalityLookback}
                                   cycleFilter={seasonalityCycle}
                                   startDate={seasonalityStartDate}
@@ -1687,8 +1762,8 @@ export default function App() {
                               </Box>
                             )}
                             {activeSection === 'ai-agent' && (
-                              <Box sx={{ 
-                                p: isMobile ? 1 : 2, 
+                              <Box sx={{
+                                p: isMobile ? 1 : 2,
                                 height: '100%',
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -1700,8 +1775,8 @@ export default function App() {
                           </Box>
                         </Box>
                       </DashboardLayout>
-                      {/* Floating Help Chat - appears on all views */}
-                      <HelpChat />
+                      {/* Help Chat Modal - triggered from sidebar */}
+                      <HelpChat ref={helpChatRef} />
                     </AppProvider>
                   </ThemeProvider>
                 </ColorModeContext.Provider>
