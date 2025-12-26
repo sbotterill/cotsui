@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { IconButton, Box } from '@mui/material';
+import { IconButton, Box, Tooltip } from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ProfileCard from './ProfileCard';
 
@@ -17,18 +17,23 @@ export default function Profile() {
 
   return (
     <Box sx={{ position: 'relative' }}>
-      <IconButton
-        ref={buttonRef}
-        onClick={handleClick}
-        sx={{
-          color: 'inherit',
-          '&:hover': {
-            backgroundColor: 'rgba(0, 0, 0, 0.04)'
-          }
-        }}
-      >
-        <AccountCircleIcon />
-      </IconButton>
+      <Tooltip title="Profile" placement="right" arrow>
+        <IconButton
+          ref={buttonRef}
+          onClick={handleClick}
+          sx={{
+            color: '#cbb26a',
+            width: 40,
+            height: 40,
+            borderRadius: 1,
+            '&:hover': {
+              backgroundColor: 'action.hover',
+            }
+          }}
+        >
+          <AccountCircleIcon />
+        </IconButton>
+      </Tooltip>
       <ProfileCard
         open={Boolean(anchorEl)}
         onClose={handleClose}

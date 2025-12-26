@@ -44,6 +44,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { Select, MenuItem, FormControl, InputLabel, Autocomplete, TextField } from '@mui/material';
 import { getCommercialExtremes, getRetailExtremes } from './services/cftcService';
 
@@ -1191,7 +1192,8 @@ export default function App() {
         flexDirection: 'column',
         gap: 1,
         position: 'sticky',
-        top: { xs: '58px', sm: '160px' },
+        // Move to top when app bar is hidden (AI Agent view)
+        top: activeSection === 'ai-agent' ? 0 : { xs: '58px', sm: '160px' },
         zIndex: 4,
         backgroundColor: theme.palette.background.default,
         py: 1,
@@ -1224,12 +1226,30 @@ export default function App() {
               }
             }}
           >
+            <ToggleButton
+              selected={activeSection === 'ai-agent'}
+              onClick={() => router.navigate('/ai-agent')}
+              aria-label="ai-agent"
+              title="AI Agent"
+              value="ai-agent"
+              sx={{
+                px: 1.25,
+                border: 'none',
+                borderRadius: 0,
+                '&.Mui-selected': {
+                  backgroundColor: 'rgba(203, 178, 106, 0.15)',
+                  color: '#cbb26a',
+                }
+              }}
+            >
+              <SmartToyIcon fontSize="small" />
+            </ToggleButton>
             <ToggleButtonGroup
               value={activeSection === 'cots-report' ? mobileView : null}
               exclusive
               onChange={(e, newView) => {
-                // If in seasonality, switch back to cots-report first
-                if (activeSection === 'seasonality' && newView) {
+                // If not in cots-report, switch to it first
+                if (activeSection !== 'cots-report' && newView) {
                   router.navigate('/cots-report');
                   setMobileView(newView);
                 } else {
@@ -1281,22 +1301,17 @@ export default function App() {
               <WbSunnyIcon fontSize="small" />
             </ToggleButton>
             <ToggleButton
-              selected={activeSection === 'ai-agent'}
-              onClick={() => router.navigate('/ai-agent')}
-              aria-label="ai-agent"
-              title="AI Agent"
-              value="ai-agent"
+              onClick={() => helpChatRef.current?.openModal()}
+              aria-label="help"
+              title="Help & Feedback"
+              value="help"
               sx={{
                 px: 1.25,
                 border: 'none',
                 borderRadius: 0,
-                '&.Mui-selected': {
-                  backgroundColor: 'rgba(203, 178, 106, 0.15)',
-                  color: '#cbb26a',
-                }
               }}
             >
-              <SmartToyIcon fontSize="small" />
+              <HelpOutlineIcon fontSize="small" />
             </ToggleButton>
             <ToggleButton
               ref={profileButtonRef}
@@ -1392,8 +1407,8 @@ export default function App() {
           </Box>
         )}
 
-        {/* Tab selector and Sort (only show on cots-report section) */}
-        {activeSection === 'cots-report' && tabOptions.length > 0 && (
+        {/* Tab selector and Sort (only show on cots-report section when NOT in chart view) */}
+        {activeSection === 'cots-report' && tabOptions.length > 0 && mobileView !== 'chart' && (
           <Box sx={{
             display: 'flex',
             gap: 1,
@@ -1469,6 +1484,41 @@ export default function App() {
             </FormControl>
           </Box>
         )}
+
+        {/* Commodity selector (only show on chart view) - searchable */}
+        {activeSection === 'cots-report' && mobileView === 'chart' && filteredData.length > 0 && (
+          <Box sx={{ width: '100%' }}>
+            <Autocomplete
+              size="small"
+              options={[...filteredData].sort((a, b) => a.commodity.localeCompare(b.commodity))}
+              getOptionLabel={(option) => option.commodity || ''}
+              value={filteredData.find(item => item.commodity === selectedCommodity) || null}
+              onChange={(event, newValue) => {
+                setSelectedCommodity(newValue ? newValue.commodity : null);
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Search commodity..."
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 1,
+                      fontSize: '0.875rem',
+                    },
+                    '& .MuiInputBase-input': {
+                      fontSize: '0.875rem',
+                    }
+                  }}
+                />
+              )}
+              sx={{
+                '& .MuiAutocomplete-inputRoot': {
+                  height: '40px',
+                }
+              }}
+            />
+          </Box>
+        )}
       </Box>
     );
   };
@@ -1476,25 +1526,29 @@ export default function App() {
   const renderCollapsibleTable = () => {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%', height: '100%' }}>
-        <DrawerAppBar
-          futuresData={futuresData}
-          userExchanges={userExchanges}
-          setFilteredData={setFilteredDataWithLogging}
-          exchanges={exchanges}
-          setDisplayExchanges={setDisplayExchanges}
-          displayExchanges={displayExchanges}
-          onExchangeFilterChange={handleExchangeFilterChange}
-          lastUpdated={lastUpdated}
-          selectedDate={selectedDate}
-          onDateChange={handleDateChange}
-          isDateLoading={isDateLoading}
-          availableDates={availableDates}
-          isLatestData={isLatestData}
-          lastChecked={lastChecked}
-          selectedTab={selectedTab}
-          onTabChange={setSelectedTab}
-          favorites={favorites}
-        />
+        {/* Hide AppBar on mobile chart view - only show for table view */}
+        {(!isMobile || mobileView !== 'chart') && (
+          <DrawerAppBar
+            futuresData={futuresData}
+            userExchanges={userExchanges}
+            setFilteredData={setFilteredDataWithLogging}
+            exchanges={exchanges}
+            setDisplayExchanges={setDisplayExchanges}
+            displayExchanges={displayExchanges}
+            onExchangeFilterChange={handleExchangeFilterChange}
+            lastUpdated={lastUpdated}
+            selectedDate={selectedDate}
+            onDateChange={handleDateChange}
+            isDateLoading={isDateLoading}
+            availableDates={availableDates}
+            isLatestData={isLatestData}
+            lastChecked={lastChecked}
+            selectedTab={selectedTab}
+            onTabChange={setSelectedTab}
+            favorites={favorites}
+            mobileView={mobileView}
+          />
+        )}
         {isLoading ? (
           <CollapsableTableSkeleton />
         ) : (
@@ -1684,102 +1738,166 @@ export default function App() {
               <Navigate to="/sign-in" replace />
             ) : (
               <SubscriptionGuard>
-                <ColorModeContext.Provider value={colorMode}>
-                  <ThemeProvider theme={theme}>
-                    <CssBaseline />
-                    <AppProvider
-                      navigation={NAVIGATION}
-                      theme={theme}
-                      router={router}
-                      branding={{
-                        title: 'COTS UI',
-                        homeUrl: '/dashboard',
+                {/* Mobile Development Notice */}
+                {isMobile && (
+                  <Box
+                    sx={{
+                      position: 'fixed',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#f5f5f5',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 4,
+                      zIndex: 9999,
+                      textAlign: 'center',
+                    }}
+                  >
+                    <SmartToyIcon sx={{ fontSize: 64, color: '#cbb26a', mb: 3 }} />
+                    <Typography variant="h5" sx={{ fontWeight: 600, mb: 2, color: 'text.primary' }}>
+                      Mobile View Coming Soon
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary', mb: 3, maxWidth: 320 }}>
+                      We're working hard to bring you the best mobile experience. Our mobile version is currently under development.
+                    </Typography>
+                    <Box
+                      sx={{
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(203, 178, 106, 0.1)' : 'rgba(203, 178, 106, 0.15)',
+                        borderRadius: 2,
+                        px: 3,
+                        py: 1.5,
+                        border: '1px solid',
+                        borderColor: 'rgba(203, 178, 106, 0.3)',
                       }}
                     >
-                      <DashboardLayout
-                        sx={{
-                          '& .MuiDrawer-paper': {
-                            width: 250,
-                            '@media (min-width: 601px)': {
-                              width: 250, // Ensure desktop drawer stays at 250px
-                            }
-                          },
-                          // Hide hamburger menu button in mobile view ONLY
-                          '@media (max-width: 600px)': {
-                            '& button[aria-label*="menu" i]': {
-                              display: 'none !important',
-                            },
-                            '& button[aria-label*="sidebar" i]': {
-                              display: 'none !important',
-                            },
-                            '& button[aria-label*="navigation" i]': {
-                              display: 'none !important',
-                            },
-                            '& .MuiToolbar-root button:first-of-type': {
-                              display: 'none !important',
-                            },
-                          }
-                        }}
-                        defaultSidebarCollapsed
-                        slots={{
-                          renderPageItem: renderSidebarItem,
-                          appTitle: () => null,
-                          toolbarActions,
-                          sidebarFooter: ({ mini }) => <SidebarFooter mini={mini} onSupportClick={() => helpChatRef.current?.openModal()} />,
-                        }}
-                        onPageChange={(page) => {
-                          if (page?.segment) setActiveSection(page.segment);
+                      <Typography variant="body2" sx={{ color: '#cbb26a', fontWeight: 500 }}>
+                        ETA: 1 Month
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" sx={{ color: 'text.disabled', mt: 4 }}>
+                      Please access COTS UI from a desktop browser for the full experience.
+                    </Typography>
+                  </Box>
+                )}
+                {!isMobile && (
+                  <ColorModeContext.Provider value={colorMode}>
+                    <ThemeProvider theme={theme}>
+                      <CssBaseline />
+                      <AppProvider
+                        navigation={NAVIGATION}
+                        theme={theme}
+                        router={router}
+                        branding={{
+                          title: 'COTS UI',
+                          homeUrl: '/dashboard',
                         }}
                       >
-                        <Box sx={{ flexGrow: 1, width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                          {renderMobileToolbar()}
-                          <Box sx={{
-                            flexGrow: 1,
-                            overflow: 'auto',
-                            width: '100%',
-                            ...(isMobile && {
-                              paddingBottom: '20px',
-                            })
-                          }}>
-                            {activeSection === 'cots-report' && renderCollapsibleTable()}
-                            {/* Chart section hidden for now */}
-                            {activeSection === 'seasonality' && (
-                              <Box sx={{
-                                p: isMobile ? 1 : 2,
-                                height: '100%',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                overflow: isMobile ? 'auto' : 'hidden'
-                              }}>
-                                <SeasonalityChart
-                                  symbol={selectedSymbol}
-                                  lookbackYears={seasonalityLookback}
-                                  cycleFilter={seasonalityCycle}
-                                  startDate={seasonalityStartDate}
-                                  endDate={seasonalityEndDate}
-                                  onEffectiveRange={(range) => setSeasonalityEffectiveRange(range)}
-                                />
-                              </Box>
-                            )}
-                            {activeSection === 'ai-agent' && (
-                              <Box sx={{
-                                p: isMobile ? 1 : 2,
-                                height: '100%',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                overflow: 'hidden'
-                              }}>
-                                <AIChat />
-                              </Box>
-                            )}
+                        <DashboardLayout
+                          sx={{
+                            // Fixed sidebar width at 82px (no expand/collapse)
+                            '& .MuiDrawer-root .MuiDrawer-paper': {
+                              '@media (min-width: 601px)': {
+                                width: '82px !important',
+                                minWidth: '82px !important',
+                                maxWidth: '82px !important',
+                              }
+                            },
+                            // Hide hamburger menu button on desktop (sidebar stays fixed)
+                            '@media (min-width: 601px)': {
+                              '& button[aria-label*="menu" i], & button[aria-label*="sidebar" i], & button[aria-label*="navigation" i]': {
+                                display: 'none !important',
+                              },
+                              '& .MuiToolbar-root button:first-of-type': {
+                                display: 'none !important',
+                              },
+                            },
+                            // Hide hamburger menu button in mobile view
+                            '@media (max-width: 600px)': {
+                              '& button[aria-label*="menu" i]': {
+                                display: 'none !important',
+                              },
+                              '& button[aria-label*="sidebar" i]': {
+                                display: 'none !important',
+                              },
+                              '& button[aria-label*="navigation" i]': {
+                                display: 'none !important',
+                              },
+                              '& .MuiToolbar-root button:first-of-type': {
+                                display: 'none !important',
+                              },
+                              // Hide entire toolbar on mobile for AI Agent view
+                              ...(activeSection === 'ai-agent' && {
+                                '& .MuiAppBar-root': {
+                                  display: 'none !important',
+                                },
+                              }),
+                            }
+                          }}
+                          defaultSidebarCollapsed
+                          slots={{
+                            renderPageItem: renderSidebarItem,
+                            appTitle: () => null,
+                            toolbarActions,
+                            sidebarFooter: ({ mini }) => <SidebarFooter mini={mini} onSupportClick={() => helpChatRef.current?.openModal()} />,
+                          }}
+                          onPageChange={(page) => {
+                            if (page?.segment) setActiveSection(page.segment);
+                          }}
+                        >
+                          <Box sx={{ flexGrow: 1, width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                            {renderMobileToolbar()}
+                            <Box sx={{
+                              flexGrow: 1,
+                              overflow: 'auto',
+                              width: '100%',
+                              ...(isMobile && {
+                                paddingBottom: '20px',
+                              })
+                            }}>
+                              {activeSection === 'cots-report' && renderCollapsibleTable()}
+                              {/* Chart section hidden for now */}
+                              {activeSection === 'seasonality' && (
+                                <Box sx={{
+                                  p: isMobile ? 1 : 2,
+                                  height: '100%',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  overflow: isMobile ? 'auto' : 'hidden'
+                                }}>
+                                  <SeasonalityChart
+                                    symbol={selectedSymbol}
+                                    lookbackYears={seasonalityLookback}
+                                    cycleFilter={seasonalityCycle}
+                                    startDate={seasonalityStartDate}
+                                    endDate={seasonalityEndDate}
+                                    onEffectiveRange={(range) => setSeasonalityEffectiveRange(range)}
+                                  />
+                                </Box>
+                              )}
+                              {activeSection === 'ai-agent' && (
+                                <Box sx={{
+                                  p: isMobile ? 1 : 2,
+                                  height: '100%',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  overflow: 'hidden'
+                                }}>
+                                  <AIChat />
+                                </Box>
+                              )}
+                            </Box>
                           </Box>
-                        </Box>
-                      </DashboardLayout>
-                      {/* Help Chat Modal - triggered from sidebar */}
-                      <HelpChat ref={helpChatRef} />
-                    </AppProvider>
-                  </ThemeProvider>
-                </ColorModeContext.Provider>
+                        </DashboardLayout>
+                        {/* Help Chat Modal - triggered from sidebar */}
+                        <HelpChat ref={helpChatRef} />
+                      </AppProvider>
+                    </ThemeProvider>
+                  </ColorModeContext.Provider>
+                )}
               </SubscriptionGuard>
             )}
           </>
@@ -1791,7 +1909,53 @@ export default function App() {
             <ColorModeContext.Provider value={colorMode}>
               <ThemeProvider theme={theme}>
                 <CssBaseline />
-                <LandingPage />
+                {/* Mobile Development Notice for Landing Page */}
+                {isMobile ? (
+                  <Box
+                    sx={{
+                      position: 'fixed',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#f5f5f5',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 4,
+                      zIndex: 9999,
+                      textAlign: 'center',
+                    }}
+                  >
+                    <SmartToyIcon sx={{ fontSize: 64, color: '#cbb26a', mb: 3 }} />
+                    <Typography variant="h5" sx={{ fontWeight: 600, mb: 2, color: 'text.primary' }}>
+                      Mobile View Coming Soon
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary', mb: 3, maxWidth: 320 }}>
+                      We're working hard to bring you the best mobile experience. Our mobile version is currently under development.
+                    </Typography>
+                    <Box
+                      sx={{
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(203, 178, 106, 0.1)' : 'rgba(203, 178, 106, 0.15)',
+                        borderRadius: 2,
+                        px: 3,
+                        py: 1.5,
+                        border: '1px solid',
+                        borderColor: 'rgba(203, 178, 106, 0.3)',
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ color: '#cbb26a', fontWeight: 500 }}>
+                        ETA: 1 Month
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" sx={{ color: 'text.disabled', mt: 4 }}>
+                      Please access COTS UI from a desktop browser for the full experience.
+                    </Typography>
+                  </Box>
+                ) : (
+                  <LandingPage />
+                )}
               </ThemeProvider>
             </ColorModeContext.Provider>
           )

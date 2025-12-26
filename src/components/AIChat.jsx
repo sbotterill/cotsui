@@ -51,7 +51,7 @@ const ChatMessage = ({ message, isUser, queries, data, logId, onFeedback, feedba
 
   const handleFeedback = async (isHelpful) => {
     if (!logId || submittingFeedback || localFeedback !== null) return;
-    
+
     setSubmittingFeedback(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/ai/feedback`, {
@@ -64,7 +64,7 @@ const ChatMessage = ({ message, isUser, queries, data, logId, onFeedback, feedba
           is_helpful: isHelpful,
         }),
       });
-      
+
       if (response.ok) {
         setLocalFeedback(isHelpful);
         if (onFeedback) onFeedback(logId, isHelpful);
@@ -79,7 +79,7 @@ const ChatMessage = ({ message, isUser, queries, data, logId, onFeedback, feedba
   // Format message with markdown-like syntax
   const formatMessage = (text) => {
     if (!text) return '';
-    
+
     // Split into lines and process
     return text.split('\n').map((line, i) => {
       // Bold text
@@ -122,11 +122,11 @@ const ChatMessage = ({ message, isUser, queries, data, logId, onFeedback, feedba
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: isUser 
-                ? theme.palette.primary.main 
+              backgroundColor: isUser
+                ? theme.palette.primary.main
                 : alpha(theme.palette.success.main, 0.2),
-              color: isUser 
-                ? theme.palette.primary.contrastText 
+              color: isUser
+                ? theme.palette.primary.contrastText
                 : theme.palette.success.main,
               flexShrink: 0,
             }}
@@ -139,23 +139,23 @@ const ChatMessage = ({ message, isUser, queries, data, logId, onFeedback, feedba
             elevation={1}
             sx={{
               p: 2,
-              backgroundColor: isUser 
-                ? theme.palette.primary.main 
-                : theme.palette.mode === 'dark' 
+              backgroundColor: isUser
+                ? theme.palette.primary.main
+                : theme.palette.mode === 'dark'
                   ? alpha(theme.palette.background.paper, 0.8)
                   : theme.palette.grey[100],
-              color: isUser 
-                ? theme.palette.primary.contrastText 
+              color: isUser
+                ? theme.palette.primary.contrastText
                 : theme.palette.text.primary,
               borderRadius: 2,
               borderTopLeftRadius: isUser ? 16 : 4,
               borderTopRightRadius: isUser ? 4 : 16,
             }}
           >
-            <Typography 
-              variant="body2" 
+            <Typography
+              variant="body2"
               component="div"
-              sx={{ 
+              sx={{
                 whiteSpace: 'pre-wrap',
                 lineHeight: 1.6,
                 '& strong': { fontWeight: 600 },
@@ -173,7 +173,7 @@ const ChatMessage = ({ message, isUser, queries, data, logId, onFeedback, feedba
                   onClick={() => setShowQueries(!showQueries)}
                   deleteIcon={showQueries ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                   onDelete={() => setShowQueries(!showQueries)}
-                  sx={{ 
+                  sx={{
                     cursor: 'pointer',
                     '& .MuiChip-deleteIcon': { ml: 0.5 }
                   }}
@@ -186,8 +186,8 @@ const ChatMessage = ({ message, isUser, queries, data, logId, onFeedback, feedba
                         sx={{
                           mt: index > 0 ? 1 : 0,
                           p: 1.5,
-                          backgroundColor: theme.palette.mode === 'dark' 
-                            ? 'rgba(0,0,0,0.3)' 
+                          backgroundColor: theme.palette.mode === 'dark'
+                            ? 'rgba(0,0,0,0.3)'
                             : 'rgba(0,0,0,0.05)',
                           borderRadius: 1,
                           position: 'relative',
@@ -200,7 +200,7 @@ const ChatMessage = ({ message, isUser, queries, data, logId, onFeedback, feedba
                           <IconButton
                             size="small"
                             onClick={() => handleCopySql(query.sql, index)}
-                            sx={{ 
+                            sx={{
                               opacity: 0.7,
                               '&:hover': { opacity: 1 },
                               p: 0.5,
@@ -223,13 +223,13 @@ const ChatMessage = ({ message, isUser, queries, data, logId, onFeedback, feedba
                           {query.sql}
                         </Typography>
                         {copiedIndex === index && (
-                          <Typography 
-                            variant="caption" 
-                            sx={{ 
-                              position: 'absolute', 
-                              top: 8, 
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              position: 'absolute',
+                              top: 8,
                               right: 36,
-                              color: theme.palette.success.main 
+                              color: theme.palette.success.main
                             }}
                           >
                             Copied!
@@ -244,10 +244,10 @@ const ChatMessage = ({ message, isUser, queries, data, logId, onFeedback, feedba
 
             {/* Feedback buttons (only for AI responses with a log_id) */}
             {!isUser && logId && (
-              <Box 
-                sx={{ 
-                  mt: 1.5, 
-                  pt: 1, 
+              <Box
+                sx={{
+                  mt: 1.5,
+                  pt: 1,
                   borderTop: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
                   display: 'flex',
                   alignItems: 'center',
@@ -260,11 +260,11 @@ const ChatMessage = ({ message, isUser, queries, data, logId, onFeedback, feedba
                 {localFeedback === null ? (
                   <>
                     <Tooltip title="Yes, helpful">
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         onClick={() => handleFeedback(true)}
                         disabled={submittingFeedback}
-                        sx={{ 
+                        sx={{
                           p: 0.5,
                           color: theme.palette.text.secondary,
                           '&:hover': { color: theme.palette.success.main }
@@ -274,11 +274,11 @@ const ChatMessage = ({ message, isUser, queries, data, logId, onFeedback, feedba
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Not helpful">
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         onClick={() => handleFeedback(false)}
                         disabled={submittingFeedback}
-                        sx={{ 
+                        sx={{
                           p: 0.5,
                           color: theme.palette.text.secondary,
                           '&:hover': { color: theme.palette.error.main }
@@ -345,7 +345,7 @@ const AIChat = () => {
 
     try {
       const email = localStorage.getItem('userEmail') || '';
-      
+
       const response = await fetch(`${API_BASE_URL}/api/ai/chat`, {
         method: 'POST',
         headers: {
@@ -406,7 +406,7 @@ const AIChat = () => {
 
   // Handle feedback updates to persist in state
   const handleFeedback = (logId, isHelpful) => {
-    setMessages(prev => prev.map(msg => 
+    setMessages(prev => prev.map(msg =>
       msg.logId === logId ? { ...msg, feedbackGiven: isHelpful } : msg
     ));
   };
@@ -417,12 +417,12 @@ const AIChat = () => {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        maxHeight: 'calc(100vh - 120px)',
+        maxHeight: { xs: 'calc(100vh - 70px)', sm: 'calc(100vh - 120px)' },
         p: { xs: 1, sm: 2 },
       }}
     >
-      {/* Header */}
-      <Box sx={{ mb: 2 }}>
+      {/* Header - hidden on mobile to save space */}
+      <Box sx={{ mb: 2, display: { xs: 'none', sm: 'block' } }}>
         <Typography variant="h5" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
           <SmartToyIcon color="primary" />
           COTS AI
@@ -439,7 +439,7 @@ const AIChat = () => {
           flex: 1,
           overflow: 'auto',
           p: 2,
-          backgroundColor: theme.palette.mode === 'dark' 
+          backgroundColor: theme.palette.mode === 'dark'
             ? alpha(theme.palette.background.default, 0.5)
             : theme.palette.grey[50],
           borderRadius: 2,
@@ -455,27 +455,34 @@ const AIChat = () => {
               alignItems: 'center',
               justifyContent: 'center',
               height: '100%',
-              minHeight: 300,
+              minHeight: { xs: 200, sm: 300 },
               textAlign: 'center',
-              gap: 3,
+              gap: { xs: 2, sm: 3 },
+              px: { xs: 1, sm: 2 },
             }}
           >
-            <SmartToyIcon sx={{ fontSize: 64, color: theme.palette.text.disabled }} />
+            <SmartToyIcon sx={{ fontSize: { xs: 40, sm: 64 }, color: theme.palette.text.disabled }} />
             <Box>
-              <Typography variant="h6" color="text.secondary" gutterBottom>
+              <Typography variant="h6" color="text.secondary" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                 Ask me anything about CFTC data and Seasonality
               </Typography>
-              <Typography variant="body2" color="text.disabled">
+              <Typography variant="body2" color="text.disabled" sx={{ display: { xs: 'none', sm: 'block' } }}>
                 I can analyze positioning, find seasonal trends, compare trader groups, and more
               </Typography>
             </Box>
-            
+
             {/* Suggested questions */}
-            <Box sx={{ mt: 2 }}>
+            <Box sx={{ mt: 2, width: '100%', maxWidth: { xs: '100%', sm: 600 } }}>
               <Typography variant="caption" color="text.disabled" sx={{ mb: 1, display: 'block' }}>
                 Try asking:
               </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', maxWidth: 600 }}>
+              <Box sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                flexWrap: 'wrap',
+                gap: 1,
+                justifyContent: 'center',
+              }}>
                 {SUGGESTED_QUESTIONS.map((question, index) => (
                   <Chip
                     key={index}
@@ -483,6 +490,13 @@ const AIChat = () => {
                     onClick={() => handleSuggestedQuestion(question)}
                     sx={{
                       cursor: 'pointer',
+                      height: 'auto',
+                      '& .MuiChip-label': {
+                        whiteSpace: 'normal',
+                        py: 1,
+                        px: 1.5,
+                        fontSize: { xs: '0.75rem', sm: '0.8125rem' },
+                      },
                       '&:hover': {
                         backgroundColor: alpha(theme.palette.primary.main, 0.1),
                       },
@@ -567,9 +581,9 @@ const AIChat = () => {
       </Box>
 
       {/* Rate limit notice */}
-      <Typography 
-        variant="caption" 
-        color="text.disabled" 
+      <Typography
+        variant="caption"
+        color="text.disabled"
         sx={{ mt: 1, textAlign: 'center' }}
       >
         Powered by AI • 50 queries per hour

@@ -8,10 +8,9 @@
   }
 }
 
-/* Set Dashboard sidebar width to 250px */
-.MuiDrawer-paper {
-  width: 250px;
-}
+/* Note: Sidebar drawer width is controlled via DashboardLayout sx prop in App.js.
+   Do NOT add global .MuiDrawer-paper width rules here as they interfere with
+   collapsed sidebar behavior. */
 html {
   overflow: hidden;
 }
