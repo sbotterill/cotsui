@@ -1369,70 +1369,7 @@ export default function App() {
           buttonRef={profileButtonRef}
         />
 
-        {/* Seasonality controls (when in seasonality mode) */}
-        {activeSection === 'seasonality' && (
-          <Box sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1,
-            width: '100%',
-          }}>
-            {/* Symbol selector - full width */}
-            <Autocomplete
-              size="small"
-              options={seasonalitySymbols}
-              value={seasonalitySymbols.find(s => s.value === selectedSymbol) || seasonalitySymbols[0]}
-              onChange={(_, option) => setSelectedSymbol(option?.value || 'CL')}
-              getOptionLabel={(option) => option.label}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Symbol"
-                  sx={{
-                    '& .MuiInputBase-root': {
-                      height: '36px',
-                      fontSize: '0.875rem'
-                    }
-                  }}
-                />
-              )}
-              isOptionEqualToValue={(option, value) => option.value === value.value}
-            />
-
-            {/* Lookback and Cycle - side by side */}
-            <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
-              <FormControl size="small" sx={{ flex: 1, minWidth: 100 }}>
-                <InputLabel id="mobile-seasonality-lookback-label">Lookback</InputLabel>
-                <Select
-                  labelId="mobile-seasonality-lookback-label"
-                  value={seasonalityLookback || 10}
-                  label="Lookback"
-                  onChange={(e) => setSeasonalityLookback(Number(e.target.value))}
-                  sx={{ height: '36px', fontSize: '0.875rem' }}
-                >
-                  <MenuItem value={10}>10 years</MenuItem>
-                  <MenuItem value={5}>5 years</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl size="small" sx={{ flex: 1, minWidth: 100 }}>
-                <InputLabel id="mobile-seasonality-cycle-label">Cycle</InputLabel>
-                <Select
-                  labelId="mobile-seasonality-cycle-label"
-                  value={seasonalityCycle || 'all'}
-                  label="Cycle"
-                  onChange={(e) => setSeasonalityCycle(e.target.value)}
-                  sx={{ height: '36px', fontSize: '0.875rem' }}
-                >
-                  <MenuItem value={'all'}>All years</MenuItem>
-                  <MenuItem value={'pre'}>Pre-elec</MenuItem>
-                  <MenuItem value={'election'}>Election</MenuItem>
-                  <MenuItem value={'post'}>Post-elec</MenuItem>
-                  <MenuItem value={'midterm'}>Midterm</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-          </Box>
-        )}
+        {/* Seasonality controls moved to HeaderActions for mobile */}
 
         {/* Tab selector and Sort (only show on cots-report section when NOT in chart view) */}
         {activeSection === 'cots-report' && tabOptions.length > 0 && mobileView !== 'chart' && (

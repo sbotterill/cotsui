@@ -31,8 +31,10 @@ function HeaderActions(props) {
   };
   const [showNoResults, setShowNoResults] = React.useState(false);
   const isChart = props.activeSection === 'chart' || props.activeSection === 'seasonality';
+  const isSeasonality = props.activeSection === 'seasonality';
   const isAIAgent = props.activeSection === 'ai-agent';
   const isMobileChartView = isMobile && props.activeSection === 'cots-report' && props.mobileView === 'chart';
+  const isMobileSeasonality = isMobile && isSeasonality;
 
   // AI Agent section should have no toolbar content (just hamburger menu from layout)
   if (isAIAgent) {
@@ -98,7 +100,8 @@ function HeaderActions(props) {
   return (
     <Box
       sx={{
-        display: isMobile && isChart ? 'none' : 'flex',
+        // Hide on mobile for chart section only, not seasonality
+        display: (isMobile && isChart && !isSeasonality) ? 'none' : 'flex',
         alignItems: isMobile ? 'stretch' : 'center',
         flexWrap: 'wrap',
         columnGap: isMobile ? 1 : 1.5,
@@ -172,7 +175,7 @@ function HeaderActions(props) {
           )
         }}
       />)}
-      {isChart ? (
+      {isChart && !isMobileSeasonality ? (
         <FormControl size="small" sx={{ minWidth: isMobile ? 140 : 280, flex: isMobile ? '1 1 100%' : '0 0 auto' }}>
           <Autocomplete
             options={flatOptions}
@@ -198,7 +201,7 @@ function HeaderActions(props) {
             isOptionEqualToValue={(o, v) => o?.value === v?.value}
           />
         </FormControl>
-      ) : (
+      ) : !isMobileSeasonality && (
         <>
           <FormControl
             size="small"
@@ -259,6 +262,30 @@ function HeaderActions(props) {
       )}
       {props.activeSection === 'seasonality' && (
         <>
+          {/* Symbol selector - full width on mobile, first row */}
+          {isMobileSeasonality && (
+            <Autocomplete
+              size="small"
+              options={flatOptions}
+              value={selectedOption}
+              onChange={(_, option) => props.onChartSelectionChange?.({ symbol: option?.value || 'CL' })}
+              getOptionLabel={(option) => option?.label || ''}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Symbol"
+                  size="small"
+                />
+              )}
+              sx={{
+                flex: '1 1 100%',
+                mb: 0.5,
+                '& .MuiAutocomplete-inputRoot': {
+                  height: '40px',
+                }
+              }}
+            />
+          )}
           <FormControl size="small" sx={{ minWidth: isMobile ? 100 : 140, flex: isMobile ? '1 1 45%' : '0 0 auto' }}>
             <InputLabel id="seasonality-lookback-label">Lookback</InputLabel>
             <Select
