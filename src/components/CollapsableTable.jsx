@@ -248,6 +248,7 @@ export default function CollapsibleTable({
   const effectiveOrder = isMobile && mobileSortOrder ? mobileSortOrder : order;
   const effectiveOrderBy = isMobile && mobileSortBy ? mobileSortBy : orderBy;
   const [showDetails, setShowDetails] = React.useState(true);
+  const [zScoreTimeframe, setZScoreTimeframe] = React.useState('all'); // 'all' or '5y'
   const initialLoadDone = React.useRef(false);
   const fmt = new Intl.NumberFormat('en-US');
   const fmtCompact = new Intl.NumberFormat('en-US', { notation: 'compact' });
@@ -885,28 +886,16 @@ export default function CollapsibleTable({
                 </TableSortLabel>
               </TableCell>
               {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
-                <>
-                  <TableCell align="center">
-                    <TableSortLabel
-                      active={effectiveOrderBy === 'zScore'}
-                      direction={effectiveOrderBy === 'zScore' ? effectiveOrder : 'asc'}
-                      onClick={() => handleRequestSort('zScore')}
-                      sx={{ justifyContent: 'center' }}
-                    >
-                      zScore (All)
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell align="center">
-                    <TableSortLabel
-                      active={effectiveOrderBy === 'zScore5y'}
-                      direction={effectiveOrderBy === 'zScore5y' ? effectiveOrder : 'asc'}
-                      onClick={() => handleRequestSort('zScore5y')}
-                      sx={{ justifyContent: 'center' }}
-                    >
-                      zScore (5Y)
-                    </TableSortLabel>
-                  </TableCell>
-                </>
+                <TableCell align="center">
+                  <TableSortLabel
+                    active={effectiveOrderBy === (zScoreTimeframe === 'all' ? 'zScore' : 'zScore5y')}
+                    direction={effectiveOrderBy === (zScoreTimeframe === 'all' ? 'zScore' : 'zScore5y') ? effectiveOrder : 'asc'}
+                    onClick={() => handleRequestSort(zScoreTimeframe === 'all' ? 'zScore' : 'zScore5y')}
+                    sx={{ justifyContent: 'center' }}
+                  >
+                    zScore ({zScoreTimeframe === 'all' ? 'All' : '5Y'})
+                  </TableSortLabel>
+                </TableCell>
               )}
               <TableCell colSpan={2} align="center">Open Interest</TableCell>
               <TableCell colSpan={isTabletLandscape ? 4 : 3} align="center">Non-commercial</TableCell>
@@ -916,10 +905,7 @@ export default function CollapsibleTable({
             <TableRow>
               <TableCell sx={{ position: 'sticky', left: 0, backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5', zIndex: 1 }} />
               {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
-                <>
-                  <TableCell align="center">All-Time</TableCell>
-                  <TableCell align="center">5 Years</TableCell>
-                </>
+                <TableCell align="center">{zScoreTimeframe === 'all' ? 'All-Time' : '5 Years'}</TableCell>
               )}
               <TableCell align="center">Total</TableCell>
               <TableCell align="center">Change</TableCell>
@@ -979,16 +965,15 @@ export default function CollapsibleTable({
                   </Box>
                 </TableCell>
                 {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
-                  <>
-                    <TableCell align="center"><ZBadge z={row.zScore} type={row.extremeType} /></TableCell>
-                    <TableCell align="center">
-                      {row.zScore5y !== null && row.zScore5y !== undefined ? (
+                  <TableCell align="center">
+                    {zScoreTimeframe === 'all' ? (
+                      <ZBadge z={row.zScore} type={row.extremeType} />
+                    ) : (
+                      row.zScore5y !== null && row.zScore5y !== undefined ? (
                         <ZBadge z={row.zScore5y} type={row.extremeType} />
-                      ) : (
-                        '—'
-                      )}
-                    </TableCell>
-                  </>
+                      ) : '—'
+                    )}
+                  </TableCell>
                 )}
                 {/* Open Interest */}
                 <TableCell align="right">{isTabletLandscape ? fmt.format(row.open_interest_all) : fmtCompact.format(row.open_interest_all)}</TableCell>
@@ -996,21 +981,21 @@ export default function CollapsibleTable({
                 {/* Non-commercial */}
                 <TableCell align="right">{fmt.format(row.non_commercial_long)}</TableCell>
                 <TableCell align="right">{fmt.format(row.non_commercial_short)}</TableCell>
-                <TableCell align="right">{formatPercentage(row.non_commercial_percentage_long)}</TableCell>
+                <TableCell align="right">{formatPercentageRounded(row.non_commercial_percentage_long)}</TableCell>
                 {isTabletLandscape && (
                   <TableCell align="right">{formatPercentageRounded(row.pct_of_oi_noncomm_long_all)}</TableCell>
                 )}
                 {/* Commercial */}
                 <TableCell align="right">{fmt.format(row.commercial_long)}</TableCell>
                 <TableCell align="right">{fmt.format(row.commercial_short)}</TableCell>
-                <TableCell align="right">{formatPercentage(row.commercial_percentage_long)}</TableCell>
+                <TableCell align="right">{formatPercentageRounded(row.commercial_percentage_long)}</TableCell>
                 {isTabletLandscape && (
                   <TableCell align="right">{formatPercentageRounded(row.pct_of_oi_comm_long_all)}</TableCell>
                 )}
                 {/* Non-reportable */}
                 <TableCell align="right">{fmt.format(row.non_reportable_long)}</TableCell>
                 <TableCell align="right">{fmt.format(row.non_reportable_short)}</TableCell>
-                <TableCell align="right">{formatPercentage(row.non_reportable_percentage_long)}</TableCell>
+                <TableCell align="right">{formatPercentageRounded(row.non_reportable_percentage_long)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -1022,7 +1007,7 @@ export default function CollapsibleTable({
     return (
       <Table size="small" aria-label="futures data" sx={{
         borderCollapse: 'collapse',
-        tableLayout: 'fixed',
+        tableLayout: 'auto',
         minWidth: isMobile ? '1200px' : '100%',
         border: `1px solid ${theme.palette.divider}`,
         '& .MuiTableCell-root': {
@@ -1053,6 +1038,11 @@ export default function CollapsibleTable({
           zIndex: 1,
           '& th': {
             backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+            textAlign: 'center',
+            '& .MuiTableSortLabel-root': {
+              display: 'inline-flex',
+              justifyContent: 'center',
+            },
             ...(isMobile && {
               fontSize: '0.85rem',
               padding: '12px 8px',
@@ -1195,8 +1185,8 @@ export default function CollapsibleTable({
                   align="center"
                   sx={{
                     color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                    minWidth: '70px',
-                    maxWidth: '80px',
+                    minWidth: '100px',
+                    maxWidth: '110px',
                     backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
                     padding: '8px 4px',
                     fontSize: '0.75rem',
@@ -1206,35 +1196,12 @@ export default function CollapsibleTable({
                   }}
                 >
                   <TableSortLabel
-                    active={effectiveOrderBy === 'zScore'}
-                    direction={effectiveOrderBy === 'zScore' ? effectiveOrder : 'asc'}
-                    onClick={() => handleRequestSort('zScore')}
+                    active={effectiveOrderBy === (zScoreTimeframe === 'all' ? 'zScore' : 'zScore5y')}
+                    direction={effectiveOrderBy === (zScoreTimeframe === 'all' ? 'zScore' : 'zScore5y') ? effectiveOrder : 'asc'}
+                    onClick={() => handleRequestSort(zScoreTimeframe === 'all' ? 'zScore' : 'zScore5y')}
                     sx={{ justifyContent: 'center' }}
                   >
-                    zScore (All)
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell
-                  align="center"
-                  sx={{
-                    color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                    minWidth: '70px',
-                    maxWidth: '80px',
-                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                    padding: '8px 4px',
-                    fontSize: '0.75rem',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}
-                >
-                  <TableSortLabel
-                    active={effectiveOrderBy === 'zScore5y'}
-                    direction={effectiveOrderBy === 'zScore5y' ? effectiveOrder : 'asc'}
-                    onClick={() => handleRequestSort('zScore5y')}
-                    sx={{ justifyContent: 'center' }}
-                  >
-                    zScore (5Y)
+                    zScore ({zScoreTimeframe === 'all' ? 'All' : '5Y'})
                   </TableSortLabel>
                 </TableCell>
               </>
@@ -1511,25 +1478,20 @@ export default function CollapsibleTable({
                 )}
               </TableCell>
               {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
-                <>
-                  <TableCell align="center" sx={{
-                    padding: '8px 4px',
-                    fontSize: '0.75rem',
-                    borderLeft: `2px solid ${theme.palette.divider}`
-                  }}>
+                <TableCell align="center" sx={{
+                  padding: '8px 4px',
+                  fontSize: '0.75rem',
+                  minWidth: '100px',
+                  borderLeft: `2px solid ${theme.palette.divider}`
+                }}>
+                  {zScoreTimeframe === 'all' ? (
                     <ZBadge z={r.zScore} type={r.extremeType} />
-                  </TableCell>
-                  <TableCell align="center" sx={{
-                    padding: '8px 4px',
-                    fontSize: '0.75rem'
-                  }}>
-                    {r.zScore5y !== null && r.zScore5y !== undefined ? (
+                  ) : (
+                    r.zScore5y !== null && r.zScore5y !== undefined ? (
                       <ZBadge z={r.zScore5y} type={r.extremeType} />
-                    ) : (
-                      '—'
-                    )}
-                  </TableCell>
-                </>
+                    ) : '—'
+                  )}
+                </TableCell>
               )}
 
               {/* Open Interest */}
@@ -1571,7 +1533,7 @@ export default function CollapsibleTable({
                 </TableCell>
               )}
               <TableCell align="center" sx={{ color: getPercentageColor(r.non_commercial_percentage_long), padding: '8px 4px', fontSize: '0.75rem' }}>
-                {formatPercentage(r.non_commercial_percentage_long)}
+                {formatPercentageRounded(r.non_commercial_percentage_long)}
               </TableCell>
               {showDetails && (
                 <TableCell align="center" sx={{ color: getPercentageColor(r.pct_of_oi_noncomm_long_all), padding: '8px 4px', fontSize: '0.75rem' }}>
@@ -1607,7 +1569,7 @@ export default function CollapsibleTable({
                 </TableCell>
               )}
               <TableCell align="center" sx={{ color: getPercentageColor(r.commercial_percentage_long), padding: '8px 4px', fontSize: '0.75rem' }}>
-                {formatPercentage(r.commercial_percentage_long)}
+                {formatPercentageRounded(r.commercial_percentage_long)}
               </TableCell>
               {showDetails && (
                 <TableCell align="center" sx={{ color: getPercentageColor(r.pct_of_oi_comm_long_all), padding: '8px 4px', fontSize: '0.75rem' }}>
@@ -1643,7 +1605,7 @@ export default function CollapsibleTable({
                 </TableCell>
               )}
               <TableCell align="center" sx={{ color: getPercentageColor(r.non_reportable_percentage_long), padding: '8px 4px', fontSize: '0.75rem' }}>
-                {formatPercentage(r.non_reportable_percentage_long)}
+                {formatPercentageRounded(r.non_reportable_percentage_long)}
               </TableCell>
               {showDetails && (
                 <TableCell align="center" sx={{ color: getPercentageColor(r.pct_of_oi_nonrept_long_all), padding: '8px 4px', fontSize: '0.75rem' }}>
@@ -1824,11 +1786,58 @@ export default function CollapsibleTable({
           })}
         </Tabs>
         {!isMobile && (
-          <FormControlLabel
-            control={<Switch size="small" checked={showDetails} onChange={(e) => setShowDetails(e.target.checked)} />}
-            label="Details"
-            sx={{ ml: 1 }}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
+              <Tooltip title="Toggle between All-Time and 5-Year zScore" arrow>
+                <Box sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                  borderRadius: '16px',
+                  padding: '2px',
+                  ml: 1
+                }}>
+                  <Box
+                    onClick={() => setZScoreTimeframe('all')}
+                    sx={{
+                      px: 1.5,
+                      py: 0.5,
+                      borderRadius: '12px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      backgroundColor: zScoreTimeframe === 'all' ? theme.palette.primary.main : 'transparent',
+                      color: zScoreTimeframe === 'all' ? '#fff' : theme.palette.text.secondary,
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    All
+                  </Box>
+                  <Box
+                    onClick={() => setZScoreTimeframe('5y')}
+                    sx={{
+                      px: 1.5,
+                      py: 0.5,
+                      borderRadius: '12px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      backgroundColor: zScoreTimeframe === '5y' ? theme.palette.primary.main : 'transparent',
+                      color: zScoreTimeframe === '5y' ? '#fff' : theme.palette.text.secondary,
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    5Y
+                  </Box>
+                </Box>
+              </Tooltip>
+            )}
+            <FormControlLabel
+              control={<Switch size="small" checked={showDetails} onChange={(e) => setShowDetails(e.target.checked)} />}
+              label="Details"
+              sx={{ ml: 1 }}
+            />
+          </Box>
         )}
       </Box>
     );
