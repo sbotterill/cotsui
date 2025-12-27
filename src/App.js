@@ -1575,8 +1575,10 @@ export default function App() {
             {(!isMobile || mobileView === 'chart') && (
               <Box sx={{
                 position: 'relative',
-                minHeight: isMobile ? 'calc(100vh - 180px)' : '400px',
-                mt: isMobile ? 1 : 2
+                minHeight: isMobile ? 'calc(100vh - 280px)' : '400px',
+                height: isMobile ? 'calc(100vh - 280px)' : 'auto',
+                mt: isMobile ? 8 : 2,  // Large top margin on mobile to push below header
+                px: isMobile ? 0.5 : 0,  // Minimal horizontal padding on mobile
               }}>
                 {isChartLoading && (
                   <Box

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Box, Typography, useTheme, Stack } from '@mui/material';
+import { Box, Typography, useTheme, Stack, useMediaQuery } from '@mui/material';
 import { LineChartPro } from '@mui/x-charts-pro';
 import { LicenseInfo } from '@mui/x-license';
 
@@ -17,6 +17,7 @@ const SERIES_OPTIONS = ['Commercials', 'Non-Commercials', 'Non-Reportables'];
 
 export default function LineChartWithReferenceLines(props) {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // State to track which series is selected
   const [selectedSeries, setSelectedSeries] = React.useState('Commercials');
@@ -137,11 +138,16 @@ export default function LineChartWithReferenceLines(props) {
   return (
     <Box sx={{ 
       width: '100%', 
-      height: '45vh',  // Slightly taller than table for better visualization
+      height: isMobile ? '100%' : '45vh',  // Full height on mobile (parent controls size)
       position: 'relative',
-      mt: 2  // Add margin top for spacing from table
+      display: isMobile ? 'flex' : 'block',
+      flexDirection: 'column',
+      mt: isMobile ? 0 : 2,  // Parent handles margin on mobile
+      ml: isMobile ? -0.5 : 0,  // Shift left on mobile to reduce left space
+      mr: isMobile ? -0.5 : 0,  // Also reduce right margin for symmetry
     }}>
-      {props.selectedCommodity && (
+      {/* Commodity title - hide on mobile since it's in the header dropdown */}
+      {props.selectedCommodity && !isMobile && (
         <Box
           sx={{
             position: 'absolute',
@@ -169,25 +175,35 @@ export default function LineChartWithReferenceLines(props) {
       )}
       <Stack 
         direction="row" 
-        spacing={2} 
+        spacing={isMobile ? 1 : 2} 
         sx={{ 
-          position: 'absolute', 
-          top: 20,
-          left: '50%',
-          transform: 'translateX(-50%)',
+          position: isMobile ? 'relative' : 'absolute',  // Relative on mobile so it flows naturally
+          top: isMobile ? 'auto' : 20,
+          left: isMobile ? 'auto' : '50%',
+          transform: isMobile ? 'none' : 'translateX(-50%)',
           zIndex: 1,
           backgroundColor: 'transparent',
-          padding: '4px 8px',
+          padding: isMobile ? '4px 8px' : '4px 8px',
+          justifyContent: isMobile ? 'center' : 'flex-start',
+          width: isMobile ? '100%' : 'auto',
+          mb: isMobile ? 1 : 0,
         }}
       >
         {legendItems}
       </Stack>
+      <Box sx={{ 
+        flex: isMobile ? 1 : 'none', 
+        width: '100%', 
+        height: isMobile ? 'auto' : '100%',
+        minHeight: isMobile ? 0 : 'auto',
+      }}>
       <LineChartPro
         sx={{ 
           width: '100%', 
           height: '100%',
           '& .MuiChartsAxis-tickLabel': {
             userSelect: 'none',
+            fontSize: isMobile ? '0.65rem' : 'inherit',
           },
           '& .MuiChartsAxis-label': {
             userSelect: 'none',
@@ -233,7 +249,10 @@ export default function LineChartWithReferenceLines(props) {
             },
           },
         }]}
-        margin={{ right: 10, top: 50, bottom: 10, left: 10 }}
+        margin={isMobile 
+          ? { right: 5, top: 10, bottom: 25, left: 5 }  // Reduced top margin since legend is in flow
+          : { right: 10, top: 50, bottom: 10, left: 10 }
+        }
         tooltip={{ 
           trigger: 'axis',
           axisPointer: {
@@ -268,6 +287,7 @@ export default function LineChartWithReferenceLines(props) {
           animationDuration: 200
         }}
       />
+      </Box>
     </Box>
   );
 }
