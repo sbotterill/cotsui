@@ -1512,40 +1512,7 @@ export default function App() {
           </Box>
         )}
 
-        {/* Commodity selector (only show on chart view) - searchable */}
-        {activeSection === 'cots-report' && mobileView === 'chart' && filteredData.length > 0 && (
-          <Box sx={{ width: '100%' }}>
-            <Autocomplete
-              size="small"
-              options={[...filteredData].sort((a, b) => a.commodity.localeCompare(b.commodity))}
-              getOptionLabel={(option) => option.commodity || ''}
-              value={filteredData.find(item => item.commodity === selectedCommodity) || null}
-              onChange={(event, newValue) => {
-                setSelectedCommodity(newValue ? newValue.commodity : null);
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  placeholder="Search commodity..."
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 1,
-                      fontSize: '0.875rem',
-                    },
-                    '& .MuiInputBase-input': {
-                      fontSize: '0.875rem',
-                    }
-                  }}
-                />
-              )}
-              sx={{
-                '& .MuiAutocomplete-inputRoot': {
-                  height: '40px',
-                }
-              }}
-            />
-          </Box>
-        )}
+        {/* Commodity selector moved to HeaderActions for mobile chart view */}
       </Box>
     );
   };
@@ -1724,6 +1691,10 @@ export default function App() {
       onSeasonalityCustomRangeChange={handleSeasonalityCustomRangeChange}
       seasonalityEffectiveRange={seasonalityEffectiveRange}
       seasonalitySymbols={seasonalitySymbols}
+      mobileView={mobileView}
+      filteredData={filteredData}
+      selectedCommodity={selectedCommodity}
+      onCommoditySelect={handleCommoditySelect}
     />
   ), [
     futuresData,
@@ -1749,7 +1720,11 @@ export default function App() {
     seasonalityEffectiveRange,
     setFilteredDataWithLogging,
     exchanges,
-    seasonalitySymbols
+    seasonalitySymbols,
+    mobileView,
+    filteredData,
+    selectedCommodity,
+    handleCommoditySelect
   ]);
 
   return (
@@ -1767,53 +1742,7 @@ export default function App() {
               <Navigate to="/sign-in" replace />
             ) : (
               <SubscriptionGuard>
-                {/* Mobile Development Notice */}
-                {isMobile && (
-                  <Box
-                    sx={{
-                      position: 'fixed',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#f5f5f5',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: 4,
-                      zIndex: 9999,
-                      textAlign: 'center',
-                    }}
-                  >
-                    <SmartToyIcon sx={{ fontSize: 64, color: '#cbb26a', mb: 3 }} />
-                    <Typography variant="h5" sx={{ fontWeight: 600, mb: 2, color: 'text.primary' }}>
-                      Mobile View Coming Soon
-                    </Typography>
-                    <Typography variant="body1" sx={{ color: 'text.secondary', mb: 3, maxWidth: 320 }}>
-                      We're working hard to bring you the best mobile experience. Our mobile version is currently under development.
-                    </Typography>
-                    <Box
-                      sx={{
-                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(203, 178, 106, 0.1)' : 'rgba(203, 178, 106, 0.15)',
-                        borderRadius: 2,
-                        px: 3,
-                        py: 1.5,
-                        border: '1px solid',
-                        borderColor: 'rgba(203, 178, 106, 0.3)',
-                      }}
-                    >
-                      <Typography variant="body2" sx={{ color: '#cbb26a', fontWeight: 500 }}>
-                        ETA: 1 Month
-                      </Typography>
-                    </Box>
-                    <Typography variant="caption" sx={{ color: 'text.disabled', mt: 4 }}>
-                      Please access COTS UI from a desktop browser for the full experience.
-                    </Typography>
-                  </Box>
-                )}
-                {!isMobile && (
-                  <ColorModeContext.Provider value={colorMode}>
+                <ColorModeContext.Provider value={colorMode}>
                     <ThemeProvider theme={theme}>
                       <CssBaseline />
                       <AppProvider
@@ -1944,7 +1873,6 @@ export default function App() {
                       </AppProvider>
                     </ThemeProvider>
                   </ColorModeContext.Provider>
-                )}
               </SubscriptionGuard>
             )}
           </>
@@ -1956,53 +1884,7 @@ export default function App() {
             <ColorModeContext.Provider value={colorMode}>
               <ThemeProvider theme={theme}>
                 <CssBaseline />
-                {/* Mobile Development Notice for Landing Page */}
-                {isMobile ? (
-                  <Box
-                    sx={{
-                      position: 'fixed',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: theme.palette.mode === 'dark' ? '#121212' : '#f5f5f5',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: 4,
-                      zIndex: 9999,
-                      textAlign: 'center',
-                    }}
-                  >
-                    <SmartToyIcon sx={{ fontSize: 64, color: '#cbb26a', mb: 3 }} />
-                    <Typography variant="h5" sx={{ fontWeight: 600, mb: 2, color: 'text.primary' }}>
-                      Mobile View Coming Soon
-                    </Typography>
-                    <Typography variant="body1" sx={{ color: 'text.secondary', mb: 3, maxWidth: 320 }}>
-                      We're working hard to bring you the best mobile experience. Our mobile version is currently under development.
-                    </Typography>
-                    <Box
-                      sx={{
-                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(203, 178, 106, 0.1)' : 'rgba(203, 178, 106, 0.15)',
-                        borderRadius: 2,
-                        px: 3,
-                        py: 1.5,
-                        border: '1px solid',
-                        borderColor: 'rgba(203, 178, 106, 0.3)',
-                      }}
-                    >
-                      <Typography variant="body2" sx={{ color: '#cbb26a', fontWeight: 500 }}>
-                        ETA: 1 Month
-                      </Typography>
-                    </Box>
-                    <Typography variant="caption" sx={{ color: 'text.disabled', mt: 4 }}>
-                      Please access COTS UI from a desktop browser for the full experience.
-                    </Typography>
-                  </Box>
-                ) : (
-                  <LandingPage />
-                )}
+                <LandingPage />
               </ThemeProvider>
             </ColorModeContext.Provider>
           )

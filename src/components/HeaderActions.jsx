@@ -32,6 +32,7 @@ function HeaderActions(props) {
   const [showNoResults, setShowNoResults] = React.useState(false);
   const isChart = props.activeSection === 'chart' || props.activeSection === 'seasonality';
   const isAIAgent = props.activeSection === 'ai-agent';
+  const isMobileChartView = isMobile && props.activeSection === 'cots-report' && props.mobileView === 'chart';
 
   // AI Agent section should have no toolbar content (just hamburger menu from layout)
   if (isAIAgent) {
@@ -120,7 +121,35 @@ function HeaderActions(props) {
         })
       }}
     >
-      {!isChart && (
+      {/* Mobile Chart View: Show commodity dropdown instead of search */}
+      {isMobileChartView && props.filteredData?.length > 0 && (
+        <Autocomplete
+          size="small"
+          options={[...(props.filteredData || [])].sort((a, b) => (a.commodity || '').localeCompare(b.commodity || ''))}
+          getOptionLabel={(option) => option.commodity || ''}
+          value={props.filteredData?.find(item => item.commodity === props.selectedCommodity) || null}
+          onChange={(event, newValue) => {
+            if (newValue) {
+              props.onCommoditySelect?.(newValue.contract_code, newValue.commodity);
+            }
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              placeholder="Select commodity..."
+              size="small"
+            />
+          )}
+          sx={{
+            flex: '1 1 100%',
+            '& .MuiAutocomplete-inputRoot': {
+              height: '40px',
+            }
+          }}
+        />
+      )}
+      {/* Desktop or Mobile Table View: Show search field */}
+      {!isChart && !isMobileChartView && (
       <TextField
         onChange={handleFuturesFilter}
         value={searchTerm}
