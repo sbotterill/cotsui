@@ -81,7 +81,7 @@ function computeSeasonality(candles) {
   };
 }
 
-export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilter = 'all', startDate, endDate, onEffectiveRange }) {
+export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilter = 'all', startDate, endDate, onEffectiveRange, symbolInfo }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
@@ -90,6 +90,20 @@ export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilt
   const [error, setError] = React.useState(null);
   const [avgByWeekday, setAvgByWeekday] = React.useState(null);
   const [avgByMonth, setAvgByMonth] = React.useState(null);
+
+  // Check if this asset has limited historical data (started after 2018)
+  const hasLimitedData = React.useMemo(() => {
+    if (!symbolInfo?.firstDate) return false;
+    const firstYear = new Date(symbolInfo.firstDate).getFullYear();
+    return firstYear > 2018;
+  }, [symbolInfo]);
+
+  const limitedDataMessage = React.useMemo(() => {
+    if (!hasLimitedData || !symbolInfo?.firstDate) return null;
+    const firstDate = new Date(symbolInfo.firstDate);
+    const formattedDate = firstDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `Limited data: This asset started trading on ${formattedDate}. Seasonality analysis may be less reliable with fewer years of historical data.`;
+  }, [hasLimitedData, symbolInfo]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -328,6 +342,29 @@ export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilt
       {error && (
         <Box sx={{ p: isMobile ? 1 : 2 }}>
           <Typography color="error" variant={isMobile ? "body2" : "body1"}>{error}</Typography>
+        </Box>
+      )}
+      {hasLimitedData && limitedDataMessage && (
+        <Box sx={{ 
+          p: isMobile ? 1 : 1.5, 
+          mx: isMobile ? 1 : 2,
+          mb: 1,
+          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 167, 38, 0.12)' : 'rgba(255, 152, 0, 0.12)',
+          borderRadius: 1,
+          border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 167, 38, 0.3)' : 'rgba(255, 152, 0, 0.3)'}`,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          <Typography 
+            variant={isMobile ? "caption" : "body2"} 
+            sx={{ 
+              color: theme.palette.mode === 'dark' ? '#ffb74d' : '#f57c00',
+              fontWeight: 500
+            }}
+          >
+            ⚠️ {limitedDataMessage}
+          </Typography>
         </Box>
       )}
       {!loading && seriesData && seriesData.dailySeasonality && (

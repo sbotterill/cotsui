@@ -47,6 +47,7 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { Select, MenuItem, FormControl, InputLabel, Autocomplete, TextField } from '@mui/material';
 import { getCommercialExtremes, getRetailExtremes } from './services/cftcService';
+import { fetchAvailableAssets } from './services/priceService';
 
 // Context to expose toggle function for theme switch
 export const ColorModeContext = createContext({ toggleColorMode: () => { } });
@@ -515,7 +516,8 @@ async function fetchData(selectedDate = null) {
 
 // Main App component
 // Symbol options for seasonality chart
-const SEASONALITY_SYMBOLS = [
+// Default fallback symbols (used while loading from API)
+const DEFAULT_SEASONALITY_SYMBOLS = [
   { value: 'CL', label: 'CL — Crude Oil' },
   { value: 'GC', label: 'GC — Gold' },
   { value: 'SI', label: 'SI — Silver' },
@@ -653,6 +655,31 @@ export default function App() {
   const [commercialExtremes, setCommercialExtremes] = useState({});
   const [retailExtremes, setRetailExtremes] = useState({});
   const [isLoadingExtremes, setIsLoadingExtremes] = useState(false);
+  const [seasonalitySymbols, setSeasonalitySymbols] = useState(DEFAULT_SEASONALITY_SYMBOLS);
+
+  // Load seasonality assets from API
+  useEffect(() => {
+    const loadSeasonalityAssets = async () => {
+      try {
+        const assets = await fetchAvailableAssets();
+        if (assets && assets.length > 0) {
+          // Convert API response to dropdown format and sort
+          // Include first_date to show warnings for stocks with limited data
+          const symbols = assets.map(a => ({
+            value: a.symbol,
+            label: `${a.symbol} — ${a.name}`,
+            firstDate: a.first_date,
+            lastDate: a.last_date
+          })).sort((a, b) => a.label.localeCompare(b.label));
+          setSeasonalitySymbols(symbols);
+        }
+      } catch (error) {
+        console.error('Error loading seasonality assets:', error);
+        // Keep default symbols on error
+      }
+    };
+    loadSeasonalityAssets();
+  }, []);
 
   useEffect(() => {
     document.documentElement.style.backgroundColor = theme.palette.background.default;
@@ -1353,8 +1380,8 @@ export default function App() {
             {/* Symbol selector - full width */}
             <Autocomplete
               size="small"
-              options={SEASONALITY_SYMBOLS}
-              value={SEASONALITY_SYMBOLS.find(s => s.value === selectedSymbol) || SEASONALITY_SYMBOLS[0]}
+              options={seasonalitySymbols}
+              value={seasonalitySymbols.find(s => s.value === selectedSymbol) || seasonalitySymbols[0]}
               onChange={(_, option) => setSelectedSymbol(option?.value || 'CL')}
               getOptionLabel={(option) => option.label}
               renderInput={(params) => (
@@ -1696,6 +1723,7 @@ export default function App() {
       seasonalityEndDate={seasonalityEndDate}
       onSeasonalityCustomRangeChange={handleSeasonalityCustomRangeChange}
       seasonalityEffectiveRange={seasonalityEffectiveRange}
+      seasonalitySymbols={seasonalitySymbols}
     />
   ), [
     futuresData,
@@ -1720,7 +1748,8 @@ export default function App() {
     handleSeasonalityCustomRangeChange,
     seasonalityEffectiveRange,
     setFilteredDataWithLogging,
-    exchanges
+    exchanges,
+    seasonalitySymbols
   ]);
 
   return (
@@ -1892,6 +1921,7 @@ export default function App() {
                                     startDate={seasonalityStartDate}
                                     endDate={seasonalityEndDate}
                                     onEffectiveRange={(range) => setSeasonalityEffectiveRange(range)}
+                                    symbolInfo={seasonalitySymbols.find(s => s.value === selectedSymbol)}
                                   />
                                 </Box>
                               )}

@@ -7,67 +7,12 @@ import BasicMenu from './ContextMenu';
 import { REMOVED_EXCHANGE_CODES } from '../constants';
 import Autocomplete from '@mui/material/Autocomplete';
 
-const CHART_SYMBOL_OPTIONS = [
-  {
-    group: 'All',
-    items: [
-      { value: '10Y', label: '10Y — 10-Year Yield Futures' },
-      { value: '2YY', label: '2YY — 2-Year Yield Futures' },
-      { value: '6A', label: '6A — Australian Dollar Futures' },
-      { value: '6C', label: '6C — Canadian Dollar Futures' },
-      { value: '6E', label: '6E — Euro FX Futures' },
-      { value: '6J', label: '6J — Japanese Yen Futures' },
-      { value: '6L', label: '6L — Brazilian Real Futures' },
-      { value: '6M', label: '6M — Mexican Peso Futures' },
-      { value: '6N', label: '6N — New Zealand Dollar Futures' },
-      { value: '6S', label: '6S — Swiss Franc Futures' },
-      { value: 'ACS', label: 'ACS — WTI Annual Financial Futures' },
-      { value: 'ALI', label: 'ALI — Aluminum Futures' },
-      { value: 'BTC', label: 'BTC — Bitcoin Futures' },
-      { value: 'CB', label: 'CB — Cash-settled Butter Futures' },
-      { value: 'CJ', label: 'CJ — Cocoa Futures' },
-      { value: 'CL', label: 'CL — Crude Oil Futures' },
-      { value: 'CSC', label: 'CSC — Cash-Settled Cheese Futures' },
-      { value: 'DC', label: 'DC — Class III Milk Futures' },
-      { value: 'ES', label: 'ES — E-mini S&P 500 Futures' },
-      { value: 'ETH', label: 'ETH — Ether Futures' },
-      { value: 'GC', label: 'GC — Gold Futures' },
-      { value: 'GF', label: 'GF — Feeder Cattle Futures' },
-      { value: 'GNF', label: 'GNF — Nonfat Dry Milk Futures' },
-      { value: 'HE', label: 'HE — Lean Hog Futures' },
-      { value: 'HG', label: 'HG — Copper Futures' },
-      { value: 'HTT', label: 'HTT — WTI Houston (Argus) vs. WTI Trade Month Futures' },
-      { value: 'KE', label: 'KE — KC HRW Wheat Futures' },
-      { value: 'KT', label: 'KT — Coffee Futures' },
-      { value: 'LBR', label: 'LBR — Lumber Futures' },
-      { value: 'LE', label: 'LE — Live Cattle Futures' },
-      { value: 'NG', label: 'NG — Henry Hub Natural Gas Futures' },
-      { value: 'NQ', label: 'NQ — E-mini Nasdaq-100 Futures' },
-      { value: 'PA', label: 'PA — Palladium Futures' },
-      { value: 'PL', label: 'PL — Platinum Futures' },
-      { value: 'RB', label: 'RB — RBOB Gasoline Futures' },
-      { value: 'RTY', label: 'RTY — E-mini Russell 2000 Index Futures' },
-      { value: 'SI', label: 'SI — Silver Futures' },
-      { value: 'SOL', label: 'SOL — SOL Futures' },
-      { value: 'SR1', label: 'SR1 — One-Month SOFR Futures' },
-      { value: 'SR3', label: 'SR3 — Three-Month SOFR Futures' },
-      { value: 'TT', label: 'TT — Cotton Futures' },
-      { value: 'UB', label: 'UB — Ultra U.S. Treasury Bond Futures' },
-      { value: 'XRP', label: 'XRP — XRP Futures' },
-      { value: 'YM', label: 'YM — E-mini Dow Jones Industrial Average Index Futures' },
-      { value: 'YO', label: 'YO — No. 11 Sugar Futures' },
-      { value: 'ZB', label: 'ZB — U.S. Treasury Bond Futures' },
-      { value: 'ZC', label: 'ZC — Corn Futures' },
-      { value: 'ZL', label: 'ZL — Soybean Oil Futures' },
-      { value: 'ZM', label: 'ZM — Soybean Meal Futures' },
-      { value: 'ZO', label: 'ZO — Oats Futures' },
-      { value: 'ZQ', label: 'ZQ — 30 Day Federal Funds Futures' },
-      { value: 'ZR', label: 'ZR — Rough Rice Futures' },
-      { value: 'ZS', label: 'ZS — Soybean Futures' },
-      { value: 'ZT', label: 'ZT — 2-Year T-Note Futures' },
-      { value: 'ZW', label: 'ZW — Chicago SRW Wheat Futures' },
-    ]
-  }
+// Default fallback symbols (used while loading from API)
+const DEFAULT_SYMBOL_OPTIONS = [
+  { value: 'CL', label: 'CL — Crude Oil Futures' },
+  { value: 'GC', label: 'GC — Gold Futures' },
+  { value: 'ES', label: 'ES — E-mini S&P 500 Futures' },
+  { value: 'NQ', label: 'NQ — E-mini Nasdaq-100 Futures' },
 ];
 
 function HeaderActions(props) {
@@ -145,8 +90,9 @@ function HeaderActions(props) {
     }
   };
 
-  const flatOptions = CHART_SYMBOL_OPTIONS[0].items;
-  const selectedOption = flatOptions.find(o => o.value === (props.selectedSymbol || 'CL')) || null;
+  // Use dynamic symbols from props, fallback to defaults
+  const flatOptions = props.seasonalitySymbols?.length > 0 ? props.seasonalitySymbols : DEFAULT_SYMBOL_OPTIONS;
+  const selectedOption = flatOptions.find(o => o.value === (props.selectedSymbol || 'CL')) || flatOptions[0] || null;
 
   return (
     <Box
