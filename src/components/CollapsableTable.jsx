@@ -38,6 +38,15 @@ function formatPercentage(value) {
   return `${finalValue.toFixed(1)}%`;
 }
 
+// Format percentage rounded to nearest whole number (for % OI columns)
+function formatPercentageRounded(value) {
+  if (value == null) return '-';
+  const numValue = Number(value);
+  if (isNaN(numValue)) return '-';
+  const finalValue = numValue > 1 ? numValue : numValue * 100;
+  return `${Math.round(finalValue)}%`;
+}
+
 // Convert stored ratio values (0-1 or already %) to 0-100 scale for progress bars
 function toPercentValue(value) {
   const numValue = Number(value);
@@ -72,7 +81,7 @@ function getPercentageColor(value) {
 function ZBadge({ z, type }) {
   const theme = useTheme();
   if (typeof z !== 'number') return null;
-  
+
   // IMPORTANT: Color is determined by z-score sign only
   // Positive z = commercials more long than usual = BULLISH = green
   // Negative z = commercials more short than usual = BEARISH = red
@@ -80,25 +89,25 @@ function ZBadge({ z, type }) {
   const color = isBullish ? theme.palette.success.main : theme.palette.error.main;
   const bg = alpha(color, 0.12);
   const display = Math.abs(z).toFixed(2); // remove '-' visually, keep color by sign
-  
+
   // Determine interpretation based on z-score sign
   const interpretation = z >= 0 ? 'BULLISH' : 'BEARISH';
-  
+
   // Enhanced tooltip with explanation
   const tooltipText = (
     <>
       <div style={{ fontWeight: 600, marginBottom: '4px' }}>Z-Score: {z.toFixed(2)} ({interpretation})</div>
       <div style={{ fontSize: '0.85em', opacity: 0.9 }}>
         Measures how many standard deviations the current position is from the historical average.
-        {z >= 0 
-          ? ' Positive values indicate commercials are MORE LONG than usual (bullish).' 
+        {z >= 0
+          ? ' Positive values indicate commercials are MORE LONG than usual (bullish).'
           : ' Negative values indicate commercials are MORE SHORT than usual (bearish).'}
       </div>
     </>
   );
-  
+
   return (
-    <Tooltip title={tooltipText}> 
+    <Tooltip title={tooltipText}>
       <Chip
         label={`z ${display}`}
         size="small"
@@ -130,7 +139,7 @@ function descendingComparator(a, b, orderBy) {
     if (bValue > aValue) return 1;
     return 0;
   }
-  
+
   if (orderBy === 'zScore_negative') {
     const aValue = typeof a.zScore === 'number' ? a.zScore : Infinity;
     const bValue = typeof b.zScore === 'number' ? b.zScore : Infinity;
@@ -142,7 +151,7 @@ function descendingComparator(a, b, orderBy) {
     if (aValue > bValue) return 1;
     return 0;
   }
-  
+
   // Handle 5-year z-score sorting (with null handling)
   if (orderBy === 'zScore5y') {
     const aValue = typeof a.zScore5y === 'number' ? a.zScore5y : -Infinity;
@@ -151,16 +160,16 @@ function descendingComparator(a, b, orderBy) {
     if (bValue > aValue) return 1;
     return 0;
   }
-  
-  if (orderBy === 'non_commercial_percentage_long' || 
-      orderBy === 'commercial_percentage_long' || 
-      orderBy === 'non_reportable_percentage_long' ||
-      orderBy === 'pct_of_oi_noncomm_long_all' ||
-      orderBy === 'pct_of_oi_noncomm_short_all' ||
-      orderBy === 'pct_of_oi_comm_long_all' ||
-      orderBy === 'pct_of_oi_comm_short_all' ||
-      orderBy === 'pct_of_oi_nonrept_long_all' ||
-      orderBy === 'pct_of_oi_nonrept_short_all') {
+
+  if (orderBy === 'non_commercial_percentage_long' ||
+    orderBy === 'commercial_percentage_long' ||
+    orderBy === 'non_reportable_percentage_long' ||
+    orderBy === 'pct_of_oi_noncomm_long_all' ||
+    orderBy === 'pct_of_oi_noncomm_short_all' ||
+    orderBy === 'pct_of_oi_comm_long_all' ||
+    orderBy === 'pct_of_oi_comm_short_all' ||
+    orderBy === 'pct_of_oi_nonrept_long_all' ||
+    orderBy === 'pct_of_oi_nonrept_short_all') {
     // Convert percentage strings to numbers, removing the % sign
     const aValue = parseFloat(a[orderBy]) || 0;
     const bValue = parseFloat(b[orderBy]) || 0;
@@ -168,7 +177,7 @@ function descendingComparator(a, b, orderBy) {
     if (bValue > aValue) return 1;
     return 0;
   }
-  
+
   if (typeof a[orderBy] === 'number' || !isNaN(Number(a[orderBy]))) {
     const aValue = Number(a[orderBy]) || 0;
     const bValue = Number(b[orderBy]) || 0;
@@ -176,7 +185,7 @@ function descendingComparator(a, b, orderBy) {
     if (bValue > aValue) return 1;
     return 0;
   }
-  
+
   if (b[orderBy] < a[orderBy]) {
     return -1;
   }
@@ -226,7 +235,7 @@ export default function CollapsibleTable({
   mobileSortOrder,
   onMobileSortChange
 }) {
-  
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'lg'));
@@ -234,11 +243,11 @@ export default function CollapsibleTable({
   const isTabletLandscape = isTablet && isLandscape;
   const [order, setOrder] = React.useState('asc');
   const [orderBy, setOrderBy] = React.useState('commodity');
-  
+
   // Use mobile sort values when provided
   const effectiveOrder = isMobile && mobileSortOrder ? mobileSortOrder : order;
   const effectiveOrderBy = isMobile && mobileSortBy ? mobileSortBy : orderBy;
-  const [showDetails, setShowDetails] = React.useState(false);
+  const [showDetails, setShowDetails] = React.useState(true);
   const initialLoadDone = React.useRef(false);
   const fmt = new Intl.NumberFormat('en-US');
   const fmtCompact = new Intl.NumberFormat('en-US', { notation: 'compact' });
@@ -300,7 +309,7 @@ export default function CollapsibleTable({
     const trimmed = code.trim();
     const noSpaces = trimmed.replace(/\s+/g, '');
     const upper = noSpaces.toUpperCase();
-    
+
     return upper;
   };
 
@@ -324,19 +333,19 @@ export default function CollapsibleTable({
 
   // Get commercial tracker data
   const commercialTrackerData = React.useMemo(() => {
-    
+
     // Validate input data
     const hasValidData = filteredFuturesData && filteredFuturesData.length > 0;
     const hasValidExtremes = commercialExtremes && Object.keys(commercialExtremes).length > 0;
-    
+
     if (!hasValidData || !hasValidExtremes) {
       return [];
     }
 
-    try { 
+    try {
       // Use the imported function
       const data = getCommercialTrackerData(filteredFuturesData, commercialExtremes);
-  
+
 
       return data;
     } catch (error) {
@@ -379,7 +388,7 @@ export default function CollapsibleTable({
       const shouldShowFavorites = favoritesInSearch.length > 0;
       const shouldShowCommercialTracker = hasCommercialTracker;
       const shouldShowRetailTracker = hasRetailTracker;
-      
+
       // Determine initial tab
       let initialTab;
       if (shouldShowFavorites) {
@@ -393,9 +402,9 @@ export default function CollapsibleTable({
       } else {
         return; // No tabs available
       }
-      
+
       onTabChange(initialTab);
-      
+
       // Select first commodity in the current tab
       let currentData;
       if (favoritesTabVisible && initialTab === favoritesTabIndex) {
@@ -408,7 +417,7 @@ export default function CollapsibleTable({
         const currentGroup = filteredGroups[initialTab - groupStartIndex];
         currentData = getFilteredData(currentGroup);
       }
-      
+
       if (currentData.length > 0) {
         // Sort the data the same way as in the table
         const sortedData = [...currentData].sort((a, b) => {
@@ -416,7 +425,7 @@ export default function CollapsibleTable({
           if (b.commodity > a.commodity) return -1;
           return 0;
         });
-        
+
         // Select the first item after sorting
         const firstCommodity = sortedData[0];
         handleRowClick(firstCommodity.commodity);
@@ -429,7 +438,7 @@ export default function CollapsibleTable({
   const handleRequestSort = (property) => {
     const isAsc = effectiveOrderBy === property && effectiveOrder === 'asc';
     const newOrder = isAsc ? 'desc' : 'asc';
-    
+
     if (isMobile && onMobileSortChange) {
       onMobileSortChange(property, newOrder);
     } else {
@@ -442,7 +451,7 @@ export default function CollapsibleTable({
     onTabChange(newValue);
   };
 
-  const getFilteredData = React.useCallback((groupLabel) => {    
+  const getFilteredData = React.useCallback((groupLabel) => {
     if (!groupLabel) return [];
 
     let result;
@@ -455,7 +464,7 @@ export default function CollapsibleTable({
     } else {
       result = filteredFuturesData?.filter(row => getGroupForRow(row) === groupLabel) || [];
     }
-    
+
     return result;
   }, [filteredFuturesData, favorites, commercialTrackerData, retailTrackerData, getGroupForRow]);
 
@@ -478,7 +487,7 @@ export default function CollapsibleTable({
       const groupIndex = selectedTab - groupStartIndex;
       currentGroup = filteredGroups[groupIndex];
     }
-        
+
     const data = getFilteredData(currentGroup);
     return data;
   }, [futuresData, filteredFuturesData, filteredGroups, selectedTab, favorites, commercialTrackerData, retailTrackerData, favoritesTabIndex, commercialTabIndex, retailTabIndex, groupStartIndex, favoritesTabVisible, hasCommercialTracker, hasRetailTracker, getFilteredData]);
@@ -595,10 +604,10 @@ export default function CollapsibleTable({
     const shouldShowFavorites = favoritesInSearch.length > 0;
     const shouldShowCommercialTracker = hasCommercialTracker;
     const shouldShowRetailTracker = hasRetailTracker;
-    
+
     // Check if current tab is still valid
     let isCurrentTabValid = false;
-    
+
     if (favoritesTabVisible && selectedTab === (favoritesTabIndex ?? 0)) {
       // Always consider favorites tab valid if there are any favorites, even if they don't match the search
       isCurrentTabValid = favorites.length > 0;
@@ -610,7 +619,7 @@ export default function CollapsibleTable({
       const groupIndex = selectedTab - groupStartIndex;
       isCurrentTabValid = groupIndex >= 0 && groupIndex < filteredGroups.length;
     }
-    
+
     // If current tab is not valid, switch to first available tab
     if (!isCurrentTabValid) {
       if (favorites.length > 0) {
@@ -629,7 +638,7 @@ export default function CollapsibleTable({
   React.useEffect(() => {
     // Log all unique market codes in the data
     const uniqueMarketCodes = [...new Set(futuresData?.map(d => d.market_code))];
-    
+
     // Log sample data for each unique market code
     uniqueMarketCodes.forEach(code => {
       const sample = futuresData?.find(d => d.market_code === code);
@@ -709,11 +718,11 @@ export default function CollapsibleTable({
     }
 
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        gap: 1.25, 
-        flex: 1, 
+      <Box sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 1.25,
+        flex: 1,
         minHeight: 0,
         paddingTop: '12px',
       }}>
@@ -837,14 +846,14 @@ export default function CollapsibleTable({
     );
   };
 
-  const renderTable = () => {    
+  const renderTable = () => {
     if (isMobile) {
       return renderMobileCards();
     }
 
     if (isTablet) {
       return (
-        <Table size="small" aria-label="futures data tablet" sx={{ 
+        <Table size="small" aria-label="futures data tablet" sx={{
           borderCollapse: 'collapse',
           tableLayout: 'fixed',
           width: '100%',
@@ -857,8 +866,8 @@ export default function CollapsibleTable({
         }}>
           <TableHead>
             <TableRow>
-              <TableCell 
-                sx={{ 
+              <TableCell
+                sx={{
                   position: 'sticky',
                   left: 0,
                   backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
@@ -932,9 +941,9 @@ export default function CollapsibleTable({
               <TableRow
                 key={row.commodity}
                 onClick={() => handleRowClick(row.commodity)}
-                sx={{ 
+                sx={{
                   cursor: 'pointer',
-                  '&:hover': { 
+                  '&:hover': {
                     backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
                     '& td': {
                       borderTop: `2px solid ${theme.palette.primary.main}`,
@@ -946,11 +955,11 @@ export default function CollapsibleTable({
                     '& td:last-of-type': {
                       borderRight: `2px solid ${theme.palette.primary.main}`
                     }
-                  } 
+                  }
                 }}
               >
-                <TableCell 
-                  sx={{ 
+                <TableCell
+                  sx={{
                     position: 'sticky',
                     left: 0,
                     backgroundColor: theme.palette.background.paper,
@@ -989,14 +998,14 @@ export default function CollapsibleTable({
                 <TableCell align="right">{fmt.format(row.non_commercial_short)}</TableCell>
                 <TableCell align="right">{formatPercentage(row.non_commercial_percentage_long)}</TableCell>
                 {isTabletLandscape && (
-                  <TableCell align="right">{formatPercentage(row.pct_of_oi_noncomm_long_all)}</TableCell>
+                  <TableCell align="right">{formatPercentageRounded(row.pct_of_oi_noncomm_long_all)}</TableCell>
                 )}
                 {/* Commercial */}
                 <TableCell align="right">{fmt.format(row.commercial_long)}</TableCell>
                 <TableCell align="right">{fmt.format(row.commercial_short)}</TableCell>
                 <TableCell align="right">{formatPercentage(row.commercial_percentage_long)}</TableCell>
                 {isTabletLandscape && (
-                  <TableCell align="right">{formatPercentage(row.pct_of_oi_comm_long_all)}</TableCell>
+                  <TableCell align="right">{formatPercentageRounded(row.pct_of_oi_comm_long_all)}</TableCell>
                 )}
                 {/* Non-reportable */}
                 <TableCell align="right">{fmt.format(row.non_reportable_long)}</TableCell>
@@ -1011,7 +1020,7 @@ export default function CollapsibleTable({
 
     // Original desktop table render
     return (
-      <Table size="small" aria-label="futures data" sx={{ 
+      <Table size="small" aria-label="futures data" sx={{
         borderCollapse: 'collapse',
         tableLayout: 'fixed',
         minWidth: isMobile ? '1200px' : '100%',
@@ -1031,8 +1040,8 @@ export default function CollapsibleTable({
               fontSize: '0.85rem',
               height: '48px',
               '&.highlight-cell': {
-                backgroundColor: theme.palette.mode === 'dark' 
-                  ? 'rgba(255, 255, 255, 0.05)' 
+                backgroundColor: theme.palette.mode === 'dark'
+                  ? 'rgba(255, 255, 255, 0.05)'
                   : 'rgba(0, 0, 0, 0.02)'
               }
             })
@@ -1057,8 +1066,8 @@ export default function CollapsibleTable({
           ...(isMobile && {
             '& tr': {
               '&:nth-of-type(odd)': {
-                backgroundColor: theme.palette.mode === 'dark' 
-                  ? 'rgba(255, 255, 255, 0.02)' 
+                backgroundColor: theme.palette.mode === 'dark'
+                  ? 'rgba(255, 255, 255, 0.02)'
                   : 'rgba(0, 0, 0, 0.01)'
               },
               '&:hover': {
@@ -1093,7 +1102,7 @@ export default function CollapsibleTable({
         })
       }}>
         <TableHead>
-            <TableRow sx={{ 
+          <TableRow sx={{
             backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
             '& th': {
               border: 'none',
@@ -1101,8 +1110,8 @@ export default function CollapsibleTable({
               height: '50px',
             }
           }}>
-            <TableCell rowSpan={2} sx={{ 
-              color: theme.palette.mode === 'dark' ? '#fff' : '#000', 
+            <TableCell rowSpan={2} sx={{
+              color: theme.palette.mode === 'dark' ? '#fff' : '#000',
               minWidth: '200px !important',
               maxWidth: '300px !important',
               width: '250px !important',
@@ -1150,28 +1159,28 @@ export default function CollapsibleTable({
                 }}
               />
             )}
-            <TableCell colSpan={2} align="center" sx={{ 
+            <TableCell colSpan={2} align="center" sx={{
               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
               paddingLeft: '2px'
             }}>Open Interest</TableCell>
-            <TableCell colSpan={showDetails ? 8 : 3} align="center" sx={{ 
+            <TableCell colSpan={showDetails ? 8 : 3} align="center" sx={{
               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
               paddingLeft: '2px'
             }}>Non-commercial</TableCell>
-            <TableCell colSpan={showDetails ? 8 : 3} align="center" sx={{ 
+            <TableCell colSpan={showDetails ? 8 : 3} align="center" sx={{
               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
               paddingLeft: '2px'
             }}>Commercial</TableCell>
-            <TableCell colSpan={showDetails ? 8 : 3} align="center" sx={{ 
+            <TableCell colSpan={showDetails ? 8 : 3} align="center" sx={{
               color: theme.palette.mode === 'dark' ? '#fff' : '#000',
               backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
               paddingLeft: '2px'
             }}>Non-reportable</TableCell>
           </TableRow>
-          <TableRow sx={{ 
+          <TableRow sx={{
             backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
             '& th': {
               border: 'none',
@@ -1277,113 +1286,141 @@ export default function CollapsibleTable({
               </TableSortLabel>
             </TableCell>
             {/* Non-commercial Headers */}
-            {(showDetails ? ['Long','Change','Short','Change','Total','% Long','% OI Long','% OI Short'] : ['Long','Short','% Long']).map((lbl,i) => (
-              <TableCell
-                key={`h1-${i}`}
-                align="center"
-                sx={{
-                  color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                  minWidth: lbl === 'Change' ? '60px' : '70px',
-                  maxWidth: lbl === 'Change' ? '70px' : '80px',
-                  backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                  padding: lbl === 'Long' ? '8px 4px 8px 10px' : '8px 4px',
-                  fontSize: '0.75rem',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                <TableSortLabel
-                  active={effectiveOrderBy === `non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
-                    lbl === '% OI Long' ? 'pct_of_oi_noncomm_long_all' :
-                    lbl === '% OI Short' ? 'pct_of_oi_noncomm_short_all' :
-                    lbl.toLowerCase().replace('% ', 'percentage_')}`}
-                  direction={effectiveOrderBy === `non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
-                    lbl === '% OI Long' ? 'pct_of_oi_noncomm_long_all' :
-                    lbl === '% OI Short' ? 'pct_of_oi_noncomm_short_all' :
-                    lbl.toLowerCase().replace('% ', 'percentage_')}` ? effectiveOrder : 'asc'}
-                  onClick={() => handleRequestSort(`non_commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
-                    lbl === '% OI Long' ? 'pct_of_oi_noncomm_long_all' :
-                    lbl === '% OI Short' ? 'pct_of_oi_noncomm_short_all' :
-                    lbl.toLowerCase().replace('% ', 'percentage_')}`)}
-                  sx={{ justifyContent: 'center' }}
+            {(showDetails ? ['Long', 'Change', 'Short', 'Change', 'Total', '% Long', '%OI-L', '%OI-S'] : ['Long', 'Short', '% Long']).map((lbl, i) => {
+              // Mapping for sort keys (keep original names for sorting)
+              const sortKey = lbl === '%OI-L' ? '% OI Long' : lbl === '%OI-S' ? '% OI Short' : lbl;
+              const tooltipText = lbl === '%OI-L' ? '% OI Long' : lbl === '%OI-S' ? '% OI Short' : null;
+
+              return (
+                <TableCell
+                  key={`h1-${i}`}
+                  align="center"
+                  sx={{
+                    color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                    minWidth: lbl === 'Change' ? '60px' : '70px',
+                    maxWidth: lbl === 'Change' ? '70px' : '80px',
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                    padding: lbl === 'Long' ? '8px 4px 8px 10px' : '8px 4px',
+                    fontSize: '0.75rem',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
                 >
-                  {lbl}
-                </TableSortLabel>
-              </TableCell>
-            ))}
+                  <TableSortLabel
+                    active={effectiveOrderBy === `non_commercial_${sortKey.toLowerCase() === 'change' ? 'long_change' :
+                      sortKey === '% OI Long' ? 'pct_of_oi_noncomm_long_all' :
+                        sortKey === '% OI Short' ? 'pct_of_oi_noncomm_short_all' :
+                          sortKey.toLowerCase().replace('% ', 'percentage_')}`}
+                    direction={effectiveOrderBy === `non_commercial_${sortKey.toLowerCase() === 'change' ? 'long_change' :
+                      sortKey === '% OI Long' ? 'pct_of_oi_noncomm_long_all' :
+                        sortKey === '% OI Short' ? 'pct_of_oi_noncomm_short_all' :
+                          sortKey.toLowerCase().replace('% ', 'percentage_')}` ? effectiveOrder : 'asc'}
+                    onClick={() => handleRequestSort(`non_commercial_${sortKey.toLowerCase() === 'change' ? 'long_change' :
+                      sortKey === '% OI Long' ? 'pct_of_oi_noncomm_long_all' :
+                        sortKey === '% OI Short' ? 'pct_of_oi_noncomm_short_all' :
+                          sortKey.toLowerCase().replace('% ', 'percentage_')}`)}
+                    sx={{ justifyContent: 'center' }}
+                  >
+                    {tooltipText ? (
+                      <Tooltip title={tooltipText} arrow placement="top">
+                        <span>{lbl}</span>
+                      </Tooltip>
+                    ) : lbl}
+                  </TableSortLabel>
+                </TableCell>
+              );
+            })}
             {/* Commercial Headers */}
-            {(showDetails ? ['Long','Change','Short','Change','Total','% Long','% OI Long','% OI Short'] : ['Long','Short','% Long']).map((lbl,i) => (
-              <TableCell
-                key={`h2-${i}`}
-                align="center"
-                sx={{
-                  color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                  minWidth: lbl === 'Change' ? '60px' : '70px',
-                  maxWidth: lbl === 'Change' ? '70px' : '80px',
-                  backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                  padding: lbl === 'Long' ? '8px 4px 8px 10px' : '8px 4px',
-                  fontSize: '0.75rem',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                <TableSortLabel
-                  active={effectiveOrderBy === `commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
-                    lbl === '% OI Long' ? 'pct_of_oi_comm_long_all' :
-                    lbl === '% OI Short' ? 'pct_of_oi_comm_short_all' :
-                    lbl.toLowerCase().replace('% ', 'percentage_')}`}
-                  direction={effectiveOrderBy === `commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
-                    lbl === '% OI Long' ? 'pct_of_oi_comm_long_all' :
-                    lbl === '% OI Short' ? 'pct_of_oi_comm_short_all' :
-                    lbl.toLowerCase().replace('% ', 'percentage_')}` ? effectiveOrder : 'asc'}
-                  onClick={() => handleRequestSort(`commercial_${lbl.toLowerCase() === 'change' ? 'long_change' : 
-                    lbl === '% OI Long' ? 'pct_of_oi_comm_long_all' :
-                    lbl === '% OI Short' ? 'pct_of_oi_comm_short_all' :
-                    lbl.toLowerCase().replace('% ', 'percentage_')}`)}
-                  sx={{ justifyContent: 'center' }}
+            {(showDetails ? ['Long', 'Change', 'Short', 'Change', 'Total', '% Long', '%OI-L', '%OI-S'] : ['Long', 'Short', '% Long']).map((lbl, i) => {
+              const sortKey = lbl === '%OI-L' ? '% OI Long' : lbl === '%OI-S' ? '% OI Short' : lbl;
+              const tooltipText = lbl === '%OI-L' ? '% OI Long' : lbl === '%OI-S' ? '% OI Short' : null;
+
+              return (
+                <TableCell
+                  key={`h2-${i}`}
+                  align="center"
+                  sx={{
+                    color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                    minWidth: lbl === 'Change' ? '60px' : '70px',
+                    maxWidth: lbl === 'Change' ? '70px' : '80px',
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                    padding: lbl === 'Long' ? '8px 4px 8px 10px' : '8px 4px',
+                    fontSize: '0.75rem',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
                 >
-                  {lbl}
-                </TableSortLabel>
-              </TableCell>
-            ))}
+                  <TableSortLabel
+                    active={effectiveOrderBy === `commercial_${sortKey.toLowerCase() === 'change' ? 'long_change' :
+                      sortKey === '% OI Long' ? 'pct_of_oi_comm_long_all' :
+                        sortKey === '% OI Short' ? 'pct_of_oi_comm_short_all' :
+                          sortKey.toLowerCase().replace('% ', 'percentage_')}`}
+                    direction={effectiveOrderBy === `commercial_${sortKey.toLowerCase() === 'change' ? 'long_change' :
+                      sortKey === '% OI Long' ? 'pct_of_oi_comm_long_all' :
+                        sortKey === '% OI Short' ? 'pct_of_oi_comm_short_all' :
+                          sortKey.toLowerCase().replace('% ', 'percentage_')}` ? effectiveOrder : 'asc'}
+                    onClick={() => handleRequestSort(`commercial_${sortKey.toLowerCase() === 'change' ? 'long_change' :
+                      sortKey === '% OI Long' ? 'pct_of_oi_comm_long_all' :
+                        sortKey === '% OI Short' ? 'pct_of_oi_comm_short_all' :
+                          sortKey.toLowerCase().replace('% ', 'percentage_')}`)}
+                    sx={{ justifyContent: 'center' }}
+                  >
+                    {tooltipText ? (
+                      <Tooltip title={tooltipText} arrow placement="top">
+                        <span>{lbl}</span>
+                      </Tooltip>
+                    ) : lbl}
+                  </TableSortLabel>
+                </TableCell>
+              );
+            })}
             {/* Non-reportable Headers */}
-            {(showDetails ? ['Long','Change','Short','Change','Total','% Long','% OI Long','% OI Short'] : ['Long','Short','% Long']).map((lbl,i) => (
-              <TableCell
-                key={`h3-${i}`}
-                align="center"
-                sx={{
-                  color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-                  minWidth: lbl === 'Change' ? '60px' : '70px',
-                  maxWidth: lbl === 'Change' ? '70px' : '80px',
-                  backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-                  padding: lbl === 'Long' ? '8px 4px 8px 10px' : '8px 4px',
-                  fontSize: '0.75rem',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                <TableSortLabel
-                  active={effectiveOrderBy === `non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : 
-                    lbl === '% OI Long' ? 'pct_of_oi_nonrept_long_all' :
-                    lbl === '% OI Short' ? 'pct_of_oi_nonrept_short_all' :
-                    lbl.toLowerCase().replace('% ', 'percentage_')}`}
-                  direction={effectiveOrderBy === `non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : 
-                    lbl === '% OI Long' ? 'pct_of_oi_nonrept_long_all' :
-                    lbl === '% OI Short' ? 'pct_of_oi_nonrept_short_all' :
-                    lbl.toLowerCase().replace('% ', 'percentage_')}` ? effectiveOrder : 'asc'}
-                  onClick={() => handleRequestSort(`non_reportable_${lbl.toLowerCase() === 'change' ? 'long_change' : 
-                    lbl === '% OI Long' ? 'pct_of_oi_nonrept_long_all' :
-                    lbl === '% OI Short' ? 'pct_of_oi_nonrept_short_all' :
-                    lbl.toLowerCase().replace('% ', 'percentage_')}`)}
-                  sx={{ justifyContent: 'center' }}
+            {(showDetails ? ['Long', 'Change', 'Short', 'Change', 'Total', '% Long', '%OI-L', '%OI-S'] : ['Long', 'Short', '% Long']).map((lbl, i) => {
+              const sortKey = lbl === '%OI-L' ? '% OI Long' : lbl === '%OI-S' ? '% OI Short' : lbl;
+              const tooltipText = lbl === '%OI-L' ? '% OI Long' : lbl === '%OI-S' ? '% OI Short' : null;
+
+              return (
+                <TableCell
+                  key={`h3-${i}`}
+                  align="center"
+                  sx={{
+                    color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+                    minWidth: lbl === 'Change' ? '60px' : '70px',
+                    maxWidth: lbl === 'Change' ? '70px' : '80px',
+                    backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+                    padding: lbl === 'Long' ? '8px 4px 8px 10px' : '8px 4px',
+                    fontSize: '0.75rem',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
                 >
-                  {lbl}
-                </TableSortLabel>
-              </TableCell>
-            ))}
+                  <TableSortLabel
+                    active={effectiveOrderBy === `non_reportable_${sortKey.toLowerCase() === 'change' ? 'long_change' :
+                      sortKey === '% OI Long' ? 'pct_of_oi_nonrept_long_all' :
+                        sortKey === '% OI Short' ? 'pct_of_oi_nonrept_short_all' :
+                          sortKey.toLowerCase().replace('% ', 'percentage_')}`}
+                    direction={effectiveOrderBy === `non_reportable_${sortKey.toLowerCase() === 'change' ? 'long_change' :
+                      sortKey === '% OI Long' ? 'pct_of_oi_nonrept_long_all' :
+                        sortKey === '% OI Short' ? 'pct_of_oi_nonrept_short_all' :
+                          sortKey.toLowerCase().replace('% ', 'percentage_')}` ? effectiveOrder : 'asc'}
+                    onClick={() => handleRequestSort(`non_reportable_${sortKey.toLowerCase() === 'change' ? 'long_change' :
+                      sortKey === '% OI Long' ? 'pct_of_oi_nonrept_long_all' :
+                        sortKey === '% OI Short' ? 'pct_of_oi_nonrept_short_all' :
+                          sortKey.toLowerCase().replace('% ', 'percentage_')}`)}
+                    sx={{ justifyContent: 'center' }}
+                  >
+                    {tooltipText ? (
+                      <Tooltip title={tooltipText} arrow placement="top">
+                        <span>{lbl}</span>
+                      </Tooltip>
+                    ) : lbl}
+                  </TableSortLabel>
+                </TableCell>
+              );
+            })}
           </TableRow>
         </TableHead>
         <TableBody>
@@ -1412,12 +1449,18 @@ export default function CollapsibleTable({
                       ? 'rgba(255, 255, 255, 0.15)'
                       : 'rgba(0, 0, 0, 0.08)'
                   }
+                }),
+                // Alternating row backgrounds
+                ...(index % 2 === 1 && {
+                  backgroundColor: theme.palette.mode === 'dark'
+                    ? 'rgba(255, 255, 255, 0.03)'
+                    : 'rgba(0, 0, 0, 0.02)'
                 })
               }}
             >
-              <TableCell 
+              <TableCell
                 className="commodity-column"
-                sx={{ 
+                sx={{
                   padding: isMobile ? '12px 16px' : '4px',
                   ...(isMobile && {
                     display: 'flex',
@@ -1434,7 +1477,7 @@ export default function CollapsibleTable({
                         e.stopPropagation();
                         onToggleFavorite(r.commodity);
                       }}
-                      sx={{ 
+                      sx={{
                         padding: '4px',
                         '& svg': { fontSize: '1.2rem' }
                       }}
@@ -1469,15 +1512,15 @@ export default function CollapsibleTable({
               </TableCell>
               {(isCommercialTrackerSelected || isRetailTrackerSelected) && (
                 <>
-                  <TableCell align="center" sx={{ 
-                    padding: '8px 4px', 
+                  <TableCell align="center" sx={{
+                    padding: '8px 4px',
                     fontSize: '0.75rem',
                     borderLeft: `2px solid ${theme.palette.divider}`
                   }}>
                     <ZBadge z={r.zScore} type={r.extremeType} />
                   </TableCell>
-                  <TableCell align="center" sx={{ 
-                    padding: '8px 4px', 
+                  <TableCell align="center" sx={{
+                    padding: '8px 4px',
                     fontSize: '0.75rem'
                   }}>
                     {r.zScore5y !== null && r.zScore5y !== undefined ? (
@@ -1488,43 +1531,43 @@ export default function CollapsibleTable({
                   </TableCell>
                 </>
               )}
-              
+
               {/* Open Interest */}
-              <TableCell align="center" sx={{ 
-                padding: '8px 4px 8px 10px', 
+              <TableCell align="center" sx={{
+                padding: '8px 4px 8px 10px',
                 fontSize: '0.75rem',
                 borderLeft: `2px solid ${theme.palette.divider}`
               }}>
-                {r.open_interest_all !== undefined && r.open_interest_all !== null ? fmt.format(r.open_interest_all) : '-'}
+                {r.open_interest_all !== undefined && r.open_interest_all !== null ? (showDetails ? fmtCompact.format(r.open_interest_all) : fmt.format(r.open_interest_all)) : '-'}
               </TableCell>
-              <TableCell align="center" sx={{ 
-                color: r.change_in_open_interest_all < 0 ? 'red' : 'green', 
-                padding: '8px 4px', 
+              <TableCell align="center" sx={{
+                color: r.change_in_open_interest_all < 0 ? 'red' : 'green',
+                padding: '8px 4px',
                 fontSize: '0.75rem'
               }}>
-                {r.change_in_open_interest_all !== undefined && r.change_in_open_interest_all !== null ? fmt.format(r.change_in_open_interest_all) : '-'}
+                {r.change_in_open_interest_all !== undefined && r.change_in_open_interest_all !== null ? (showDetails ? fmtCompact.format(r.change_in_open_interest_all) : fmt.format(r.change_in_open_interest_all)) : '-'}
               </TableCell>
 
               {/* Non-commercial */}
-              <TableCell align="center" sx={{ 
-                padding: '8px 4px 8px 10px', 
+              <TableCell align="center" sx={{
+                padding: '8px 4px 8px 10px',
                 fontSize: '0.75rem',
                 borderLeft: `2px solid ${theme.palette.divider}`
-              }}>{fmt.format(r.non_commercial_long)}</TableCell>
+              }}>{showDetails ? fmtCompact.format(r.non_commercial_long) : fmt.format(r.non_commercial_long)}</TableCell>
               {showDetails && (
                 <TableCell align="center" sx={{ color: r.non_commercial_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
-                  {fmt.format(r.non_commercial_long_change)}
+                  {fmtCompact.format(r.non_commercial_long_change)}
                 </TableCell>
               )}
-              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_commercial_short)}</TableCell>
+              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{showDetails ? fmtCompact.format(r.non_commercial_short) : fmt.format(r.non_commercial_short)}</TableCell>
               {showDetails && (
                 <TableCell align="center" sx={{ color: r.non_commercial_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
-                  {fmt.format(r.non_commercial_short_change)}
+                  {fmtCompact.format(r.non_commercial_short_change)}
                 </TableCell>
               )}
               {showDetails && (
                 <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>
-                  {fmt.format(r.non_commercial_total)}
+                  {fmtCompact.format(r.non_commercial_total)}
                 </TableCell>
               )}
               <TableCell align="center" sx={{ color: getPercentageColor(r.non_commercial_percentage_long), padding: '8px 4px', fontSize: '0.75rem' }}>
@@ -1532,35 +1575,35 @@ export default function CollapsibleTable({
               </TableCell>
               {showDetails && (
                 <TableCell align="center" sx={{ color: getPercentageColor(r.pct_of_oi_noncomm_long_all), padding: '8px 4px', fontSize: '0.75rem' }}>
-                  {formatPercentage(r.pct_of_oi_noncomm_long_all)}
+                  {formatPercentageRounded(r.pct_of_oi_noncomm_long_all)}
                 </TableCell>
               )}
               {showDetails && (
-                <TableCell align="center" sx={{ 
-                  color: getPercentageColor(r.pct_of_oi_noncomm_short_all), 
-                  padding: '8px 4px', 
+                <TableCell align="center" sx={{
+                  color: getPercentageColor(r.pct_of_oi_noncomm_short_all),
+                  padding: '8px 4px',
                   fontSize: '0.75rem'
                 }}>
-                  {formatPercentage(r.pct_of_oi_noncomm_short_all)}
+                  {formatPercentageRounded(r.pct_of_oi_noncomm_short_all)}
                 </TableCell>
               )}
 
               {/* Commercial */}
-              <TableCell align="center" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem', borderLeft: `2px solid ${theme.palette.divider}` }}>{fmt.format(r.commercial_long)}</TableCell>
+              <TableCell align="center" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem', borderLeft: `2px solid ${theme.palette.divider}` }}>{showDetails ? fmtCompact.format(r.commercial_long) : fmt.format(r.commercial_long)}</TableCell>
               {showDetails && (
                 <TableCell align="center" sx={{ color: r.commercial_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
-                  {fmt.format(r.commercial_long_change)}
+                  {fmtCompact.format(r.commercial_long_change)}
                 </TableCell>
               )}
-              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.commercial_short)}</TableCell>
+              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{showDetails ? fmtCompact.format(r.commercial_short) : fmt.format(r.commercial_short)}</TableCell>
               {showDetails && (
                 <TableCell align="center" sx={{ color: r.commercial_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
-                  {fmt.format(r.commercial_short_change)}
+                  {fmtCompact.format(r.commercial_short_change)}
                 </TableCell>
               )}
               {showDetails && (
                 <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>
-                  {fmt.format(r.commercial_total)}
+                  {fmtCompact.format(r.commercial_total)}
                 </TableCell>
               )}
               <TableCell align="center" sx={{ color: getPercentageColor(r.commercial_percentage_long), padding: '8px 4px', fontSize: '0.75rem' }}>
@@ -1568,35 +1611,35 @@ export default function CollapsibleTable({
               </TableCell>
               {showDetails && (
                 <TableCell align="center" sx={{ color: getPercentageColor(r.pct_of_oi_comm_long_all), padding: '8px 4px', fontSize: '0.75rem' }}>
-                  {formatPercentage(r.pct_of_oi_comm_long_all)}
+                  {formatPercentageRounded(r.pct_of_oi_comm_long_all)}
                 </TableCell>
               )}
               {showDetails && (
-                <TableCell align="center" sx={{ 
-                  color: getPercentageColor(r.pct_of_oi_comm_short_all), 
-                  padding: '8px 4px', 
+                <TableCell align="center" sx={{
+                  color: getPercentageColor(r.pct_of_oi_comm_short_all),
+                  padding: '8px 4px',
                   fontSize: '0.75rem'
                 }}>
-                  {formatPercentage(r.pct_of_oi_comm_short_all)}
+                  {formatPercentageRounded(r.pct_of_oi_comm_short_all)}
                 </TableCell>
               )}
 
               {/* Non-reportable */}
-              <TableCell align="center" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem', borderLeft: `2px solid ${theme.palette.divider}` }}>{fmt.format(r.non_reportable_long)}</TableCell>
+              <TableCell align="center" sx={{ padding: '8px 4px 8px 10px', fontSize: '0.75rem', borderLeft: `2px solid ${theme.palette.divider}` }}>{showDetails ? fmtCompact.format(r.non_reportable_long) : fmt.format(r.non_reportable_long)}</TableCell>
               {showDetails && (
                 <TableCell align="center" sx={{ color: r.non_reportable_long_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
-                  {fmt.format(r.non_reportable_long_change)}
+                  {fmtCompact.format(r.non_reportable_long_change)}
                 </TableCell>
               )}
-              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{fmt.format(r.non_reportable_short)}</TableCell>
+              <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>{showDetails ? fmtCompact.format(r.non_reportable_short) : fmt.format(r.non_reportable_short)}</TableCell>
               {showDetails && (
                 <TableCell align="center" sx={{ color: r.non_reportable_short_change < 0 ? 'red' : 'green', padding: '8px 4px', fontSize: '0.75rem' }}>
-                  {fmt.format(r.non_reportable_short_change)}
+                  {fmtCompact.format(r.non_reportable_short_change)}
                 </TableCell>
               )}
               {showDetails && (
                 <TableCell align="center" sx={{ padding: '8px 4px', fontSize: '0.75rem' }}>
-                  {fmt.format(r.non_reportable_total)}
+                  {fmtCompact.format(r.non_reportable_total)}
                 </TableCell>
               )}
               <TableCell align="center" sx={{ color: getPercentageColor(r.non_reportable_percentage_long), padding: '8px 4px', fontSize: '0.75rem' }}>
@@ -1604,12 +1647,12 @@ export default function CollapsibleTable({
               </TableCell>
               {showDetails && (
                 <TableCell align="center" sx={{ color: getPercentageColor(r.pct_of_oi_nonrept_long_all), padding: '8px 4px', fontSize: '0.75rem' }}>
-                  {formatPercentage(r.pct_of_oi_nonrept_long_all)}
+                  {formatPercentageRounded(r.pct_of_oi_nonrept_long_all)}
                 </TableCell>
               )}
               {showDetails && (
                 <TableCell align="center" sx={{ color: getPercentageColor(r.pct_of_oi_nonrept_short_all), padding: '8px 4px', fontSize: '0.75rem' }}>
-                  {formatPercentage(r.pct_of_oi_nonrept_short_all)}
+                  {formatPercentageRounded(r.pct_of_oi_nonrept_short_all)}
                 </TableCell>
               )}
             </TableRow>
@@ -1627,8 +1670,8 @@ export default function CollapsibleTable({
 
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Tabs 
-          value={selectedTab} 
+        <Tabs
+          value={selectedTab}
           onChange={handleTabChange}
           variant="scrollable"
           scrollButtons="auto"
@@ -1664,124 +1707,124 @@ export default function CollapsibleTable({
             }
           }}
         >
-        {shouldShowFavorites && (
-          <Tab 
-            key="favorites" 
-            label={
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                opacity: favoritesInSearch.length === 0 ? 0.5 : 1 // Dim the tab if no favorites match search
-              }}>
-                <span>Favorites</span>
-                <Box
-                  sx={{
-                    backgroundColor: theme.palette.mode === 'dark' 
-                      ? 'rgba(255, 255, 255, 0.12)' 
-                      : 'rgba(0, 0, 0, 0.08)',
-                    color: theme.palette.text.primary,
-                    borderRadius: '12px',
-                    padding: '2px 8px',
-                    fontSize: '0.75rem',
-                    lineHeight: 1,
-                    fontWeight: 500
-                  }}
-                >
-                  {favoritesInSearch.length}/{favorites.length}
-                </Box>
-              </Box>
-            } 
-            id="tab-0" 
-          />
-        )}
-        <Tab 
-          key="commercial-tracker" 
-          label={
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1
-            }}>
-              <span>Commercial Tracker</span>
-              {isLoadingExtremes ? (
-                <CircularProgress size={16} />
-              ) : (
-                <Box
-                  sx={{
-                    backgroundColor: theme.palette.mode === 'dark' 
-                      ? 'rgba(255, 255, 255, 0.12)' 
-                      : 'rgba(0, 0, 0, 0.08)',
-                    color: theme.palette.text.primary,
-                    borderRadius: '12px',
-                    padding: '2px 8px',
-                    fontSize: '0.75rem',
-                    lineHeight: 1,
-                    fontWeight: 500
-                  }}
-                >
-                  {commercialTrackerData.length}
-                </Box>
-              )}
-            </Box>
-          } 
-          id="tab-1" 
-        />
-        {/* Retail Tracker Tab follows Commercial if present, otherwise takes its place */}
-        <Tab 
-          key="retail-tracker" 
-          label={
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 1,
-              opacity: retailTrackerData.length === 0 ? 0.5 : 1
-            }}>
-              <span>Retail Tracker</span>
-              {isLoadingExtremes ? (
-                <CircularProgress size={16} />
-              ) : (
-                <Box
-                  sx={{
-                    backgroundColor: theme.palette.mode === 'dark' 
-                      ? 'rgba(255, 255, 255, 0.12)' 
-                      : 'rgba(0, 0, 0, 0.08)',
-                    color: theme.palette.text.primary,
-                    borderRadius: '12px',
-                    padding: '2px 8px',
-                    fontSize: '0.75rem',
-                    lineHeight: 1,
-                    fontWeight: 500
-                  }}
-                >
-                  {retailTrackerData.length}
-                </Box>
-              )}
-            </Box>
-          } 
-          id="tab-2"
-        />
-        {filteredGroups.map((groupName, index) => {
-          const preTabsCount = (shouldShowFavorites ? 1 : 0) + 1 + 1;
-          const tabIndex = index + preTabsCount;
-          return (
-            <Tab 
-              key={groupName} 
+          {shouldShowFavorites && (
+            <Tab
+              key="favorites"
               label={
-                <Box sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center'
+                <Box sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  opacity: favoritesInSearch.length === 0 ? 0.5 : 1 // Dim the tab if no favorites match search
                 }}>
-                  <span className="market-code">{groupName}</span>
+                  <span>Favorites</span>
+                  <Box
+                    sx={{
+                      backgroundColor: theme.palette.mode === 'dark'
+                        ? 'rgba(255, 255, 255, 0.12)'
+                        : 'rgba(0, 0, 0, 0.08)',
+                      color: theme.palette.text.primary,
+                      borderRadius: '12px',
+                      padding: '2px 8px',
+                      fontSize: '0.75rem',
+                      lineHeight: 1,
+                      fontWeight: 500
+                    }}
+                  >
+                    {favoritesInSearch.length}/{favorites.length}
+                  </Box>
                 </Box>
-              } 
-              id={`tab-${tabIndex}`}
+              }
+              id="tab-0"
             />
-          );
-        })}
+          )}
+          <Tab
+            key="commercial-tracker"
+            label={
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}>
+                <span>Commercial Tracker</span>
+                {isLoadingExtremes ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <Box
+                    sx={{
+                      backgroundColor: theme.palette.mode === 'dark'
+                        ? 'rgba(255, 255, 255, 0.12)'
+                        : 'rgba(0, 0, 0, 0.08)',
+                      color: theme.palette.text.primary,
+                      borderRadius: '12px',
+                      padding: '2px 8px',
+                      fontSize: '0.75rem',
+                      lineHeight: 1,
+                      fontWeight: 500
+                    }}
+                  >
+                    {commercialTrackerData.length}
+                  </Box>
+                )}
+              </Box>
+            }
+            id="tab-1"
+          />
+          {/* Retail Tracker Tab follows Commercial if present, otherwise takes its place */}
+          <Tab
+            key="retail-tracker"
+            label={
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                opacity: retailTrackerData.length === 0 ? 0.5 : 1
+              }}>
+                <span>Retail Tracker</span>
+                {isLoadingExtremes ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <Box
+                    sx={{
+                      backgroundColor: theme.palette.mode === 'dark'
+                        ? 'rgba(255, 255, 255, 0.12)'
+                        : 'rgba(0, 0, 0, 0.08)',
+                      color: theme.palette.text.primary,
+                      borderRadius: '12px',
+                      padding: '2px 8px',
+                      fontSize: '0.75rem',
+                      lineHeight: 1,
+                      fontWeight: 500
+                    }}
+                  >
+                    {retailTrackerData.length}
+                  </Box>
+                )}
+              </Box>
+            }
+            id="tab-2"
+          />
+          {filteredGroups.map((groupName, index) => {
+            const preTabsCount = (shouldShowFavorites ? 1 : 0) + 1 + 1;
+            const tabIndex = index + preTabsCount;
+            return (
+              <Tab
+                key={groupName}
+                label={
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}>
+                    <span className="market-code">{groupName}</span>
+                  </Box>
+                }
+                id={`tab-${tabIndex}`}
+              />
+            );
+          })}
         </Tabs>
         {!isMobile && (
-          <FormControlLabel 
+          <FormControlLabel
             control={<Switch size="small" checked={showDetails} onChange={(e) => setShowDetails(e.target.checked)} />}
             label="Details"
             sx={{ ml: 1 }}
@@ -1792,9 +1835,9 @@ export default function CollapsibleTable({
   };
 
   return (
-    <Box sx={{ 
-      width: '100%', 
-      display: 'flex', 
+    <Box sx={{
+      width: '100%',
+      display: 'flex',
       flexDirection: 'column',
       height: '45vh',
       minHeight: '45vh',
@@ -1802,18 +1845,18 @@ export default function CollapsibleTable({
       borderRadius: 1,
       overflow: 'hidden',
     }}>
-    {!isMobile && (
-      <Box sx={{ 
-        borderBottom: 1, 
-        borderColor: 'divider',
-        bgcolor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
-      }}>
-        {renderTabs()}
-      </Box>
-    )}
-      <TableContainer 
-        component={Paper} 
-        sx={{ 
+      {!isMobile && (
+        <Box sx={{
+          borderBottom: 1,
+          borderColor: 'divider',
+          bgcolor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#f5f5f5',
+        }}>
+          {renderTabs()}
+        </Box>
+      )}
+      <TableContainer
+        component={Paper}
+        sx={{
           border: 'none',
           flex: 1,
           height: '100%',
@@ -1841,7 +1884,7 @@ export function CollapsableTableSkeleton() {
           <Tab key="favorites" label={<Skeleton width={80} height={24} />} id="tab-0" />
           <Tab key="commercial-tracker" label={<Skeleton width={150} height={24} />} id="tab-1" />
           {[...Array(3)].map((_, i) => (
-            <Tab key={`skeleton-tab-${i}`} label={<Skeleton width={100} height={24} />} id={`tab-${i+2}`} />
+            <Tab key={`skeleton-tab-${i}`} label={<Skeleton width={100} height={24} />} id={`tab-${i + 2}`} />
           ))}
         </Tabs>
       </Box>
@@ -1857,7 +1900,7 @@ export function CollapsableTableSkeleton() {
           </TableHead>
           <TableBody>
             {[...Array(8)].map((_, rowIdx) => (
-              <TableRow key={`sk-row-${rowIdx}`}> 
+              <TableRow key={`sk-row-${rowIdx}`}>
                 <TableCell><Skeleton width={180} /></TableCell>
                 {[...Array(18)].map((_, i) => (
                   <TableCell key={`sk-cell-${rowIdx}-${i}`}><Skeleton width={50} /></TableCell>
