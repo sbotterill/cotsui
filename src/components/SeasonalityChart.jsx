@@ -330,6 +330,7 @@ export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilt
       minHeight: isMobile ? 'calc(100vh - 180px)' : undefined,
       position: 'relative', 
       mt: isMobile ? 0 : 2, 
+      mx: isMobile ? -0.5 : 0,
       display: 'flex', 
       flexDirection: 'column',
       pb: isMobile ? 2 : 0
@@ -347,7 +348,7 @@ export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilt
       {hasLimitedData && limitedDataMessage && (
         <Box sx={{ 
           p: isMobile ? 1 : 1.5, 
-          mx: isMobile ? 1 : 2,
+          mx: isMobile ? 0.5 : 2,
           mb: 1,
           backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 167, 38, 0.12)' : 'rgba(255, 152, 0, 0.12)',
           borderRadius: 1,
@@ -474,10 +475,10 @@ export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilt
                 }
               }}
               margin={{ 
-                right: isMobile ? 5 : 10, 
+                right: isMobile ? 2 : 10, 
                 top: isMobile ? 35 : 50, 
                 bottom: isMobile ? 5 : 10, 
-                left: isMobile ? 5 : 10 
+                left: isMobile ? 2 : 10 
               }}
               tooltip={{ 
                 trigger: 'axis',
@@ -511,7 +512,8 @@ export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilt
             spacing={2} 
             sx={{ 
               mt: isMobile ? 1 : 2,
-              px: isMobile ? 1 : 0 
+              px: 0,
+              mx: isMobile ? -0.5 : 0
             }}
           >
             <Box sx={{ flex: 1, width: '100%' }}>
@@ -556,8 +558,8 @@ export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilt
                   }]}
                   height={isMobile ? 180 : (isTablet ? 200 : 220)}
                   margin={{
-                    left: isMobile ? 40 : 50,
-                    right: isMobile ? 10 : 20,
+                    left: isMobile ? 25 : 50,
+                    right: isMobile ? 5 : 20,
                     top: isMobile ? 10 : 20,
                     bottom: isMobile ? 30 : 40
                   }}
@@ -607,8 +609,8 @@ export default function SeasonalityChart({ symbol, lookbackYears = 15, cycleFilt
                   }]}
                   height={isMobile ? 180 : (isTablet ? 200 : 220)}
                   margin={{
-                    left: isMobile ? 40 : 50,
-                    right: isMobile ? 10 : 20,
+                    left: isMobile ? 25 : 50,
+                    right: isMobile ? 5 : 20,
                     top: isMobile ? 10 : 20,
                     bottom: isMobile ? 40 : 40
                   }}
