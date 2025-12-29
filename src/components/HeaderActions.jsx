@@ -36,64 +36,7 @@ function HeaderActions(props) {
   const isMobileChartView = isMobile && props.activeSection === 'cots-report' && props.mobileView === 'chart';
   const isMobileSeasonality = isMobile && isSeasonality;
 
-  // AI Agent section should have no toolbar content (just hamburger menu from layout)
-  if (isAIAgent) {
-    return null;
-  }
-
-  const displayOnlyName = (label) => {
-    if (!label) return '';
-    const emDash = label.indexOf('—');
-    if (emDash !== -1) return label.slice(emDash + 1).trim();
-    const hy = label.indexOf(' - ');
-    if (hy !== -1) return label.slice(hy + 3).trim();
-    return label;
-  };
-
-  const formatDateOption = (dateStr) => {
-    if (!dateStr) return '';
-    const [year, month, day] = dateStr.split('-');
-    const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const handleClearSearch = () => {
-    setSearch('');
-    // Restore full dataset without throwing if props are momentarily undefined
-    const fullData = Array.isArray(props.futuresData) ? props.futuresData : [];
-    props.setFilteredData(fullData);
-    setShowNoResults(false);
-  };
-
-  const handleFuturesFilter = (event) => {
-    const raw = event?.target?.value ?? '';
-    setSearch(raw);
-    const searchValue = String(raw).toLowerCase();
-
-    if (!searchValue) {
-      handleClearSearch();
-      return;
-    }
-
-    try {
-      const source = Array.isArray(props.futuresData) ? props.futuresData : [];
-      const filtered = source
-        .filter(row => row && !REMOVED_EXCHANGE_CODES.includes((row.market_code || '').trim()))
-        .filter(row => (row.commodity || '').toLowerCase().includes(searchValue));
-      props.setFilteredData(filtered);
-      setShowNoResults(filtered.length === 0);
-    } catch (error) {
-      // Do not clear user input on benign errors; just show all data
-      props.setFilteredData(Array.isArray(props.futuresData) ? props.futuresData : []);
-      setShowNoResults(false);
-    }
-  };
-
-  // Use dynamic symbols from props, fallback to defaults
+  // Use dynamic symbols from props, fallback to defaults (must be before early return for hooks)
   const flatOptions = props.seasonalitySymbols?.length > 0 ? props.seasonalitySymbols : DEFAULT_SYMBOL_OPTIONS;
   const selectedOption = flatOptions.find(o => o.value === (props.selectedSymbol || 'CL')) || flatOptions[0] || null;
 
@@ -153,7 +96,65 @@ function HeaderActions(props) {
         props.onSeasonalityLookbackChange?.(closest);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOption?.value, availableLookbackYears, props.activeSection]);
+
+  // AI Agent section should have no toolbar content (just hamburger menu from layout)
+  if (isAIAgent) {
+    return null;
+  }
+
+  const displayOnlyName = (label) => {
+    if (!label) return '';
+    const emDash = label.indexOf('—');
+    if (emDash !== -1) return label.slice(emDash + 1).trim();
+    const hy = label.indexOf(' - ');
+    if (hy !== -1) return label.slice(hy + 3).trim();
+    return label;
+  };
+
+  const formatDateOption = (dateStr) => {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-');
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const handleClearSearch = () => {
+    setSearch('');
+    // Restore full dataset without throwing if props are momentarily undefined
+    const fullData = Array.isArray(props.futuresData) ? props.futuresData : [];
+    props.setFilteredData(fullData);
+    setShowNoResults(false);
+  };
+
+  const handleFuturesFilter = (event) => {
+    const raw = event?.target?.value ?? '';
+    setSearch(raw);
+    const searchValue = String(raw).toLowerCase();
+
+    if (!searchValue) {
+      handleClearSearch();
+      return;
+    }
+
+    try {
+      const source = Array.isArray(props.futuresData) ? props.futuresData : [];
+      const filtered = source
+        .filter(row => row && !REMOVED_EXCHANGE_CODES.includes((row.market_code || '').trim()))
+        .filter(row => (row.commodity || '').toLowerCase().includes(searchValue));
+      props.setFilteredData(filtered);
+      setShowNoResults(filtered.length === 0);
+    } catch (error) {
+      // Do not clear user input on benign errors; just show all data
+      props.setFilteredData(Array.isArray(props.futuresData) ? props.futuresData : []);
+      setShowNoResults(false);
+    }
+  };
 
   return (
     <Box
