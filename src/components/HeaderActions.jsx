@@ -97,6 +97,64 @@ function HeaderActions(props) {
   const flatOptions = props.seasonalitySymbols?.length > 0 ? props.seasonalitySymbols : DEFAULT_SYMBOL_OPTIONS;
   const selectedOption = flatOptions.find(o => o.value === (props.selectedSymbol || 'CL')) || flatOptions[0] || null;
 
+  // Compute available lookback years based on the selected symbol's data range
+  const availableLookbackYears = React.useMemo(() => {
+    if (!selectedOption?.firstDate) {
+      // Default options when no date info available
+      return [5, 10];
+    }
+    
+    const firstDate = new Date(selectedOption.firstDate);
+    const lastDate = selectedOption.lastDate ? new Date(selectedOption.lastDate) : new Date();
+    const yearsAvailable = Math.floor((lastDate - firstDate) / (365.25 * 24 * 60 * 60 * 1000));
+    
+    // Generate lookback options: 5, 10, 15, 20, etc. up to available years
+    const options = [];
+    const possibleYears = [3, 5, 7, 10, 15, 20, 25, 30];
+    
+    for (const y of possibleYears) {
+      if (y <= yearsAvailable) {
+        options.push(y);
+      }
+    }
+    
+    // Always include at least one option (the max available if less than 5 years)
+    if (options.length === 0 && yearsAvailable >= 1) {
+      options.push(yearsAvailable);
+    } else if (options.length === 0) {
+      options.push(5); // fallback
+    }
+    
+    // Add a "Max" option if yearsAvailable is greater than the largest standard option
+    // and isn't already in the list
+    if (yearsAvailable > (options[options.length - 1] || 0) && !options.includes(yearsAvailable)) {
+      options.push(yearsAvailable);
+    }
+    
+    return options;
+  }, [selectedOption?.firstDate, selectedOption?.lastDate]);
+
+  // Auto-adjust lookback if current value exceeds available years
+  React.useEffect(() => {
+    if (props.activeSection === 'seasonality' && availableLookbackYears.length > 0) {
+      const currentLookback = props.seasonalityLookback || 10;
+      const maxAvailable = Math.max(...availableLookbackYears);
+      
+      // If current lookback exceeds available, switch to max available
+      if (currentLookback > maxAvailable) {
+        props.onSeasonalityLookbackChange?.(maxAvailable);
+      }
+      // If current lookback is not in the options, pick the closest available
+      else if (!availableLookbackYears.includes(currentLookback)) {
+        // Find the closest option that doesn't exceed current preference
+        const closest = availableLookbackYears.reduce((prev, curr) => 
+          Math.abs(curr - currentLookback) < Math.abs(prev - currentLookback) ? curr : prev
+        );
+        props.onSeasonalityLookbackChange?.(closest);
+      }
+    }
+  }, [selectedOption?.value, availableLookbackYears, props.activeSection]);
+
   return (
     <Box
       sx={{
@@ -290,12 +348,15 @@ function HeaderActions(props) {
             <InputLabel id="seasonality-lookback-label">Lookback</InputLabel>
             <Select
               labelId="seasonality-lookback-label"
-              value={props.seasonalityLookback || 10}
+              value={availableLookbackYears.includes(props.seasonalityLookback) ? props.seasonalityLookback : (availableLookbackYears[availableLookbackYears.length - 1] || 10)}
               label="Lookback"
               onChange={(e) => props.onSeasonalityLookbackChange?.(Number(e.target.value))}
             >
-              <MenuItem value={10}>10 years</MenuItem>
-              <MenuItem value={5}>5 years</MenuItem>
+              {availableLookbackYears.map((years) => (
+                <MenuItem key={years} value={years}>
+                  {years} years
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
           <FormControl size="small" sx={{ minWidth: isMobile ? 100 : 180, flex: isMobile ? '1 1 45%' : '0 0 auto' }}>
