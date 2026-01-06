@@ -98,6 +98,7 @@ export default function PrivacyPolicy() {
                   <li>Provide, maintain, and improve our services</li>
                   <li>Process your transactions</li>
                   <li>Send you technical notices and support messages</li>
+                  <li>Send you newsletters, product updates, and marketing communications</li>
                   <li>Respond to your comments and questions</li>
                   <li>Monitor and analyze trends, usage, and activities</li>
                 </ul>
@@ -122,7 +123,27 @@ export default function PrivacyPolicy() {
 
             <Box>
               <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mt: 3 }}>
-                5. Data Security
+                5. Email Communications and Newsletters
+              </Typography>
+              <Typography variant="body1" paragraph>
+                By creating an account with COTS UI, you agree to be automatically subscribed to our newsletter and marketing communications. These communications may include:
+              </Typography>
+              <Typography variant="body1" component="div" sx={{ pl: 2 }}>
+                <ul>
+                  <li>Product updates and new feature announcements</li>
+                  <li>Market insights and educational content</li>
+                  <li>Tips for using our platform effectively</li>
+                  <li>Promotional offers and special announcements</li>
+                </ul>
+              </Typography>
+              <Typography variant="body1" paragraph sx={{ mt: 2 }}>
+                You may unsubscribe from our newsletter at any time by clicking the "unsubscribe" link at the bottom of any marketing email, or by contacting us directly. Please note that even if you opt out of marketing communications, we may still send you transactional emails related to your account (such as password resets, billing confirmations, and important service updates).
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mt: 3 }}>
+                6. Data Security
               </Typography>
               <Typography variant="body1" paragraph>
                 We implement appropriate technical and organizational measures to protect your personal information. However, no method of transmission over the internet is 100% secure.
@@ -131,7 +152,7 @@ export default function PrivacyPolicy() {
 
             <Box>
               <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mt: 3 }}>
-                6. Your Rights
+                7. Your Rights
               </Typography>
               <Typography variant="body1" paragraph>
                 You have the right to:
@@ -149,7 +170,7 @@ export default function PrivacyPolicy() {
 
             <Box>
               <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mt: 3 }}>
-                7. Cookies and Tracking
+                8. Cookies and Tracking
               </Typography>
               <Typography variant="body1" paragraph>
                 We use cookies and similar tracking technologies to track activity on our service and store certain information. You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent.
@@ -158,7 +179,7 @@ export default function PrivacyPolicy() {
 
             <Box>
               <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mt: 3 }}>
-                8. Children's Privacy
+                9. Children's Privacy
               </Typography>
               <Typography variant="body1" paragraph>
                 Our service is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13.
@@ -167,7 +188,7 @@ export default function PrivacyPolicy() {
 
             <Box>
               <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mt: 3 }}>
-                9. Changes to This Policy
+                10. Changes to This Policy
               </Typography>
               <Typography variant="body1" paragraph>
                 We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date.
@@ -176,7 +197,7 @@ export default function PrivacyPolicy() {
 
             <Box>
               <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mt: 3 }}>
-                10. Contact Us
+                11. Contact Us
               </Typography>
               <Typography variant="body1" paragraph>
                 If you have questions about this Privacy Policy, please contact us at:
