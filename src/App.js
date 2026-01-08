@@ -652,6 +652,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState(0);
   const [isChartLoading, setIsChartLoading] = useState(false);  // New state for chart loading
+  const [searchTerm, setSearchTerm] = useState('');  // Lifted search state to prevent reset on re-render
   const [commercialExtremes, setCommercialExtremes] = useState({});
   const [retailExtremes, setRetailExtremes] = useState({});
   const [isLoadingExtremes, setIsLoadingExtremes] = useState(false);
@@ -1478,6 +1479,8 @@ export default function App() {
             onTabChange={setSelectedTab}
             favorites={favorites}
             mobileView={mobileView}
+            searchTerm={searchTerm}
+            onSearchTermChange={setSearchTerm}
           />
         )}
         {isLoading ? (
@@ -1634,6 +1637,8 @@ export default function App() {
       filteredData={filteredData}
       selectedCommodity={selectedCommodity}
       onCommoditySelect={handleCommoditySelect}
+      searchTerm={searchTerm}
+      onSearchTermChange={setSearchTerm}
     />
   ), [
     futuresData,
@@ -1663,7 +1668,8 @@ export default function App() {
     mobileView,
     filteredData,
     selectedCommodity,
-    handleCommoditySelect
+    handleCommoditySelect,
+    searchTerm
   ]);
 
   return (

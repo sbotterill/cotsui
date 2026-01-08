@@ -35,7 +35,17 @@ export default function DrawerAppBar(props) {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [showAlert, setShowAlert] = React.useState(true);
   const [showNoResults, setShowNoResults] = React.useState(false);
-  const [searchTerm, setSearchTerm] = React.useState('');
+  // Support controlled search via props, fallback to internal state
+  const isControlled = Object.prototype.hasOwnProperty.call(props, 'searchTerm');
+  const [internalSearchTerm, setInternalSearchTerm] = React.useState('');
+  const searchTerm = isControlled ? (props.searchTerm ?? '') : internalSearchTerm;
+  const setSearchTerm = (value) => {
+    if (isControlled) {
+      props.onSearchTermChange?.(value);
+    } else {
+      setInternalSearchTerm(value);
+    }
+  };
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   
   // Format the date string directly without creating a Date object
