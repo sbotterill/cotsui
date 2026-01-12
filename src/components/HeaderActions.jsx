@@ -6,6 +6,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import BasicMenu from './ContextMenu';
 import { REMOVED_EXCHANGE_CODES } from '../constants';
 import Autocomplete from '@mui/material/Autocomplete';
+import { SearchContext } from '../App';
 
 // Default fallback symbols (used while loading from API)
 const DEFAULT_SYMBOL_OPTIONS = [
@@ -18,17 +19,12 @@ const DEFAULT_SYMBOL_OPTIONS = [
 function HeaderActions(props) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  // Support controlled search via props, fallback to internal state
-  const isControlled = Object.prototype.hasOwnProperty.call(props, 'searchTerm');
-  const [internalSearchTerm, setInternalSearchTerm] = React.useState('');
-  const searchTerm = isControlled ? (props.searchTerm ?? '') : internalSearchTerm;
-  const setSearch = (value) => {
-    if (isControlled) {
-      props.onSearchTermChange?.(value);
-    } else {
-      setInternalSearchTerm(value);
-    }
-  };
+  // Use context for search state to avoid focus loss from component remounting
+  const searchContext = React.useContext(SearchContext);
+  const searchTerm = searchContext?.searchTerm ?? '';
+  const setSearch = searchContext?.setSearchTerm ?? (() => {});
+  // Get filteredData from context as well
+  const filteredDataFromContext = searchContext?.filteredData;
   const [showNoResults, setShowNoResults] = React.useState(false);
   const isChart = props.activeSection === 'chart' || props.activeSection === 'seasonality';
   const isSeasonality = props.activeSection === 'seasonality';
@@ -184,12 +180,12 @@ function HeaderActions(props) {
       }}
     >
       {/* Mobile Chart View: Show commodity dropdown instead of search */}
-      {isMobileChartView && props.filteredData?.length > 0 && (
+      {isMobileChartView && filteredDataFromContext?.length > 0 && (
         <Autocomplete
           size="small"
-          options={[...(props.filteredData || [])].sort((a, b) => (a.commodity || '').localeCompare(b.commodity || ''))}
+          options={[...(filteredDataFromContext || [])].sort((a, b) => (a.commodity || '').localeCompare(b.commodity || ''))}
           getOptionLabel={(option) => option.commodity || ''}
-          value={props.filteredData?.find(item => item.commodity === props.selectedCommodity) || null}
+          value={filteredDataFromContext?.find(item => item.commodity === props.selectedCommodity) || null}
           onChange={(event, newValue) => {
             if (newValue) {
               props.onCommoditySelect?.(newValue.contract_code, newValue.commodity);

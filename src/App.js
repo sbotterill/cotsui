@@ -52,6 +52,9 @@ import { fetchAvailableAssets } from './services/priceService';
 // Context to expose toggle function for theme switch
 export const ColorModeContext = createContext({ toggleColorMode: () => { } });
 
+// Context for search state to avoid prop drilling through slots
+export const SearchContext = createContext({ searchTerm: '', setSearchTerm: () => {}, filteredData: [] });
+
 // Format date for API
 function formatDate(date) {
   if (typeof date === 'string') {
@@ -1022,7 +1025,7 @@ export default function App() {
     }
   };
 
-  const getChartData = async (marketCode) => {
+  const getChartData = useCallback(async (marketCode) => {
     setIsChartLoading(true);  // Set loading to true when starting
     try {
       const response = await axios.get(
@@ -1079,7 +1082,7 @@ export default function App() {
     } finally {
       setIsChartLoading(false);  // Set loading to false when done
     }
-  };
+  }, []);
 
   // Exchange filter handler
   const handleExchangeFilterChange = useCallback(async (newList, shouldSaveToServer = true) => {
@@ -1137,11 +1140,11 @@ export default function App() {
 
   const [preferredChartSeries, setPreferredChartSeries] = useState(null);
 
-  const handleCommoditySelect = async (marketCode, commodityName, preferredSeries) => {
+  const handleCommoditySelect = useCallback(async (marketCode, commodityName, preferredSeries) => {
     setSelectedCommodity(commodityName);
     setPreferredChartSeries(preferredSeries || null);
     await getChartData(marketCode);
-  };
+  }, [getChartData]);
 
   const handleDateChange = useCallback(async (newDate) => {
     setSelectedDate(newDate);
@@ -1634,11 +1637,8 @@ export default function App() {
       seasonalityEffectiveRange={seasonalityEffectiveRange}
       seasonalitySymbols={seasonalitySymbols}
       mobileView={mobileView}
-      filteredData={filteredData}
       selectedCommodity={selectedCommodity}
       onCommoditySelect={handleCommoditySelect}
-      searchTerm={searchTerm}
-      onSearchTermChange={setSearchTerm}
     />
   ), [
     futuresData,
@@ -1666,11 +1666,27 @@ export default function App() {
     exchanges,
     seasonalitySymbols,
     mobileView,
-    filteredData,
     selectedCommodity,
-    handleCommoditySelect,
-    searchTerm
+    handleCommoditySelect
+    // Note: searchTerm and filteredData are now provided via SearchContext
   ]);
+
+  // Memoized slot functions to prevent unnecessary re-renders
+  const appTitle = useCallback(() => null, []);
+  const sidebarFooter = useCallback(({ mini }) => (
+    <SidebarFooter mini={mini} onSupportClick={() => helpChatRef.current?.openModal()} />
+  ), []);
+  const handlePageChange = useCallback((page) => {
+    if (page?.segment) setActiveSection(page.segment);
+  }, []);
+  
+  // Memoize the slots object to prevent DashboardLayout from re-rendering slots unnecessarily
+  const dashboardSlots = useMemo(() => ({
+    renderPageItem: renderSidebarItem,
+    appTitle,
+    toolbarActions,
+    sidebarFooter,
+  }), [renderSidebarItem, appTitle, toolbarActions, sidebarFooter]);
 
   return (
     <Router>
@@ -1688,6 +1704,7 @@ export default function App() {
             ) : (
               <SubscriptionGuard>
                 <ColorModeContext.Provider value={colorMode}>
+                  <SearchContext.Provider value={{ searchTerm, setSearchTerm, filteredData }}>
                     <ThemeProvider theme={theme}>
                       <CssBaseline />
                       <AppProvider
@@ -1758,15 +1775,8 @@ export default function App() {
                           defaultSidebarCollapsed
                           disableCollapsibleSidebar
                           sidebarExpandedWidth={82}
-                          slots={{
-                            renderPageItem: renderSidebarItem,
-                            appTitle: () => null,
-                            toolbarActions,
-                            sidebarFooter: ({ mini }) => <SidebarFooter mini={mini} onSupportClick={() => helpChatRef.current?.openModal()} />,
-                          }}
-                          onPageChange={(page) => {
-                            if (page?.segment) setActiveSection(page.segment);
-                          }}
+                          slots={dashboardSlots}
+                          onPageChange={handlePageChange}
                         >
                           <Box sx={{ flexGrow: 1, width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
                             {renderMobileToolbar()}
@@ -1817,7 +1827,8 @@ export default function App() {
                         <HelpChat ref={helpChatRef} />
                       </AppProvider>
                     </ThemeProvider>
-                  </ColorModeContext.Provider>
+                  </SearchContext.Provider>
+                </ColorModeContext.Provider>
               </SubscriptionGuard>
             )}
           </>
