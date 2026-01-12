@@ -28,11 +28,11 @@ import { API_BASE_URL } from '../config';
 
 // Suggested questions for users to try
 const SUGGESTED_QUESTIONS = [
-  "What are the current z-scores for all commodities? Show me extreme readings.",
-  "Which commodities have commercial z-scores above 2 or below -2?",
-  "Based on commercial positioning and seasonality, what are the best commodities to watch?",
-  "Show me commodities where commercials and retail have opposing z-scores",
-  "What are the top commodities with bullish commercial z-scores and positive seasonality?",
+  "What commodities are showing extreme bullish positioning?",
+  "What changed in this week's report?",
+  "Compare the Gold report to last week",
+  "Where are commercials accumulating over the last 4 weeks?",
+  "Based on z-score and seasonality, what should I look at?",
 ];
 
 // Single message component
@@ -346,7 +346,7 @@ const AIChat = () => {
     try {
       const email = localStorage.getItem('userEmail') || '';
 
-      const response = await fetch(`${API_BASE_URL}/api/ai/chat`, {
+      const response = await fetch(`${API_BASE_URL}/api/ai/chat/v2`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -586,7 +586,7 @@ const AIChat = () => {
         color="text.disabled"
         sx={{ mt: 1, textAlign: 'center' }}
       >
-        Powered by AI • 50 queries per hour
+        Powered by AI • 100 queries per hour
       </Typography>
     </Box>
   );
