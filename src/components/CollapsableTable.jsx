@@ -381,6 +381,34 @@ export default function CollapsibleTable({
   const retailTabIndex = hasRetailTracker ? ((favoritesTabVisible ? 1 : 0) + (hasCommercialTracker ? 1 : 0)) : null;
   const groupStartIndex = (favoritesTabVisible ? 1 : 0) + (hasCommercialTracker ? 1 : 0) + (hasRetailTracker ? 1 : 0);
 
+  // Define getFilteredData before the useEffect that uses it
+  const getFilteredData = React.useCallback((groupLabel) => {
+    if (!groupLabel) return [];
+
+    let result;
+    if (groupLabel === 'Favorites') {
+      result = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
+    } else if (groupLabel === 'Commercial Tracker') {
+      // Filter based on selected timeframe - show only items extreme in that timeframe
+      if (zScoreTimeframe === '5y') {
+        result = commercialTrackerData.filter(x => x.isExtreme5y);
+      } else {
+        result = commercialTrackerData.filter(x => x.isExtremeAllTime);
+      }
+    } else if (groupLabel === 'Retail Tracker') {
+      // Filter based on selected timeframe - show only items extreme in that timeframe
+      if (zScoreTimeframe === '5y') {
+        result = retailTrackerData.filter(x => x.isExtreme5y);
+      } else {
+        result = retailTrackerData.filter(x => x.isExtremeAllTime);
+      }
+    } else {
+      result = filteredFuturesData?.filter(row => getGroupForRow(row) === groupLabel) || [];
+    }
+
+    return result;
+  }, [filteredFuturesData, favorites, commercialTrackerData, retailTrackerData, getGroupForRow, zScoreTimeframe]);
+
   // Initialize selected tab
   React.useEffect(() => {
     if (!initialLoadDone.current && futuresData?.length > 0 && (filteredGroups.length > 0 || favorites.length > 0)) {
@@ -409,11 +437,11 @@ export default function CollapsibleTable({
       // Select first commodity in the current tab
       let currentData;
       if (favoritesTabVisible && initialTab === favoritesTabIndex) {
-        currentData = favoritesInSearch;
+        currentData = getFilteredData('Favorites');
       } else if (hasCommercialTracker && initialTab === commercialTabIndex) {
-        currentData = commercialTrackerData;
+        currentData = getFilteredData('Commercial Tracker');
       } else if (hasRetailTracker && initialTab === retailTabIndex) {
-        currentData = retailTrackerData;
+        currentData = getFilteredData('Retail Tracker');
       } else {
         const currentGroup = filteredGroups[initialTab - groupStartIndex];
         currentData = getFilteredData(currentGroup);
@@ -434,7 +462,7 @@ export default function CollapsibleTable({
 
       initialLoadDone.current = true;
     }
-  }, [futuresData, filteredGroups, favorites, commercialTrackerData, retailTrackerData, favoritesTabIndex, commercialTabIndex, retailTabIndex, groupStartIndex, favoritesTabVisible, hasCommercialTracker, hasRetailTracker]);
+  }, [futuresData, filteredGroups, favorites, commercialTrackerData, retailTrackerData, favoritesTabIndex, commercialTabIndex, retailTabIndex, groupStartIndex, favoritesTabVisible, hasCommercialTracker, hasRetailTracker, getFilteredData]);
 
   const handleRequestSort = (property) => {
     const isAsc = effectiveOrderBy === property && effectiveOrder === 'asc';
@@ -451,23 +479,6 @@ export default function CollapsibleTable({
   const handleTabChange = (event, newValue) => {
     onTabChange(newValue);
   };
-
-  const getFilteredData = React.useCallback((groupLabel) => {
-    if (!groupLabel) return [];
-
-    let result;
-    if (groupLabel === 'Favorites') {
-      result = filteredFuturesData?.filter(d => favorites.includes(d.commodity)) || [];
-    } else if (groupLabel === 'Commercial Tracker') {
-      result = commercialTrackerData;
-    } else if (groupLabel === 'Retail Tracker') {
-      result = retailTrackerData;
-    } else {
-      result = filteredFuturesData?.filter(row => getGroupForRow(row) === groupLabel) || [];
-    }
-
-    return result;
-  }, [filteredFuturesData, favorites, commercialTrackerData, retailTrackerData, getGroupForRow]);
 
   // Get the current exchange's data
   const currentGroupData = React.useMemo(() => {
@@ -491,11 +502,16 @@ export default function CollapsibleTable({
 
     const data = getFilteredData(currentGroup);
     return data;
-  }, [futuresData, filteredFuturesData, filteredGroups, selectedTab, favorites, commercialTrackerData, retailTrackerData, favoritesTabIndex, commercialTabIndex, retailTabIndex, groupStartIndex, favoritesTabVisible, hasCommercialTracker, hasRetailTracker, getFilteredData]);
+  }, [futuresData, filteredFuturesData, filteredGroups, selectedTab, favorites, commercialTrackerData, retailTrackerData, favoritesTabIndex, commercialTabIndex, retailTabIndex, groupStartIndex, favoritesTabVisible, hasCommercialTracker, hasRetailTracker, getFilteredData, zScoreTimeframe]);
 
   const currentGroupDataLength = currentGroupData.length;
-  const commercialTrackerCount = commercialTrackerData.length;
-  const retailTrackerCount = retailTrackerData.length;
+  // Calculate tracker counts based on selected timeframe
+  const commercialTrackerCount = zScoreTimeframe === '5y' 
+    ? commercialTrackerData.filter(x => x.isExtreme5y).length 
+    : commercialTrackerData.filter(x => x.isExtremeAllTime).length;
+  const retailTrackerCount = zScoreTimeframe === '5y'
+    ? retailTrackerData.filter(x => x.isExtreme5y).length
+    : retailTrackerData.filter(x => x.isExtremeAllTime).length;
 
   React.useEffect(() => {
     if (!filteredFuturesData) return;
@@ -1725,7 +1741,7 @@ export default function CollapsibleTable({
                       fontWeight: 500
                     }}
                   >
-                    {commercialTrackerData.length}
+                    {commercialTrackerCount}
                   </Box>
                 )}
               </Box>
@@ -1740,7 +1756,7 @@ export default function CollapsibleTable({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1,
-                opacity: retailTrackerData.length === 0 ? 0.5 : 1
+                opacity: retailTrackerCount === 0 ? 0.5 : 1
               }}>
                 <span>Retail Tracker</span>
                 {isLoadingExtremes ? (
@@ -1759,7 +1775,7 @@ export default function CollapsibleTable({
                       fontWeight: 500
                     }}
                   >
-                    {retailTrackerData.length}
+                    {retailTrackerCount}
                   </Box>
                 )}
               </Box>

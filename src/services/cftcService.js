@@ -247,21 +247,31 @@ export function getCommercialTrackerData(data, historicalData) {
       zScore5y = Number(zScore5y.toFixed(2));
     }
 
-    // Check if position is extreme based on Z-score
+    // Check if position is extreme based on Z-score (all-time for backwards compatibility)
     const extremeType = zScore >= Z_SCORE_THRESHOLD ? 'BULLISH' : 
                         zScore <= -Z_SCORE_THRESHOLD ? 'BEARISH' : 'NORMAL';
+    
+    // Also determine 5-year extreme type
+    const extremeType5y = zScore5y !== null ? (
+      zScore5y >= Z_SCORE_THRESHOLD ? 'BULLISH' : 
+      zScore5y <= -Z_SCORE_THRESHOLD ? 'BEARISH' : 'NORMAL'
+    ) : 'NORMAL';
 
     // Return enriched item regardless; we'll filter below
     return {
       ...item,
       zScore: Number(zScore.toFixed(2)),
       zScore5y,
-      extremeType
+      extremeType,
+      extremeType5y,
+      // Flag to indicate if extreme in each timeframe
+      isExtremeAllTime: Math.abs(zScore) >= Z_SCORE_THRESHOLD,
+      isExtreme5y: zScore5y !== null && Math.abs(zScore5y) >= Z_SCORE_THRESHOLD
     };
   });
 
-  // Keep only extremes for the tracker
-  return enriched.filter(x => x && Math.abs(x.zScore) >= Z_SCORE_THRESHOLD);
+  // Keep items that are extreme in EITHER all-time OR 5-year timeframe
+  return enriched.filter(x => x && (x.isExtremeAllTime || x.isExtreme5y));
 } 
 
 // Retail extremes based on non-reportable (retail) positions
@@ -397,16 +407,28 @@ export function getRetailTrackerData(data, historicalData) {
       zScore5y = Number(zScore5y.toFixed(2));
     }
 
+    // Check if position is extreme based on Z-score (all-time for backwards compatibility)
     const extremeType = zScore >= Z_SCORE_THRESHOLD ? 'BULLISH' :
                         zScore <= -Z_SCORE_THRESHOLD ? 'BEARISH' : 'NORMAL';
+    
+    // Also determine 5-year extreme type
+    const extremeType5y = zScore5y !== null ? (
+      zScore5y >= Z_SCORE_THRESHOLD ? 'BULLISH' : 
+      zScore5y <= -Z_SCORE_THRESHOLD ? 'BEARISH' : 'NORMAL'
+    ) : 'NORMAL';
 
     return {
       ...item,
       zScore: Number(zScore.toFixed(2)),
       zScore5y,
-      extremeType
+      extremeType,
+      extremeType5y,
+      // Flag to indicate if extreme in each timeframe
+      isExtremeAllTime: Math.abs(zScore) >= Z_SCORE_THRESHOLD,
+      isExtreme5y: zScore5y !== null && Math.abs(zScore5y) >= Z_SCORE_THRESHOLD
     };
   });
 
-  return enriched.filter(x => x && Math.abs(x.zScore) >= Z_SCORE_THRESHOLD);
+  // Keep items that are extreme in EITHER all-time OR 5-year timeframe
+  return enriched.filter(x => x && (x.isExtremeAllTime || x.isExtreme5y));
 }
